@@ -30,6 +30,8 @@ import { seedCreatedWorkOrder } from
     './work-order-fixtures.ts';
 import { createArchiveDelta } from
     './fixtures/create-archive-graph.ts';
+import { seedFlowTypeJoin } from
+    './record-seed-fixtures.ts';
 
 // POST organizations/:id/work-orders/:id/transition — W10 required-at-exit
 // gate (Task 9). Gate tier only: every transition leaving
@@ -374,28 +376,6 @@ async function seedInstance(
     return put.headers.get('ETag')!;
 }
 
-// Each test lands this after its work order: a work order
-// created before its flow's record join is unbound, which
-// is the state these pins start from.
-async function seedFlowTypeJoin(
-    db: MemoryDbAdapter,
-    token: string,
-): Promise<void> {
-    const put = await handleRequest(db, req(
-        'PUT',
-        '/organizations/AjdvjuECVZEgZoFajaIEkg/flows/' + FLOW_ID + '/records/'
-            + '' + FR_ID,
-        token,
-        {
-            id: FR_ID,
-            flow_id: FLOW_ID,
-            record_id: TYPE_ID,
-            at: AT,
-        },
-    ));
-    assertStrictEquals(put.status, 201);
-}
-
 async function bindInstance(
     db: MemoryDbAdapter,
     token: string,
@@ -437,6 +417,11 @@ async function baseSeed(): Promise<{
     return { db, adminToken, memberToken };
 }
 
+// Each test lands the flow-record join after its
+// work order: a work order created before that
+// join is unbound, which is the state these pins
+// start from.
+
 // --- A3 / W10 pins ---
 
 Deno.test(
@@ -447,7 +432,10 @@ Deno.test(
             db, adminToken, WO_ID,
             requiredStepGraph(), NODE_STEP,
         );
-        await seedFlowTypeJoin(db, adminToken);
+        await seedFlowTypeJoin(
+            db, adminToken, FLOW_ID, FR_ID,
+            TYPE_ID, AT,
+        );
         const res = await handleRequest(db, req(
             'POST', TRANSITION, adminToken,
             pureMoveBody('te-unbound', NODE_TARGET),
@@ -469,7 +457,10 @@ Deno.test(
             db, adminToken, WO_ID,
             requiredStepGraph(), NODE_STEP,
         );
-        await seedFlowTypeJoin(db, adminToken);
+        await seedFlowTypeJoin(
+            db, adminToken, FLOW_ID, FR_ID,
+            TYPE_ID, AT,
+        );
         await seedInstance(db, adminToken, [
             { attribute_id: ATTR_ID, value: 'ok' },
         ]);
@@ -492,7 +483,10 @@ Deno.test(
             db, adminToken, WO_ID,
             requiredStepGraph(), NODE_STEP,
         );
-        await seedFlowTypeJoin(db, adminToken);
+        await seedFlowTypeJoin(
+            db, adminToken, FLOW_ID, FR_ID,
+            TYPE_ID, AT,
+        );
         // Empty instance head — required Title absent.
         await seedInstance(db, adminToken, []);
         await bindInstance(db, adminToken);
@@ -521,7 +515,10 @@ Deno.test(
             db, adminToken, WO_ID,
             requiredStepGraph(), NODE_STEP,
         );
-        await seedFlowTypeJoin(db, adminToken);
+        await seedFlowTypeJoin(
+            db, adminToken, FLOW_ID, FR_ID,
+            TYPE_ID, AT,
+        );
         const etag = await seedInstance(
             db, adminToken, [],
         );
@@ -552,7 +549,10 @@ Deno.test(
             db, adminToken, WO_ID,
             requiredStepGraph(), NODE_STEP,
         );
-        await seedFlowTypeJoin(db, adminToken);
+        await seedFlowTypeJoin(
+            db, adminToken, FLOW_ID, FR_ID,
+            TYPE_ID, AT,
+        );
         const etag = await seedInstance(
             db, adminToken, [
                 {
@@ -593,7 +593,10 @@ Deno.test(
             db, adminToken, WO_FREE,
             freeGraph(), NODE_CREATE,
         );
-        await seedFlowTypeJoin(db, adminToken);
+        await seedFlowTypeJoin(
+            db, adminToken, FLOW_ID, FR_ID,
+            TYPE_ID, AT,
+        );
         // At n-create (no required). Unbound pure move.
         const res = await handleRequest(db, req(
             'POST', TRANSITION_FREE, adminToken,
@@ -628,7 +631,10 @@ Deno.test(
             db, adminToken, WO_ID,
             requiredStepGraph(), NODE_STEP,
         );
-        await seedFlowTypeJoin(db, adminToken);
+        await seedFlowTypeJoin(
+            db, adminToken, FLOW_ID, FR_ID,
+            TYPE_ID, AT,
+        );
         // Head missing required Title; body also tries
         // a role-locked set → must answer 403 (ACL),
         // not 400 (required).
@@ -670,7 +676,10 @@ Deno.test(
             db, adminToken, WO_ID,
             requiredStepGraph([ATTR_FOREIGN]), NODE_STEP,
         );
-        await seedFlowTypeJoin(db, adminToken);
+        await seedFlowTypeJoin(
+            db, adminToken, FLOW_ID, FR_ID,
+            TYPE_ID, AT,
+        );
         await seedInstance(db, adminToken, [
             { attribute_id: ATTR_ID, value: 'ok' },
         ]);
