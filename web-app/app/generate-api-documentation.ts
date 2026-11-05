@@ -6,6 +6,7 @@
 // clock, and randomness before this module loads, and the
 // ordering is stable — so `--check` can gate staleness.
 import { dirname, join } from '@std/path';
+import { exists } from './deno-file.ts';
 import { routes } from '../../api/routes.ts';
 import type { Route } from '../../api/routes.ts';
 import {
@@ -809,18 +810,6 @@ function treeOf(
         [ROOMS_TS, roomsTsOf(catalog)],
         ...samples,
     ]);
-}
-
-function exists(path: string): boolean {
-    try {
-        Deno.statSync(path);
-        return true;
-    } catch (error) {
-        if (error instanceof Deno.errors.NotFound) {
-            return false;
-        }
-        throw error;
-    }
 }
 
 function readTree(root: string): Map<string, string> {
