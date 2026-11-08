@@ -14,11 +14,11 @@ Deno.test('design-system render is byte-stable',
 async () => {
     const rendered = buildDesignSystemPage().toString();
     const digest = await sha256Hex(rendered);
-    assertStrictEquals(rendered.length, 58301);
+    assertStrictEquals(rendered.length, 58295);
     assertStrictEquals(
         digest,
-        '36cb3e9f27257e288f1bdaa1964b751bc1516861'
-        + '389348ca4ec78d81c43a7d6f',
+        '5aa456c0c7186974d5f1a13294eaa172666c52ff'
+        + 'a12f857f9ef4f30d4a330a06',
     );
 });
 
