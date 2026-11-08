@@ -16,7 +16,6 @@ import type {
     StatementAnswer,
     StatementBind,
 } from '../shared/ledger-statement.ts';
-import type { LatencySimulation } from './latency.ts';
 import type { ComponentState } from
     '../shared/system-status.ts';
 import type {
@@ -37,6 +36,10 @@ import {
 //
 // The surviving store rides HistoryEntityStore (message
 // plane only — clients table eliminated).
+export interface LatencySimulation {
+    simulateLatency(): Promise<void>;
+}
+
 export class BackedDbAdapter
     implements DbAdapter, LatencySimulation
 {
