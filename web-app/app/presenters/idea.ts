@@ -24,6 +24,7 @@ import {
     iconClipboardCheck,
     iconArrowRight,
     iconArrowLeft,
+    iconArchive,
     iconCheckCircle,
     iconCheckCircle2,
     iconXCircle,
@@ -479,6 +480,54 @@ function buildApprovalDialogs(): SafeHtml {
     </dialog>`;
 }
 
+function buildArchiveButton(): SafeHtml {
+    return html`
+        <button
+            class="btn btn-outline gap-2"
+            id="idea-archive-btn"
+            data-dialog-open="idea-archive">
+            ${iconArchive(ICON_SIZE.base, '')} Archive
+        </button>`;
+}
+
+// Archive is one-way: nothing in the app lists an
+// archived idea or brings one back.
+function buildArchiveDialog(): SafeHtml {
+    return html`
+    <dialog
+        id="idea-archive-dialog"
+        class="dialog dialog-narrow"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="idea-archive-title"
+        aria-describedby="idea-archive-message">
+        <div class="dialog-header">
+            <h3 class="dialog-title"
+                id="idea-archive-title">
+                Archive idea?
+            </h3>
+        </div>
+        <p id="idea-archive-message"
+            class="text-sm text-muted">
+            The idea leaves the Ideas list.
+            It can't be restored from the app.
+        </p>
+        <div class="dialog-footer">
+            <button
+                class="btn btn-outline"
+                data-dialog-cancel="idea-archive">
+                Cancel
+            </button>
+            <button
+                class="btn btn-primary"
+                id="idea-archive-confirm"
+                data-idea-action="archive-confirm">
+                Archive
+            </button>
+        </div>
+    </dialog>`;
+}
+
 function buildProblemSolutionReadonlyCard(
     idea: Idea,
 ): SafeHtml {
@@ -588,6 +637,10 @@ export class IdeaPresenter {
     canSubmit(): boolean {
         return this.#idea.canBeSubmittedForReview()
             && this.#submission.kind === 'recorded';
+    }
+
+    canArchive(): boolean {
+        return this.#idea.canBeArchived();
     }
 
     positionSortKey(): number {
@@ -758,9 +811,11 @@ export class IdeaPresenter {
         mutateSlot(
             container,
             '.idea-dialogs-slot',
-            this.#idea.isReviewable()
+            html`${this.#idea.isReviewable()
                 ? buildApprovalDialogs()
-                : html``,
+                : html``}${this.canArchive()
+                ? buildArchiveDialog()
+                : html``}`,
         );
     }
 
@@ -771,6 +826,9 @@ export class IdeaPresenter {
             )}
             ${this.#idea.isReviewable()
                 ? buildApprovalButtons()
+                : html``}
+            ${this.canArchive()
+                ? buildArchiveButton()
                 : html``}
             <button
                 class="${

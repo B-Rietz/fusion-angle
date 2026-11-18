@@ -2265,6 +2265,24 @@ version, whoever saves it — tests/adapters-ideas.test.ts
        hook when its fetch rejects); exploratory —
        the live rendering of that error state on this
        specific page
+- [ ] **D38** Create an idea titled "Archive me"
+  from `ideas/create.html` and open it, so the
+  visible list ends where it began. Click
+  "Archive", then "Cancel"; click "Archive" again
+  and confirm. PASS: Cancel leaves the idea
+  untouched; the confirm toasts "Idea archived",
+  lands on the ideas list, and "Archive me" is
+  not on it. Archive shows only for an `active`,
+  `sent_back`, or `approved` idea.
+  Pin: tests/browser/idea-archive.test.ts
+       'archiving an idea takes it off the ideas
+       list' (decides the button, the dialog, the
+       confirm, the list without the idea, and the
+       stored `archived` state);
+       tests/presenter-idea.test.ts
+       'IdeaPresenter.canArchive offers archive to
+       active, sent-back, and approved ideas only';
+       exploratory — Cancel and the toast
 
 ### Idea Detail — Submit for Review
 

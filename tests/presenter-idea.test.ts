@@ -5,6 +5,7 @@ import {
     assertStrictEquals,
 } from '@std/assert';
 import {
+    IDEA_STATES,
     Idea,
     type IdeaEntity,
     type IdeaState,
@@ -535,6 +536,23 @@ Deno.test(
                 makeIdea(), { kind: 'missing' },
             ).canSubmit(),
             false,
+        );
+    },
+);
+
+// Archive stops nothing in flight: an idea in review or
+// already a project keeps its course.
+Deno.test(
+    'IdeaPresenter.canArchive offers archive to active,'
+    + ' sent-back, and approved ideas only',
+    () => {
+        const archivable = IDEA_STATES.filter(
+            s => new IdeaPresenter(
+                makeIdea({}, s), RECORDED,
+            ).canArchive(),
+        );
+        assertEquals(
+            archivable, ['active', 'approved', 'sent_back'],
         );
     },
 );
