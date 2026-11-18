@@ -27,11 +27,11 @@ function buildEventRow(
             <div class="flex-fill min-w-0">
                 <p class="${
                     'text-sm font-medium truncate'
-                }">${event.jti}</p>
+                }">Token ${event.jti}</p>
                 <p class="${
                     'text-xs text-muted truncate'
                 }">
-                    parent: ${
+                    Parent token ${
                         event.parentJti === undefined
                             ? DISPLAY_ABSENT
                             : event.parentJti

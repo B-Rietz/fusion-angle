@@ -61,7 +61,7 @@ Deno.test(
             editing: null,
         }).buildCard().toString();
         assertMatch(html, /data-instance-id="inst-1"/);
-        assertMatch(html, /inst-1/);
+        assertMatch(html, /Instance inst-1/);
         assertMatch(html, /Title/);
         assertMatch(html, /Alpha/);
         assertMatch(html, /Secret/);
@@ -106,7 +106,7 @@ Deno.test(
                 conflictNotice: null,
             },
         }).buildCard().toString();
-        assertMatch(html, /inst-9/);
+        assertMatch(html, /Instance inst-9/);
         assertMatch(
             html, /data-attribute-id="a-write"/,
         );

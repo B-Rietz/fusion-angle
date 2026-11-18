@@ -1137,3 +1137,12 @@ Deno.test(
         );
     },
 );
+
+Deno.test(
+    'the header labels the display id as a work order',
+    () => {
+        const out = makePresenter().buildPage().toString();
+        assertMatch(out, /Work order WO-42/);
+        assert(!out.includes('#WO-42'));
+    },
+);

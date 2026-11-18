@@ -94,7 +94,8 @@ Deno.test(
     () => {
         const out = capture([placed()], 'available', NO_FILTER);
         assertStringIncludes(out, 'Onboarding');
-        assertStringIncludes(out, '#WO-1');
+        assertStringIncludes(out, 'Work order WO-1');
+        assertEquals(out.includes('#WO-1'), false);
         assertStringIncludes(out, 'Review');
         assertStringIncludes(
             out, 'data-work-order-card="wo-1"',
@@ -129,7 +130,10 @@ Deno.test(
         }], 'available', NO_FILTER);
         assertStringIncludes(out, 'State unknown');
         assertStringIncludes(out, 'Test flow');
-        assertStringIncludes(out, '#unplaced-7');
+        assertStringIncludes(
+            out, 'Work order unplaced-7',
+        );
+        assertEquals(out.includes('#unplaced-7'), false);
         assertEquals(
             out.includes('data-work-order-card'),
             false,

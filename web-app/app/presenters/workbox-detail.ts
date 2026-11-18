@@ -3,6 +3,10 @@ import {
 } from '../safe-html.ts';
 import type { SafeHtml } from '../safe-html.ts';
 import {
+    instanceLabel,
+    workOrderLabel,
+} from '../format.ts';
+import {
     memberName,
     type WorkOrder,
     type TransitionEvent,
@@ -359,8 +363,9 @@ export class WorkboxDetailPresenter {
                         <span
                             class="badge
                                 badge-neutral">
-                            #${this
-                                .displayIdText()}
+                            ${workOrderLabel(
+                                this.displayIdText(),
+                            )}
                         </span>
                         <span
                             class="badge
@@ -424,7 +429,7 @@ export class WorkboxDetailPresenter {
             title="${
                 'type ' + bind.recordTypeId
             }">
-            Instance ${bind.instanceId}
+            ${instanceLabel(bind.instanceId)}
         </span>`;
     }
 
