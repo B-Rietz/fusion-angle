@@ -58,6 +58,13 @@ export function shouldSurfaceFault(
 // Production boots once; tests pageshow in finally.
 let pageUnloading = false;
 
+// Our own navigation latches before pagehide: Safari
+// cancels in-flight fetches as the navigation starts,
+// rejecting them with a live TypeError('Load failed').
+export function latchPageLeaving(): void {
+    pageUnloading = true;
+}
+
 // One voice for a failed gesture: log the fault bound to the
 // operation, then toast the gesture's name with the fault's
 // message. `message` names the WHOLE gesture ('Failed to

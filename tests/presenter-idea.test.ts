@@ -13,7 +13,7 @@ import {
 import {
     DISPLAY_ABSENT,
 } from '../web-app/app/format.ts';
-import type { IdeaWithSubmitter } from '../client/index.ts';
+import type { IdeaSubmission } from '../client/index.ts';
 import { responseMessage } from './fixtures/response-message.ts';
 import type { HttpMessage } from
     '../shared/http-message/http-message.ts';
@@ -25,6 +25,7 @@ import {
     buildInitialIdeaListState,
     applyIdeaListUpdate,
     applyIdeaFilterToggle,
+    applyIdeaSubmission,
     IdeaListPresenter,
 } from '../web-app/app/presenters/idea.ts';
 import {
@@ -125,19 +126,15 @@ function makeIdea(
     );
 }
 
-function makeWithSubmitter(
-    overrides: Partial<IdeaEntity> = {},
-    submitterName = 'Ada Lovelace',
-    submittedAt = '2026-01-15T10:00:00.000000Z',
-    state: IdeaState = 'active',
-): IdeaWithSubmitter {
-    const entity = makeIdeaEntity(overrides);
+function recorded(name: string): IdeaSubmission {
     return {
-        idea: new Idea(responseMessage(entity), state),
-        submitterName,
-        submittedAt,
+        kind: 'recorded',
+        submitterName: name,
+        at: '2026-01-15T10:00:00.000000Z',
     };
 }
+
+const RECORDED = recorded('X');
 
 function makeObjective(
     id: string,
@@ -249,8 +246,7 @@ Deno.test(
     + ' state badge, and card data attributes',
     () => {
         const presenter = new IdeaPresenter(
-            makeIdea(), 'Ada Lovelace',
-            '2026-01-15T10:00:00.000000Z',
+            makeIdea(), recorded('Ada Lovelace'),
         );
         const out = presenter
             .buildCard(true).toString();
@@ -274,8 +270,7 @@ Deno.test(
     'IdeaPresenter.buildCard paints the submitter name (D1)',
     () => {
         const presenter = new IdeaPresenter(
-            makeIdea(), 'Ada Lovelace',
-            '2026-01-15T10:00:00.000000Z',
+            makeIdea(), recorded('Ada Lovelace'),
         );
         assert(
             presenter.buildCard(true).toString()
@@ -289,7 +284,7 @@ Deno.test(
     + ' only when showGrip is true',
     () => {
         const presenter = new IdeaPresenter(
-            makeIdea(), 'X', 'y',
+            makeIdea(), RECORDED,
         );
         const withGrip = presenter
             .buildCard(true).toString();
@@ -309,10 +304,10 @@ Deno.test(
     () => {
         const approved = new IdeaPresenter(
             makeIdea({}, 'approved'),
-            'X', 'y',
+            RECORDED,
         );
         const active = new IdeaPresenter(
-            makeIdea({}, 'active'), 'X', 'y',
+            makeIdea({}, 'active'), RECORDED,
         );
         assertMatch(
             approved.buildCard(false)
@@ -333,7 +328,7 @@ Deno.test(
     () => {
         const presenter = new IdeaPresenter(
             makeIdea({}, 'in_review'),
-            'X', 'y',
+            RECORDED,
         );
         const dimmed = presenter
             .buildStateBadge(false).toString();
@@ -361,7 +356,7 @@ Deno.test(
     () => {
         const review = new IdeaPresenter(
             makeIdea({}, 'in_review'),
-            'X', 'y',
+            RECORDED,
         );
         assertStrictEquals(review.isReviewable(), true);
         assertStrictEquals(review.isConvertible(), false);
@@ -380,7 +375,7 @@ Deno.test(
             makeIdea(
                 { position: 9 }, 'active',
             ),
-            'X', 'y',
+            RECORDED,
         );
         assertStrictEquals(active.canSubmit(), true);
         assertStrictEquals(active.isReviewable(), false);
@@ -483,16 +478,16 @@ Deno.test(
     () => {
         const incomplete = new IdeaPresenter(
             makeIdea({ expected_outcome: '' }, 'active'),
-            'X', 'y',
+            RECORDED,
         );
         const ready = new IdeaPresenter(
-            makeIdea({}, 'active'), 'X', 'y',
+            makeIdea({}, 'active'), RECORDED,
         );
         const review = new IdeaPresenter(
             makeIdea(
                 { expected_outcome: '' }, 'in_review',
             ),
-            'X', 'y',
+            RECORDED,
         );
         const incOut = incomplete
             .buildCard(false).toString();
@@ -506,22 +501,58 @@ Deno.test(
     },
 );
 
+// The submission is a sub-document read after the idea:
+// a card paints before it lands. An idea whose submission
+// write was lost is Incomplete, like one with an empty
+// required field, in any state, and cannot be submitted.
 Deno.test(
-    'IdeaPresenter carries submitter name and'
-    + ' submitted timestamp verbatim',
+    'IdeaPresenter.buildCard marks an idea with no'
+    + ' submission Incomplete in any state',
     () => {
-        const presenter = new IdeaPresenter(
-            makeIdea(), 'Grace Hopper',
-            '2026-02-02T08:30:00.000000Z',
+        for (const state of ['active', 'in_review'] as const) {
+            const out = new IdeaPresenter(
+                makeIdea({}, state), { kind: 'missing' },
+            ).buildCard(true).toString();
+            assertMatch(out, /Incomplete/);
+            assertMatch(
+                out,
+                /data-idea-readiness="gVvtDIaqhnkXZQcxZeSuiw"/,
+            );
+        }
+    },
+);
+
+Deno.test(
+    'IdeaPresenter.canSubmit refuses an idea with no'
+    + ' submission',
+    () => {
+        assertStrictEquals(
+            new IdeaPresenter(makeIdea(), RECORDED).canSubmit(),
+            true,
         );
         assertStrictEquals(
-            presenter.submitterName(),
-            'Grace Hopper',
+            new IdeaPresenter(
+                makeIdea(), { kind: 'missing' },
+            ).canSubmit(),
+            false,
         );
-        assertStrictEquals(
-            presenter.submittedAt(),
-            '2026-02-02T08:30:00.000000Z',
+    },
+);
+
+Deno.test(
+    'IdeaPresenter.buildCard paints before its'
+    + ' submitter lands',
+    () => {
+        const out = new IdeaPresenter(
+            makeIdea(), { kind: 'pending' },
+        ).buildCard(true).toString();
+        assertMatch(out, /Self-serve onboarding/);
+        assertMatch(
+            out,
+            /data-idea-submitter="gVvtDIaqhnkXZQcxZeSuiw"/,
         );
+        assert(!out.includes('Incomplete'));
+        assert(!out.includes('undefined'));
     },
 );
 
@@ -532,8 +563,7 @@ Deno.test(
     + ' linked idea id',
     () => {
         const presenter = new IdeaEditPresenter(
-            makeIdea(), FILLED_DRAFT,
-            'Ada', '2026-01-15T10:00:00.000000Z',
+            makeIdea(), FILLED_DRAFT, RECORDED,
         );
         assertStrictEquals(presenter.idForLink(), 'gVvtDIaqhnkXZQcxZeSuiw');
         assertEquals(
@@ -548,7 +578,7 @@ Deno.test(
     'buildInitialIdeaListState starts with the all'
     + ' filter and the supplied ideas',
     () => {
-        const ideas = [makeWithSubmitter()];
+        const ideas = [makeIdea()];
         const state = buildInitialIdeaListState(
             ideas,
         );
@@ -565,7 +595,7 @@ Deno.test(
             buildInitialIdeaListState([]),
             'approved',
         );
-        const nextIdeas = [makeWithSubmitter()];
+        const nextIdeas = [makeIdea()];
         const updated = applyIdeaListUpdate(
             initial, nextIdeas,
         );
@@ -603,6 +633,27 @@ Deno.test(
     },
 );
 
+Deno.test(
+    'applyIdeaSubmission paints the submitter into'
+    + ' its card and survives a list update',
+    () => {
+        const idea = makeIdea({ id: 'i-a' });
+        const before = buildInitialIdeaListState([idea]);
+        const after = applyIdeaListUpdate(
+            applyIdeaSubmission(
+                before, 'i-a', recorded('Grace Hopper'),
+            ),
+            [idea],
+        );
+        const slot = makeStubEl();
+        new IdeaListPresenter(after).renderList(
+            slot as unknown as HTMLElement,
+        );
+        assertMatch(slot.captured, /Grace Hopper/);
+        assert(before.submissions.size === 0);
+    },
+);
+
 // IdeaListPresenter
 
 Deno.test(
@@ -631,11 +682,11 @@ Deno.test(
     + ' the all view',
     () => {
         const ideas = [
-            makeWithSubmitter({
+            makeIdea({
                 id: 'i-b', title: 'Beta idea',
                 position: 5,
             }),
-            makeWithSubmitter({
+            makeIdea({
                 id: 'i-a', title: 'Alpha idea',
                 position: 1,
             }),
@@ -665,20 +716,18 @@ Deno.test(
     + ' the grip',
     () => {
         const ideas = [
-            makeWithSubmitter(
+            makeIdea(
                 {
                     id: 'i-rev', title: 'Review me',
                     position: 2,
                 },
-                'Ada', '2026-01-15T10:00:00Z',
                 'in_review',
             ),
-            makeWithSubmitter(
+            makeIdea(
                 {
                     id: 'i-act', title: 'Active one',
                     position: 1,
                 },
-                'Ada', '2026-01-15T10:00:00Z',
                 'active',
             ),
         ];
@@ -704,19 +753,16 @@ Deno.test(
     + ' badge per present state',
     () => {
         const ideas = [
-            makeWithSubmitter(
+            makeIdea(
                 { id: 'fndCYAsXazdzMUlEGMNIZw' },
-                'Ada', '2026-01-15T10:00:00Z',
                 'active',
             ),
-            makeWithSubmitter(
+            makeIdea(
                 { id: 'fxysGbBPBsnCwJNJsyZnkA' },
-                'Ada', '2026-01-15T10:00:00Z',
                 'active',
             ),
-            makeWithSubmitter(
+            makeIdea(
                 { id: 'gBbNAWlPwMfXZvevoUPhFQ' },
-                'Ada', '2026-01-15T10:00:00Z',
                 'in_review',
             ),
         ];
@@ -747,24 +793,20 @@ Deno.test(
     + ' and archived even when those ideas exist',
     () => {
         const ideas = [
-            makeWithSubmitter(
+            makeIdea(
                 { id: 'fndCYAsXazdzMUlEGMNIZw' },
-                'Ada', '2026-01-15T10:00:00Z',
                 'in_review',
             ),
-            makeWithSubmitter(
+            makeIdea(
                 { id: 'fxysGbBPBsnCwJNJsyZnkA' },
-                'Ada', '2026-01-15T10:00:00Z',
                 'approved',
             ),
-            makeWithSubmitter(
+            makeIdea(
                 { id: 'gBbNAWlPwMfXZvevoUPhFQ' },
-                'Ada', '2026-01-15T10:00:00Z',
                 'promoted',
             ),
-            makeWithSubmitter(
+            makeIdea(
                 { id: 'hCcOBXmQxNgYawfwpVQiGR' },
-                'Ada', '2026-01-15T10:00:00Z',
                 'archived',
             ),
         ];

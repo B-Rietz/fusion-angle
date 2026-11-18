@@ -8,14 +8,21 @@ import {
     type RequestContext,
 } from '../client/request-context.ts';
 import {
+    IN_PROCESS_ORIGIN,
     inPageContext,
+    inProcessFetch,
     recordedContext,
 } from './in-page-facade.ts';
+import { createHttpFacade } from '../client/http-facade.ts';
+import { createAppClient } from '../web-app/app/client.ts';
 import { organizationToken } from './token-fixtures.ts';
 import { adminContext } from './context-fixtures.ts';
 import {
     getIdeas,
     getIdea,
+    getIdeaSubmissions,
+    getIdeaVersions,
+    putIdeaGenesisSubmission,
     getIdeaEntity,
     putIdea,
     postIdeaCreation,
@@ -121,12 +128,21 @@ async () => {
     );
     const result = await getIdeas(memberCtx);
     const hit = result.find(
-        row => row.idea.titleText() === 'Member list',
+        idea => idea.titleText() === 'Member list',
     );
     assert(hit);
 });
 
-Deno.test('getIdeas returns ideas with submitter', async () => {
+Deno.test('getIdeas returns the idea documents', async () => {
+    const { ctx } = await adminContext();
+    await seedIdea(ctx, 'fndCYAsXazdzMUlEGMNIZw', 'First idea', 'active');
+    const result = await getIdeas(ctx);
+    assertStrictEquals(result.length, 1);
+    assertStrictEquals(result[0]?.titleText(), 'First idea');
+    assertStrictEquals(result[0]?.stateValue(), 'active');
+});
+
+Deno.test('getIdeaSubmissions names each submitter', async () => {
     const { db, ctx } = await adminContext();
     const aliceId = generateIdentifier();
     await seedHumanMember(db, aliceId, 'Alice Test');
@@ -135,31 +151,33 @@ Deno.test('getIdeas returns ideas with submitter', async () => {
         ctx, 'syWUUcdBSbBgMwBiCrgbDw', 'fndCYAsXazdzMUlEGMNIZw', aliceId,
         '2026-04-01T00:00:00.000000Z',
     );
-    const result = await getIdeas(ctx);
-    assertStrictEquals(result.length, 1);
-    assertStrictEquals(
-        result[0]?.idea.titleText(),
-        'First idea',
+    const submissions = getIdeaSubmissions(
+        ctx, ['fndCYAsXazdzMUlEGMNIZw'],
     );
-    assertStrictEquals(
-        result[0]?.submitterName,
-        'Alice Test',
-    );
-    assertStrictEquals(
-        result[0]?.idea.stateValue(),
-        'active',
+    assertEquals(
+        await submissions.get('fndCYAsXazdzMUlEGMNIZw'),
+        {
+            kind: 'recorded',
+            submitterName: 'Alice Test',
+            at: '2026-04-01T00:00:00.000000Z',
+        },
     );
 });
 
-Deno.test('getIdeas throws when idea has no submission', async () => {
-    const { db, ctx } = await adminContext();
-    await seedHumanMember(db, generateIdentifier(), 'Alice Test');
+// A create that lost its submission write leaves the idea
+// document alone: it lists, and its submission reads missing.
+Deno.test('getIdeas lists an idea with no submission', async () => {
+    const { ctx } = await adminContext();
     await seedIdea(ctx, 'fndCYAsXazdzMUlEGMNIZw', 'Orphan', 'active');
-    // No submission for fndCYAsXazdzMUlEGMNIZw
-    await assertRejects(
-        () => getIdeas(ctx),
-        Error,
-        'no submission',
+    const result = await getIdeas(ctx);
+    assertStrictEquals(result.length, 1);
+    assertStrictEquals(result[0]?.titleText(), 'Orphan');
+    const submissions = getIdeaSubmissions(
+        ctx, ['fndCYAsXazdzMUlEGMNIZw'],
+    );
+    assertEquals(
+        await submissions.get('fndCYAsXazdzMUlEGMNIZw'),
+        { kind: 'missing' },
     );
 });
 
@@ -174,26 +192,97 @@ Deno.test('getIdea finds submission for one idea', async () => {
     );
     const result = await getIdea(ctx, 'fndCYAsXazdzMUlEGMNIZw');
     assertStrictEquals(result.idea.titleText(), 'A');
-    assertStrictEquals(
-        result.submitterName, 'Alice Test',
+    assertEquals(result.submission, {
+        kind: 'recorded',
+        submitterName: 'Alice Test',
+        at: '2026-04-01T00:00:00.000000Z',
+    });
+});
+
+Deno.test('getIdea reads a missing submission as missing',
+async () => {
+    const { ctx } = await adminContext();
+    await seedIdea(ctx, 'fndCYAsXazdzMUlEGMNIZw', 'A', 'active');
+    const result = await getIdea(ctx, 'fndCYAsXazdzMUlEGMNIZw');
+    assertStrictEquals(result.idea.titleText(), 'A');
+    assertEquals(result.submission, { kind: 'missing' });
+});
+
+// A create whose submission write was lost is finished
+// later, by whoever saves it: the submission names the
+// idea's creator and creation time, read from its first
+// version, never the member who saved.
+Deno.test('putIdeaGenesisSubmission records the creator',
+async () => {
+    const { db, ctx } = await adminContext();
+    const aliceId = generateIdentifier();
+    const ideaId = generateIdentifier();
+    await seedHumanMember(db, aliceId, 'Alice Test');
+    const aliceCtx = inPageContext(
+        db, await organizationToken(aliceId),
+    );
+    await seedIdea(aliceCtx, ideaId, 'Alice made it', 'active');
+    const [genesis] = await getIdeaVersions(ctx, ideaId);
+    await putIdeaGenesisSubmission(ctx, ideaId);
+    assertEquals(
+        await getIdeaSubmissions(ctx, [ideaId]).get(ideaId),
+        {
+            kind: 'recorded',
+            submitterName: 'Alice Test',
+            at: genesis!.query('header.response-at').toText(),
+        },
     );
 });
 
-Deno.test('getIdea throws on missing submission', async () => {
-    const { db, ctx } = await adminContext();
-    await seedHumanMember(db, generateIdentifier(), 'Alice Test');
-    await seedIdea(ctx, 'fndCYAsXazdzMUlEGMNIZw', 'A', 'active');
-    await assertRejects(
-        () => getIdea(ctx, 'fndCYAsXazdzMUlEGMNIZw'),
-        Error,
-        'submission not found',
-    );
-    // getIdea fans three reads out through Promise.all; the
-    // submission's rejection settles the caller while the
-    // other two are still in flight. Yield a macrotask turn
-    // so those ops complete in the test that started them.
-    await new Promise(resolve => setTimeout(resolve, 0));
-});
+// The member reads fail only after the submission read
+// has, so with no settle-all the caller would reject while
+// they run and their rejection would land unheard.
+Deno.test(
+    'a rejected getIdea leaves none of its reads in flight',
+    async () => {
+        const { db, ctx: adminCtx } = await adminContext();
+        const ideaId = generateIdentifier();
+        await seedIdea(adminCtx, ideaId, 'Held', 'active');
+        const inner = inProcessFetch(db);
+        let releaseHeld = (): void => {};
+        const held = new Promise<void>((resolve) => {
+            releaseHeld = resolve;
+        });
+        let inFlight = 0;
+        const fetch: typeof globalThis.fetch = async (
+            input, init,
+        ) => {
+            const path = new URL(new Request(input, init).url)
+                .pathname;
+            inFlight += 1;
+            try {
+                if (path.endsWith('/submissions/')) {
+                    throw new TypeError('submissions down');
+                }
+                if (path.endsWith('/ideas/' + ideaId)) {
+                    return await inner(input, init);
+                }
+                await held;
+                throw new TypeError('members down');
+            } finally {
+                inFlight -= 1;
+                if (path.endsWith('/submissions/')) {
+                    releaseHeld();
+                }
+            }
+        };
+        const ctx = createAppClient(
+            createHttpFacade(IN_PROCESS_ORIGIN, fetch),
+        ).requestContext(await organizationToken());
+        const inFlightAtRejection = await getIdea(
+            ctx, ideaId,
+        ).then(
+            () => { throw new Error('expected a rejection'); },
+            () => inFlight,
+        );
+        assertStrictEquals(inFlightAtRejection, 0);
+    },
+);
 
 Deno.test('putIdea persists changes', async () => {
     const { ctx } = await adminContext();
@@ -277,7 +366,7 @@ Deno.test('archived ideas are filtered from getIdeas', async () => {
     const result = await getIdeas(ctx);
     assertStrictEquals(result.length, 1);
     assertStrictEquals(
-        result[0]?.idea.titleText(), 'Keep',
+        result[0]?.titleText(), 'Keep',
     );
 });
 
@@ -500,7 +589,7 @@ Deno.test('deleted ideas are filtered from getIdeas', async () => {
     const result = await getIdeas(ctx);
     assertStrictEquals(result.length, 1);
     assertStrictEquals(
-        result[0]?.idea.titleText(), 'Keep',
+        result[0]?.titleText(), 'Keep',
     );
 });
 
@@ -517,9 +606,14 @@ Deno.test('getIdeas resolves every seeded submitter in'
             db, await organizationToken('XXZruirZyAOoRpNxaDnpSA'
                 , organization));
         const ideas = await getIdeas(ctx);
-        for (const i of ideas) {
+        const submissions = getIdeaSubmissions(
+            ctx, ideas.map(i => i.idForLink()),
+        );
+        for (const pending of submissions.values()) {
+            const submission = await pending;
             assert(
-                i.submitterName.length > 0,
+                submission.kind === 'recorded'
+                    && submission.submitterName.length > 0,
                 'empty submitter in org ' + organization);
         }
     }
@@ -541,9 +635,12 @@ async () => {
     await postMembershipRemoval(ctx, leaver);
     const rows = await getIdeas(ctx);
     assertStrictEquals(rows.length, 1);
-    assertStrictEquals(rows[0]!.idea.idForLink(), ideaId);
+    assertStrictEquals(rows[0]!.idForLink(), ideaId);
+    const submission =
+        await getIdeaSubmissions(ctx, [ideaId]).get(ideaId);
+    assert(submission?.kind === 'recorded');
     assertStrictEquals(
-        rows[0]!.submitterName, FORMER_MEMBER_NAME,
+        submission.submitterName, FORMER_MEMBER_NAME,
     );
 });
 
@@ -567,9 +664,15 @@ Deno.test(
         await postMembershipRemoval(ctx, leaver);
         const rows = await getIdeas(ctx);
         assertStrictEquals(rows.length, 6);
+        const submissions = await Promise.all(
+            getIdeaSubmissions(
+                ctx, rows.map(r => r.idForLink()),
+            ).values(),
+        );
         assertStrictEquals(
-            rows.filter(
-                r => r.submitterName === FORMER_MEMBER_NAME,
+            submissions.filter(
+                s => s.kind === 'recorded'
+                    && s.submitterName === FORMER_MEMBER_NAME,
             ).length,
             2,
         );

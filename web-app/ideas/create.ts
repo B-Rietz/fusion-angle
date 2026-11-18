@@ -13,6 +13,10 @@ import {
     putIdeaSubmission,
 } from '../../client/index.ts';
 import { sessionContext } from '../app/client.ts';
+import { reportFault } from '../app/error-helpers.ts';
+import type {
+    RequestContext,
+} from '../../client/request-context.ts';
 import { generateIdentifier } from '../../shared/identifier.ts';
 import {
     nextPosition,
@@ -25,6 +29,31 @@ import {
 import type {
     IdeaCreateDraft,
 } from '../app/presenters/index.ts';
+
+async function createIdea(
+    ctx: RequestContext,
+    ideaId: string,
+    draft: IdeaCreateDraft,
+): Promise<void> {
+    const existing = await getIdeaEntities(ctx);
+    const position = nextPosition(
+        existing.map(m => m.body().toValue().position),
+    );
+    await postIdeaCreation(
+        ctx,
+        ideaId,
+        {
+            title: draft.title,
+            problem_statement: draft.problemStatement,
+            target_users: draft.targetUsers,
+            proposed_solution: draft.proposedSolution,
+            expected_outcome: draft.expectedOutcome,
+            success_metrics: draft.successMetrics,
+            position,
+        },
+        'active',
+    );
+}
 
 export async function init():
     Promise<void> {
@@ -133,43 +162,32 @@ export async function init():
                 const ctx = sessionContext();
                 const ideaId =
                     generateIdentifier();
-                const existing =
-                    await getIdeaEntities(ctx);
-                const position = nextPosition(
-                    existing.map(
-                        m => m.body().toValue().position,
-                    ),
-                );
-                await postIdeaCreation(
-                    ctx,
-                    ideaId,
-                    {
-                        title:
-                            formState.title,
-                        problem_statement:
-                            formState
-                            .problemStatement,
-                        target_users:
-                            formState
-                            .targetUsers,
-                        proposed_solution:
-                            formState
-                            .proposedSolution,
-                        expected_outcome:
-                            formState
-                            .expectedOutcome,
-                        success_metrics:
-                            formState
-                            .successMetrics,
-                        position,
-                    },
-                    'active',
-                );
-                await putIdeaSubmission(
-                    ctx,
-                    generateIdentifier(),
-                    ideaId,
-                );
+                // Two writes, so each failure names its
+                // step: a lost submission leaves the idea.
+                try {
+                    await createIdea(ctx, ideaId, formState);
+                } catch (err) {
+                    reportFault(
+                        ctx, 'Failed to create idea', err,
+                    );
+                    return;
+                }
+                try {
+                    await putIdeaSubmission(
+                        ctx,
+                        generateIdentifier(),
+                        ideaId,
+                    );
+                } catch (err) {
+                    reportFault(
+                        ctx,
+                        'Idea ' + ideaId + ' created, but'
+                            + ' failed to record its'
+                            + ' submission',
+                        err,
+                    );
+                    return;
+                }
                 navigateTo('ideas');
             },
         );
