@@ -4534,9 +4534,16 @@ gesture pans instead of dragging, marquee-ing, or connecting.
   `work-orders/:id/transition` (200), work order moves
   to the next state, browser navigates back to the
   inbox. The work order appears in claimed-by-me
-  Active.
+  Active, and the inbox shows no "Work order detail
+  refresh failed" toast.
   Pin: tests/browser/workbox-transition.test.ts
-       'fill and submit navigates to the inbox (WB11)'
+       'fill and submit navigates to the inbox (WB11)';
+       tests/error-helpers.test.ts 'reportFault skips
+       Load failed after putLocation' (decides the
+       action screen's own refresh, cancelled by its
+       navigation to the inbox, toasts nothing — a
+       Safari cancellation; Chrome does not cancel it,
+       so the walk's Chrome cannot show the failure)
 - [ ] **WB16** Read the network log across WB11's
   transition (never `js()` fetch — the bearer is
   memory-only, per the explorer prompt). Drive WB16
