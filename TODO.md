@@ -919,13 +919,13 @@ Off the critical path; each with its oracle.
   the head's `state`, or a PUT whose `flow_graph` drops the
   head's `state`, is refused at the gate.
 - The Send Back feedback textarea is discarded.
-  `web-app/app/presenters/idea.ts:410-425` renders
+  `web-app/app/presenters/idea.ts:437-452` renders
   `<textarea id="approval-send-back-feedback">` in the
   Send Back dialog — its id split across a
   concatenation (`'approval-send-back' + '-feedback'`),
   so a grep for the whole id finds not even the render,
   and `grep -rn "\-feedback'"` finds no read: the confirm path
-  (`web-app/ideas/detail.ts:285-300` → `transitionIdea`
+  (`web-app/ideas/detail.ts:292-309` → `transitionIdea`
   → `postIdeaStateChange`) has no feedback parameter, so
   whatever a reviewer types is thrown away. No
   TEST-PLAN case claims the feedback survives. Oracle: a
@@ -1269,6 +1269,14 @@ Off the critical path; each with its oracle.
 
 ## Later work
 
+- Restore an archived idea. Archive on the idea detail
+  page is one-way: `ideaIsVisible`
+  (`shared/types.ts:1747`) drops `archived` from the
+  list, and no page lists or reactivates an archived
+  idea, where objectives have Reactivate. The PUT
+  already takes any state. Oracle: an archived idea
+  is reachable from the ideas page and returns to
+  `active` from it.
 - Top-bar search over every entity the caller is
   authorized for. It searches ideas, projects, members,
   and pages today. Extend it to flows, work orders,

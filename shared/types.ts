@@ -1494,6 +1494,14 @@ export class Idea {
         ) && this.isReady();
     }
 
+    // Archive stops nothing in flight: an idea in review
+    // or already a project keeps its course.
+    canBeArchived(): boolean {
+        return this.#state === 'active'
+            || this.#state === 'sent_back'
+            || this.#state === 'approved';
+    }
+
     readinessValue(): IdeaReadiness {
         return (
             this.#title !== ''

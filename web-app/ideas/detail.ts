@@ -74,7 +74,8 @@ function isFieldKey(
 type IdeaTransition =
     | 'in_review'
     | 'approved'
-    | 'sent_back';
+    | 'sent_back'
+    | 'archived';
 
 interface TransitionConfig {
     failureToast: string;
@@ -100,6 +101,11 @@ const TRANSITION_CONFIG:
         failureToast: 'Failed to send back',
         successToast:
             'Idea sent back for revision',
+        successVariant: 'info',
+    },
+    'archived': {
+        failureToast: 'Failed to archive',
+        successToast: 'Idea archived',
         successVariant: 'info',
     },
 };
@@ -275,6 +281,12 @@ function handleIdeaActions(
         case 'approve':
             void transitionIdea(
                 state.view.idea.message, 'approved',
+            );
+            return true;
+        case 'archive-confirm':
+            closeDialog('idea-archive');
+            void transitionIdea(
+                state.view.idea.message, 'archived',
             );
             return true;
         case 'send-back-confirm':
