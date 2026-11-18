@@ -3,7 +3,8 @@ import {
     populateIcons,
 } from '../app/dom.ts';
 import { createPageAbort } from '../app/page-lifecycle.ts';
-import { html } from '../app/safe-html.ts';
+import { html, setHtml } from '../app/safe-html.ts';
+import { reportFault } from '../app/error-helpers.ts';
 import {
     buildSkeleton,
     loadInto,
@@ -20,18 +21,24 @@ import {
 import { navigateTo } from '../app/navigation.ts';
 import {
     getIdeas,
+    getIdeaSubmissions,
     ideaOf,
     putIdea,
     subscribeIdeaChanges,
-    type IdeaWithSubmitter,
+    type IdeaSubmission,
 } from '../../client/index.ts';
 import { sessionContext } from '../app/client.ts';
-import { isIdeaState, documentFieldsOf } from '../../shared/types.ts';
+import {
+    isIdeaState, documentFieldsOf, type Idea,
+} from '../../shared/types.ts';
 import {
     IdeaListPresenter,
     buildInitialIdeaListState,
     applyIdeaListUpdate,
     applyIdeaFilterToggle,
+    applyIdeaSubmission,
+    buildIdeaReadinessSlot,
+    buildIdeaSubmitterSlot,
     type IdeaListState,
 } from '../app/presenters/index.ts';
 import {
@@ -100,8 +107,63 @@ export async function init(): Promise<void> {
         );
 }
 
+// Each card's submission lands on its own read after the
+// list paints; an idea already holding one keeps it.
+function fillSubmissions(ideas: readonly Idea[]): void {
+    if (!ideaState) return;
+    const known = ideaState.submissions;
+    const ctx = sessionContext();
+    const pending = getIdeaSubmissions(
+        ctx,
+        ideas.map(idea => idea.idForLink())
+            .filter(id => !known.has(id)),
+    );
+    let faulted = false;
+    for (const [id, submission] of pending) {
+        submission.then(
+            settled => {
+                if (!ideaState) return;
+                ideaState = applyIdeaSubmission(
+                    ideaState, id, settled,
+                );
+                paintSubmission(id, settled);
+            },
+            err => {
+                if (faulted) return;
+                faulted = true;
+                reportFault(
+                    ctx, 'Failed to load idea submissions', err,
+                );
+            },
+        );
+    }
+}
+
+function paintSubmission(
+    id: string, submission: IdeaSubmission,
+): void {
+    const idea = ideaState?.ideas
+        .find(i => i.idForLink() === id);
+    if (!listEl || !idea) return;
+    const submitter = $(
+        `[data-idea-submitter="${id}"]`, listEl,
+    );
+    if (submitter) {
+        setHtml(submitter, buildIdeaSubmitterSlot(submission));
+    }
+    const readiness = $(
+        `[data-idea-readiness="${id}"]`, listEl,
+    );
+    if (readiness) {
+        setHtml(
+            readiness,
+            buildIdeaReadinessSlot(idea, submission),
+        );
+    }
+}
+
 function onIdeasLoaded(
-    ideas: IdeaWithSubmitter[],
+    ideas: Idea[],
     teamListEl: HTMLElement,
 ): void {
     // The button is static markup: the empty render hides it
@@ -116,6 +178,7 @@ function onIdeasLoaded(
     );
 
     rerenderIdeas();
+    fillSubmissions(ideas);
     if (badgesEl) {
         badgesEl.addEventListener(
             'click', onBadgeClick,
@@ -136,6 +199,7 @@ function onIdeasLoaded(
             ideaState, updated,
         );
         rerenderIdeas();
+        fillSubmissions(updated);
     });
 
     initDragReorder(
@@ -144,13 +208,13 @@ function onIdeasLoaded(
         'data-idea-card',
         async (id, newPosition) => {
             if (!ideaState) return;
-            const tuple = ideaState.ideas
-                .find(t => t.idea.idForLink() === id);
-            if (!tuple) return;
+            const held = ideaState.ideas
+                .find(idea => idea.idForLink() === id);
+            if (!held) return;
             const saved = await putIdea(
-                sessionContext(), tuple.idea.message,
+                sessionContext(), held.message,
                 {
-                    ...documentFieldsOf(tuple.idea.message),
+                    ...documentFieldsOf(held.message),
                     position: newPosition,
                 },
             );
@@ -159,10 +223,10 @@ function onIdeasLoaded(
             if (!ideaState) return;
             ideaState = applyIdeaListUpdate(
                 ideaState,
-                ideaState.ideas.map(t =>
-                    t.idea.idForLink() === id
-                        ? { ...t, idea: ideaOf(saved) }
-                        : t),
+                ideaState.ideas.map(idea =>
+                    idea.idForLink() === id
+                        ? ideaOf(saved)
+                        : idea),
             );
         },
     );

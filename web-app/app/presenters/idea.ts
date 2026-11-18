@@ -31,7 +31,7 @@ import {
     iconSave,
     iconX,
 } from '../icons.ts';
-import type { IdeaWithSubmitter } from '../../../client/index.ts';
+import type { IdeaSubmission } from '../../../client/index.ts';
 import type {
     Idea,
     IdeaState,
@@ -57,15 +57,39 @@ const STATE_ICONS: Record<
     'deleted': iconXCircle,
 };
 
-function buildReadinessPill(idea: Idea): SafeHtml {
-    if (
-        idea.stateValue() !== 'active'
-        || idea.isReady()
-    ) {
-        return html``;
-    }
-    return html`<span class="pill"
-        data-tone="warning">Incomplete</span>`;
+// A card paints before its submission sub-document lands.
+export type IdeaSubmissionView =
+    | IdeaSubmission
+    | { readonly kind: 'pending' };
+
+// Incomplete: an active idea with an empty required field,
+// or an idea in any state whose submission write was lost.
+// Edit and save finishes either.
+function isIncomplete(
+    idea: Idea, submission: IdeaSubmissionView,
+): boolean {
+    return submission.kind === 'missing'
+        || (idea.stateValue() === 'active' && !idea.isReady());
+}
+
+// The card's readiness slot, patched in place as its
+// submission read settles.
+export function buildIdeaReadinessSlot(
+    idea: Idea, submission: IdeaSubmissionView,
+): SafeHtml {
+    return isIncomplete(idea, submission)
+        ? html`<span class="pill"
+            data-tone="warning">Incomplete</span>`
+        : html``;
+}
+
+// The card's submitter slot, patched the same way.
+export function buildIdeaSubmitterSlot(
+    submission: IdeaSubmissionView,
+): SafeHtml {
+    return submission.kind === 'recorded'
+        ? html`${displayText(submission.submitterName)}`
+        : html`\u00a0`;
 }
 
 export interface IdeaDraftFields {
@@ -165,23 +189,28 @@ function buildShell(
 }
 
 function buildSubmittedByLine(
-    submitterName: string,
-    submittedAt: string,
+    submission: IdeaSubmissionView,
 ): SafeHtml {
+    if (submission.kind === 'pending') return html``;
+    if (submission.kind === 'missing') {
+        return html`
+        <p class="${
+            'text-sm text-muted'
+        }">No submission recorded</p>`;
+    }
     return html`
         <p class="${
             'text-sm text-muted'
         }">
             Submitted by
-            ${displayText(submitterName)}
-            @ ${formatDateTime(submittedAt)}
+            ${displayText(submission.submitterName)}
+            @ ${formatDateTime(submission.at)}
         </p>`;
 }
 
 function buildReadonlyTitleSection(
     idea: Idea,
-    submitterName: string,
-    submittedAt: string,
+    submission: IdeaSubmissionView,
 ): SafeHtml {
     const cfg = IDEA_STATE_CONFIG[idea.stateValue()];
     return html`
@@ -203,18 +232,15 @@ function buildReadonlyTitleSection(
             }">
                 ${cfg.label}
             </span>
-            ${buildReadinessPill(idea)}
+            ${buildIdeaReadinessSlot(idea, submission)}
         </div>
-        ${buildSubmittedByLine(
-            submitterName, submittedAt,
-        )}`;
+        ${buildSubmittedByLine(submission)}`;
 }
 
 function buildEditableTitleSection(
     idea: Idea,
     draft: IdeaDraftFields,
-    submitterName: string,
-    submittedAt: string,
+    submission: IdeaSubmission,
 ): SafeHtml {
     const cfg = IDEA_STATE_CONFIG[idea.stateValue()];
     return html`
@@ -236,11 +262,9 @@ function buildEditableTitleSection(
             }">
                 ${cfg.label}
             </span>
-            ${buildReadinessPill(idea)}
+            ${buildIdeaReadinessSlot(idea, submission)}
         </div>
-        ${buildSubmittedByLine(
-            submitterName, submittedAt,
-        )}`;
+        ${buildSubmittedByLine(submission)}`;
 }
 
 function buildReadonlyInput(
@@ -317,9 +341,11 @@ function buildEditableTextarea(
 
 function buildSubmitConvertButtons(
     idea: Idea,
+    submission: IdeaSubmissionView,
 ): SafeHtml {
     const canSubmit =
-        idea.canBeSubmittedForReview();
+        idea.canBeSubmittedForReview()
+        && submission.kind === 'recorded';
     return html`
         ${canSubmit
             ? html`<button
@@ -537,25 +563,14 @@ function buildProblemSolutionEditableCard(
 
 export class IdeaPresenter {
     readonly #idea: Idea;
-    readonly #submitterName: string;
-    readonly #submittedAt: string;
+    readonly #submission: IdeaSubmissionView;
 
     constructor(
         idea: Idea,
-        submitterName: string,
-        submittedAt: string,
+        submission: IdeaSubmissionView,
     ) {
         this.#idea = idea;
-        this.#submitterName = submitterName;
-        this.#submittedAt = submittedAt;
-    }
-
-    submitterName(): string {
-        return this.#submitterName;
-    }
-
-    submittedAt(): string {
-        return this.#submittedAt;
+        this.#submission = submission;
     }
 
     idForLink(): string {
@@ -571,8 +586,8 @@ export class IdeaPresenter {
     }
 
     canSubmit(): boolean {
-        return this.#idea
-            .canBeSubmittedForReview();
+        return this.#idea.canBeSubmittedForReview()
+            && this.#submission.kind === 'recorded';
     }
 
     positionSortKey(): number {
@@ -659,7 +674,9 @@ export class IdeaPresenter {
         </h3>
         <p class="${
             'text-sm text-muted mt-1'
-        }">${displayText(this.#submitterName)}</p>
+        }" data-idea-submitter="${
+            this.#idea.idForLink()
+        }">${buildIdeaSubmitterSlot(this.#submission)}</p>
         <div class="${
             'flex items-center gap-2 mt-1'
         }">
@@ -672,7 +689,11 @@ export class IdeaPresenter {
                     this.#idea.stateValue()
                 ]!(14, '')
             } ${cfg.label}</span>
-            ${buildReadinessPill(this.#idea)}
+            <span data-idea-readiness="${
+                this.#idea.idForLink()
+            }">${buildIdeaReadinessSlot(
+                this.#idea, this.#submission,
+            )}</span>
         </div>`;
     }
 
@@ -719,8 +740,7 @@ export class IdeaPresenter {
             '.idea-title-slot',
             buildReadonlyTitleSection(
                 this.#idea,
-                this.#submitterName,
-                this.#submittedAt,
+                this.#submission,
             ),
         );
         mutateSlot(
@@ -747,7 +767,7 @@ export class IdeaPresenter {
     #buildActionButtons(): SafeHtml {
         return html`
             ${buildSubmitConvertButtons(
-                this.#idea,
+                this.#idea, this.#submission,
             )}
             ${this.#idea.isReviewable()
                 ? buildApprovalButtons()
@@ -766,19 +786,16 @@ export class IdeaPresenter {
 export class IdeaEditPresenter {
     readonly #idea: Idea;
     readonly #draft: IdeaDraftFields;
-    readonly #submitterName: string;
-    readonly #submittedAt: string;
+    readonly #submission: IdeaSubmission;
 
     constructor(
         idea: Idea,
         draft: IdeaDraftFields,
-        submitterName: string,
-        submittedAt: string,
+        submission: IdeaSubmission,
     ) {
         this.#idea = idea;
         this.#draft = draft;
-        this.#submitterName = submitterName;
-        this.#submittedAt = submittedAt;
+        this.#submission = submission;
     }
 
     idForLink(): string {
@@ -804,8 +821,7 @@ export class IdeaEditPresenter {
             '.idea-title-slot',
             buildEditableTitleSection(
                 this.#idea, this.#draft,
-                this.#submitterName,
-                this.#submittedAt,
+                this.#submission,
             ),
         );
         mutateSlot(
@@ -856,22 +872,40 @@ export type IdeaListFilter =
     | { kind: 'all' }
     | { kind: 'filtered'; status: IdeaState };
 
+// The idea documents and their submissions ride apart: a
+// submission lands after its idea, and a list refresh keeps
+// the submissions already known.
 export type IdeaListState = {
-    ideas: IdeaWithSubmitter[];
+    ideas: Idea[];
+    submissions: ReadonlyMap<string, IdeaSubmission>;
     filter: IdeaListFilter;
 };
 
 export function buildInitialIdeaListState(
-    ideas: IdeaWithSubmitter[],
+    ideas: Idea[],
 ): IdeaListState {
-    return { ideas, filter: { kind: 'all' } };
+    return {
+        ideas, submissions: new Map(), filter: { kind: 'all' },
+    };
 }
 
 export function applyIdeaListUpdate(
     state: IdeaListState,
-    ideas: IdeaWithSubmitter[],
+    ideas: Idea[],
 ): IdeaListState {
     return { ...state, ideas };
+}
+
+export function applyIdeaSubmission(
+    state: IdeaListState,
+    ideaId: string,
+    submission: IdeaSubmission,
+): IdeaListState {
+    return {
+        ...state,
+        submissions: new Map(state.submissions)
+            .set(ideaId, submission),
+    };
 }
 
 export function applyIdeaFilterToggle(
@@ -891,10 +925,10 @@ export class IdeaListPresenter {
 
     constructor(state: IdeaListState) {
         this.#ideas = state.ideas.map(
-            t => new IdeaPresenter(
-                t.idea,
-                t.submitterName,
-                t.submittedAt,
+            idea => new IdeaPresenter(
+                idea,
+                state.submissions.get(idea.idForLink())
+                    ?? { kind: 'pending' },
             ),
         );
         this.#filter = state.filter;

@@ -31,8 +31,9 @@ import {
     ideaOf,
     postIdeaStateChange,
     putIdea,
+    putIdeaGenesisSubmission,
     subscribeIdeaChanges,
-    type IdeaWithSubmitter,
+    type IdeaWithSubmission,
 } from '../../client/index.ts';
 import { sessionContext } from '../app/client.ts';
 import type { IdeaEntity } from '../../shared/types.ts';
@@ -45,11 +46,11 @@ const { signal } = createPageAbort();
 type PageState =
     | {
         kind: 'reading';
-        view: IdeaWithSubmitter;
+        view: IdeaWithSubmission;
     }
     | {
         kind: 'editing';
-        view: IdeaWithSubmitter;
+        view: IdeaWithSubmission;
         draft: IdeaDraftFields;
     };
 
@@ -135,15 +136,9 @@ function buildPresenter():
     }
     const v = state.view;
     return state.kind === 'reading'
-        ? new IdeaPresenter(
-            v.idea,
-            v.submitterName,
-            v.submittedAt,
-        )
+        ? new IdeaPresenter(v.idea, v.submission)
         : new IdeaEditPresenter(
-            v.idea, state.draft,
-            v.submitterName,
-            v.submittedAt,
+            v.idea, state.draft, v.submission,
         );
 }
 
@@ -357,6 +352,21 @@ async function handleSave(): Promise<void> {
     );
     const held = state.view.idea.message;
     const ctx = sessionContext();
+    // A save finishes an idea whose submission write was
+    // lost, naming its creator. That submission is right
+    // whatever the edit does, so it lands first.
+    if (state.view.submission.kind === 'missing') {
+        try {
+            await putIdeaGenesisSubmission(
+                ctx, held.body().toValue().id,
+            );
+        } catch (err) {
+            reportFault(
+                ctx, 'Failed to record idea submission', err,
+            );
+            return;
+        }
+    }
     let saved: HttpMessage<IdeaEntity>;
     try {
         saved = await putIdea(ctx, held, {

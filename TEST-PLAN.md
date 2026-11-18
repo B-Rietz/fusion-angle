@@ -2010,10 +2010,12 @@ covering the D20–D24 run between them.
 - [ ] **D2** Each idea row shows a lifecycle status
   badge (Active, In Review, Approved, Promoted, Sent
   Back, or Archived); an active idea missing a
-  required field also shows a single "Incomplete"
-  readiness pill (warning tone) derived from
-  required-field presence — ready ideas and
-  non-active ideas show no pill. PASS: the status
+  required field, or an idea in any state with no
+  submission recorded, also shows a single
+  "Incomplete" readiness pill (warning tone) — ready
+  ideas show no pill. The seed records a submission
+  for every idea, so on the walk the pill appears
+  only on active, not-ready ideas. PASS: the status
   badge always renders, and the Incomplete pill
   appears only on active, not-ready ideas — an
   invariant true of every row regardless of which
@@ -2025,6 +2027,10 @@ covering the D20–D24 run between them.
        field' (decides the pill's exact condition: it
        renders for an active+incomplete idea and not
        for a ready or non-active one);
+       tests/presenter-idea.test.ts
+       'IdeaPresenter.buildCard marks an idea with no
+       submission Incomplete in any state' (decides a
+       missing submission alone shows the pill);
        tests/presenter-idea.test.ts
        'IdeaPresenter.buildCard renders the title,
        state badge, and card data attributes' (decides
@@ -2120,6 +2126,13 @@ covering the D20–D24 run between them.
        fact, `web-app/ideas/create.ts:164`, not
        something this test's own 'active' literal can
        decide)
+(No manual browser case for a create whose write
+fails — the walk cannot fail a request on demand.
+tests/browser/idea-create.test.ts is the coverage: a
+lost idea write toasts "Failed to create idea"; a lost
+submission write toasts that the idea was created but
+its submission was not recorded.)
+
 - [ ] **D9** Navigate to `ideas/create.html` again —
   D8 left you on the list, not the create form. Click
   "Cancel". PASS: navigates to `ideas/` list.
@@ -2134,15 +2147,15 @@ covering the D20–D24 run between them.
   from the Ideas list). PASS: page loads with idea
   title, status badge, and "Submitted by [name] @
   [date/time]" in the header.
-  Pin: tests/presenter-idea.test.ts
-       'IdeaPresenter carries submitter name and
-       submitted timestamp verbatim' (decides the
+  Pin: tests/adapters-ideas.test.ts 'getIdea finds
+       submission for one idea' (decides the
        submitter name and timestamp the header line
-       reads from); exploratory — the live title,
-       status badge, and "Submitted by … @ …" header
-       layout itself (renderShell/renderUpdate walk a
-       real DOM tree and stay outside this file's
-       coverage by its own header comment)
+       reads from); tests/browser/idea-incomplete.test.ts
+       'saving an incomplete idea records its creator'
+       (decides the live "Submitted by … @ …" header
+       renders on the detail page); exploratory — the
+       header's layout beside the title and status
+       badge
 - [ ] **D11** Page displays one card: Problem & Solution (Problem Statement,
   Target Users, Proposed Solution, Expected Outcome, Success Metrics).
   PASS: every field the idea carries is rendered;
@@ -2174,6 +2187,18 @@ covering the D20–D24 run between them.
        'putIdea persists changes' (decides the write
        persists via a fresh read); exploratory — the
        live toast and the return to view mode
+
+(No manual browser case for an idea whose submission
+was never recorded — a create that lost its second
+write. The seed holds none and the walk cannot lose a
+write on demand. tests/browser/idea-incomplete.test.ts
+is the coverage: such an idea lists with the
+Incomplete pill, its detail page opens with "No
+submission recorded" and no Submit for Review button,
+and Edit → Save records the submission naming the
+idea's creator and creation time, read from its first
+version, whoever saves it — tests/adapters-ideas.test.ts
+'putIdeaGenesisSubmission records the creator'.)
 
 ### Idea Detail — Edit & Actions
 

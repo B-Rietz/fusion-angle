@@ -340,8 +340,7 @@ export function initCommandPalette(
             featuredHumanMembers(humans);
 
         state.allItems = [
-            ...ideas.map(tuple =>
-                ideaToSearchItem(tuple.idea)),
+            ...ideas.map(ideaToSearchItem),
             ...projects.map(
                 projectToSearchItem,
             ),

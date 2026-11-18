@@ -24,12 +24,9 @@ const MEMBER_NAME =
 // the created idea lands in.
 const ADMIN_MEMBER_ID = 'XXZruirZyAOoRpNxaDnpSA';
 
-// web-app/app/adapters/ideas.ts's getIdeas throws 'Idea has
-// no submission: <id>' for any idea row with no matching
-// submission document — taking the WHOLE ideas list down
-// for every viewer, not just this one. A document PUT alone
-// is not a renderable idea, so this helper also writes the
-// submission, mirroring the live PUT organizations/:id/
+// A document PUT alone lists as an Incomplete idea, with
+// no submitter. This helper also writes the submission,
+// as a create does, mirroring the live PUT organizations/:id/
 // ideas/:id/submissions/:sid shape proven in
 // tests/api-nested-stream.test.ts, then reads the
 // submissions collection back to confirm the row landed.

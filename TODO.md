@@ -841,6 +841,28 @@ Off the critical path; each with its oracle.
   revocation stamped by a skewed client still refuses
   every token issued before the server received it, and
   none issued after.
+- An idea submission's submitter and time are the
+  client's word. The submission PUT carries `member_id`
+  and `at` in its body (`putIdeaSubmissionOf`,
+  `client/ideas.ts:278`); the gate checks only that each
+  is an identifier and a timestamp
+  (`validateIdeaSubmissionEntity`,
+  `api/validators.ts:2105-2120`), and
+  `postIdeaSubmissionOp` (`api/routes.ts:1226`) stores
+  them as sent. Any member can attribute an idea to
+  another member, at any instant. The create stamps the
+  caller and the browser's clock (`putIdeaSubmission`,
+  `client/ideas.ts:292`); the save that finishes an idea
+  whose submission write was lost reads both from the
+  idea's first version (`putIdeaGenesisSubmission`,
+  `client/ideas.ts:306`) and sends them back. The
+  idea's genesis pair already holds the truth, its
+  `requester_identity_id` and `response_at`, so the
+  server can record the submission from it and the body
+  carries only `idea_id`. Oracle: a submission PUT
+  naming another member or another instant records the
+  idea's creator and creation instant regardless, and
+  `putIdeaGenesisSubmission` sends neither
 - The four counting checks close before their
   statement: the last accepted admin
   (`refuseLastAdmin`, `api/invitations-domain.ts:335-355`),
@@ -1562,21 +1584,6 @@ Off the critical path; each with its oracle.
   the round trip itself. Oracle: a Postgres test
   executes a stamp write twice and reads six digits
   back both times
-- `getIdea` (`client/ideas.ts:166`) fans three reads out
-  through `Promise.all` at `:172`, so a rejection settles
-  the caller while its siblings still run, and
-  `tests/adapters-ideas.test.ts:195` (`getIdea throws on
-  missing submission`, `:182`) waits one macrotask turn
-  for them, which proves only that the abandoned reads
-  were fast: the same shape with every memory-backend
-  entry delayed by up to 20 ms fails the ops sanitizer
-  ("A timer was started in this test, but never
-  completed") until the fan-out settles every read
-  before rejecting, as `getFlowStats` does
-  (`web-app/app/flow-stats.ts:22-48`).
-  Oracle: a rejected `getIdea` leaves none of its reads
-  in flight, pinned as `tests/adapters-flow-stats.test.ts`
-  pins `getFlowStats`, and the yield at `:195` is gone
 - A same-node double-click can move the node by the
   camera's pan. With Auto Fit off and the flow
   unlocked, the second press on the selected node's

@@ -1,6 +1,8 @@
 import type {
     IdeaEntity,
     IdeaState,
+    Member,
+    MemberId,
     IdeaSubmissionEntity,
     ObjectiveId,
     ProjectEntity,
@@ -77,39 +79,21 @@ async function getIdeaSubmissionsForIdea(
     )).map((m) => m.body().toValue());
 }
 
-// The submissions across EVERY supplied idea — reassembled from
-// the nested per-idea collections, fetched in parallel and
-// concatenated. The idea ids come from the org-scoped ideas
-// list the caller already holds.
-async function getIdeaSubmissionEntities(
-    ctx: RequestContext,
-    ideaIds: readonly string[],
-): Promise<IdeaSubmissionEntity[]> {
-    const perIdea = await Promise.all(
-        ideaIds.map(id => getIdeaSubmissionsForIdea(ctx, id)),
-    );
-    return perIdea.flat();
-}
-
-async function getIdeaSubmissionEntity(
-    ctx: RequestContext,
-    ideaId: string,
-): Promise<IdeaSubmissionEntity> {
-    const [found] =
-        await getIdeaSubmissionsForIdea(ctx, ideaId);
-    if (!found) {
-        throw new Error(
-            'Idea submission not found'
-                + ' for idea ' + ideaId,
-        );
+// The idea is the document; its submission is a
+// sub-document written after it. A create that lost the
+// second write leaves the idea with no submission, which
+// reads as missing, never as a failed idea.
+export type IdeaSubmission =
+    | {
+        readonly kind: 'recorded';
+        readonly submitterName: string;
+        readonly at: string;
     }
-    return found;
-}
+    | { readonly kind: 'missing' };
 
-export interface IdeaWithSubmitter {
+export interface IdeaWithSubmission {
     readonly idea: Idea;
-    readonly submitterName: string;
-    readonly submittedAt: string;
+    readonly submission: IdeaSubmission;
 }
 
 // Domain state rides the IdeaEntity GET row; narrow it once,
@@ -124,63 +108,90 @@ export function ideaOf(message: HttpMessage<IdeaEntity>): Idea {
     );
 }
 
+function ideaSubmissionOf(
+    rows: readonly IdeaSubmissionEntity[],
+    memberMap: Map<MemberId, Member>,
+): IdeaSubmission {
+    const [found] = rows;
+    if (!found) return { kind: 'missing' };
+    return {
+        kind: 'recorded',
+        submitterName: memberName(memberMap, found.member_id),
+        at: found.at,
+    };
+}
+
+async function getIdeaSubmission(
+    ctx: RequestContext,
+    ideaId: string,
+    memberMap: Promise<Map<MemberId, Member>>,
+): Promise<IdeaSubmission> {
+    const rows = await getIdeaSubmissionsForIdea(ctx, ideaId);
+    return ideaSubmissionOf(rows, await memberMap);
+}
+
+// The visible idea documents alone: one read, so the list
+// paints before any submission lands.
 export async function getIdeas(
     ctx: RequestContext,
-): Promise<IdeaWithSubmitter[]> {
-    // Wave 1: idea rows + member map (independent).
-    // Wave 2: submissions need the idea ids.
-    const [messages, memberMap] = await Promise.all([
-        getIdeaEntities(ctx),
-        getMemberMap(ctx),
-    ]);
-    const ideas = messages.map(ideaOf);
-    const submissions = await getIdeaSubmissionEntities(
-        ctx, ideas.map(idea => idea.idForLink()),
-    );
-    const submissionMap = new Map(
-        submissions.map(s => [s.idea_id, s]),
-    );
-    return ideas
-        .filter(idea => ideaIsVisible(idea.stateValue()))
-        .map(idea => {
-            const submission =
-                submissionMap.get(idea.idForLink());
-            if (!submission) {
-                throw new Error(
-                    'Idea has no submission: '
-                    + idea.idForLink(),
-                );
-            }
-            return {
-                idea,
-                submitterName: memberName(
-                    memberMap,
-                    submission.member_id,
-                ),
-                submittedAt:
-                    submission.at,
-            };
-        });
+): Promise<Idea[]> {
+    return (await getIdeaEntities(ctx))
+        .map(ideaOf)
+        .filter(idea => ideaIsVisible(idea.stateValue()));
+}
+
+// One pending submission per idea, settling independently
+// over one shared member map, so each card fills as its
+// own read lands.
+export function getIdeaSubmissions(
+    ctx: RequestContext,
+    ideaIds: readonly string[],
+): ReadonlyMap<string, Promise<IdeaSubmission>> {
+    const memberMap = getMemberMap(ctx);
+    // A submission read that fails before awaiting the
+    // map, or an empty id list, leaves no one to hear the
+    // map's rejection but this guard.
+    memberMap.catch(() => {});
+    return new Map(ideaIds.map(id => [
+        id, getIdeaSubmission(ctx, id, memberMap),
+    ]));
 }
 
 export async function getIdea(
     ctx: RequestContext,
     ideaId: string,
-): Promise<IdeaWithSubmitter> {
-    const [
-        message, submission, memberMap,
-    ] = await Promise.all([
-        getIdeaEntity(ctx, ideaId),
-        getIdeaSubmissionEntity(ctx, ideaId),
-        getMemberMap(ctx),
-    ]);
+): Promise<IdeaWithSubmission> {
+    // Every read settles before this call does: a rejection
+    // must not leave its siblings running past the caller.
+    const [messageRead, rowsRead, memberRead] =
+        await Promise.allSettled([
+            getIdeaEntity(ctx, ideaId),
+            getIdeaSubmissionsForIdea(ctx, ideaId),
+            getMemberMap(ctx),
+        ]);
+    if (messageRead.status === 'rejected') {
+        throw messageRead.reason;
+    }
+    if (rowsRead.status === 'rejected') throw rowsRead.reason;
+    if (memberRead.status === 'rejected') {
+        throw memberRead.reason;
+    }
     return {
-        idea: ideaOf(message),
-        submitterName: memberName(
-            memberMap, submission.member_id,
+        idea: ideaOf(messageRead.value),
+        submission: ideaSubmissionOf(
+            rowsRead.value, memberRead.value,
         ),
-        submittedAt: submission.at,
     };
+}
+
+// Every stored version of one idea, oldest first.
+export function getIdeaVersions(
+    ctx: RequestContext,
+    ideaId: string,
+): Promise<HttpMessage<IdeaEntity>[]> {
+    return ctx.GETCollection<IdeaEntity>(
+        organizationItem(ctx, 'ideas', ideaId) + '/versions/',
+    );
 }
 
 // The wire document PUT /ideas/:id takes today's entity
@@ -264,21 +275,49 @@ export function postIdeaStateChange(
     return putIdea(ctx, held, { ...documentFieldsOf(held), state });
 }
 
+function putIdeaSubmissionOf(
+    ctx: RequestContext,
+    submissionId: string,
+    ideaId: string,
+    memberId: MemberId,
+    at: string,
+): Promise<HttpMessage<IdeaSubmissionEntity>> {
+    return ctx.PUT<IdeaSubmissionEntity>(
+        organizationItem(ctx, 'ideas', ideaId)
+            + '/submissions/' + submissionId,
+        { idea_id: ideaId, member_id: memberId, at },
+    );
+}
+
 export async function putIdeaSubmission(
     ctx: RequestContext,
     submissionId: string,
     ideaId: string,
 ): Promise<HttpMessage<IdeaSubmissionEntity>> {
     const member = await getCurrentHumanMember(ctx);
-    return ctx.PUT<IdeaSubmissionEntity>(
-        organizationItem(ctx, 'ideas', ideaId)
-            + '/submissions/' + submissionId,
-        {
-            idea_id: ideaId,
-            member_id: member.id,
-            at: nowUtc(),
-        },
+    return putIdeaSubmissionOf(
+        ctx, submissionId, ideaId, member.id, nowUtc(),
     );
+}
+
+// A create whose submission write was lost is finished
+// later: the idea's first version names who created it,
+// and when, whoever records it now.
+export async function putIdeaGenesisSubmission(
+    ctx: RequestContext,
+    ideaId: string,
+): Promise<HttpMessage<IdeaSubmissionEntity>> {
+    const [genesis] = await getIdeaVersions(ctx, ideaId);
+    if (genesis === undefined) {
+        throw new Error('Idea has no versions: ' + ideaId);
+    }
+    const saved = await putIdeaSubmissionOf(
+        ctx, generateIdentifier(), ideaId,
+        genesis.query('header.requester-identity-id').toText(),
+        genesis.query('header.response-at').toText(),
+    );
+    ideaChanges.notify();
+    return saved;
 }
 
 function assertConversionFullyScored(
