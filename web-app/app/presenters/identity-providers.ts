@@ -27,7 +27,7 @@ function buildEventRow(
                 <p class="${
                     'text-xs text-muted truncate'
                 }">
-                    ${event.providerSubject}
+                    Account ${event.providerSubject}
                 </p>
             </div>
             <div class="${

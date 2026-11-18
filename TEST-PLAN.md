@@ -5954,37 +5954,36 @@ FSM, unlike `flows/detail`).
   (`data-identity-link="tokens"`). PASS: the page title
   is "Tokens" with muted subtitle "Refresh-token chains
   for this identity"; the page renders one card per
-  chain, each showing the chain id, the event jti,
-  `parent: —` for a root event (or the parent jti for a
-  rotated one), an `issued`/`rotated`/`revoked` badge,
-  and a LOCAL-time stamp; an identity with no tokens
-  shows "No tokens." The `parent:` line is HEAD-only: the
-  tokens collection returns one row per jti — its latest
+  chain, each showing the chain id, the event jti as
+  `Token <jti>`, `Parent token —` for a root event (or
+  `Parent token <jti>` for a rotated one), an
+  `issued`/`rotated`/`revoked` badge, and a LOCAL-time
+  stamp; an identity with no tokens shows "No tokens."
+  The `Parent token` line is HEAD-only: the tokens
+  collection returns one row per jti — its latest
   event — so a successor's parent jti shows while that
-  successor is live and reverts to `parent: —` once the
-  successor is itself rotated, because the `issued` row
-  the parent line pairs against is no longer that jti's
-  head (spec 2026-09-15 exact-read folds § 6). The
-  presenter consumes the adapter's camelCase
-  `TokenEvent` domain shape (`jti`,
+  successor is live and reverts to `Parent token —`
+  once the successor is itself rotated, because the
+  `issued` row the parent line pairs against is no
+  longer that jti's head (spec 2026-09-15 exact-read
+  folds § 6). The presenter consumes the adapter's
+  camelCase `TokenEvent` domain shape (`jti`,
   `parentJti`, `action`, `at`) — a snake_case storage
-  leak would render `parent: undefined` instead of
-  `parent: —`. A non-canonical `identityId` (any value
-  that is not a 22-character identifier) 400s at the
-  route gate; an absent one bounces to `identities/`.
+  leak would render `Parent token undefined` instead of
+  `Parent token —`. A non-canonical `identityId` (any
+  value that is not a 22-character identifier) 400s at
+  the route gate; an absent one bounces to
+  `identities/`.
   Source: `GET identities/:id/tokens` via
   `web-app/app/adapters/identity-tokens.ts` (`TokenEvent`),
   `web-app/app/presenters/identity-tokens.ts`.
   Pin: tests/presenter-identity-tokens.test.ts 'renders a
        card per chain with each jti event' (decides the
-       chain id, jti, and issued/rotated badges render;
-       deleting the fixture's `parentJti` from the rotated
-       event leaves all five assertions green, since
-       `assert.match(out, /jmvogLnzTmiQlAkVvDHrvQ/)` is
-       already satisfied by the FIRST event's own jti —
-       confirmed by mutating a scratch copy — so this test
-       decides nothing about the `parent: {jti}`
-       rendering); tests/presenter-identity-tokens.test.ts
+       chain id, `Token <jti>` for each event,
+       `Parent token —` for the root event,
+       `Parent token <jti>` for the rotated one, that no
+       `parent:` text survives, and the issued/rotated
+       badges); tests/presenter-identity-tokens.test.ts
        'renders an empty state when no chains' (decides "No
        tokens."); tests/adapters-identity-roster.test.ts
        'getTokenChainsFor groups one identity\'s tokens'
@@ -5992,15 +5991,14 @@ FSM, unlike `flows/detail`).
        event count — the mechanism behind multiple chains,
        and not the `parentJti` field either); exploratory —
        the live page title/subtitle, the local-time stamp,
-       the `parent: {jti}` vs `parent: —` rendering itself
-       (see Unpinned but pinnable), and the
+       the HEAD-only reversion to `Parent token —`, and the
        non-canonical/absent identityId route-gate behavior
 - [ ] **G26** From the same detail, click its
   "Providers" link (`data-identity-link="providers"`).
   PASS: the page title is "Identity Providers" with
   muted subtitle "External sign-in links for this
   identity"; the page renders one card per link/unlink
-  event (provider name + the `providerSubject` + a
+  event (provider name + `Account <providerSubject>` + a
   `linked`/`unlinked` badge + local-time stamp), or "No
   linked providers." for an identity with none (the
   seeded Tony Stark logs in by password, so its
@@ -6013,7 +6011,7 @@ FSM, unlike `flows/detail`).
   `web-app/app/presenters/identity-providers.ts`.
   Pin: tests/presenter-identity-providers.test.ts 'renders
        a row per provider event' (decides the provider and
-       providerSubject render, and that an `unlinked` badge
+       `Account <providerSubject>` render, and that an `unlinked` badge
        renders; `assert.match(out, /linked/)` is satisfied
        by the SAME "unlinked" string as a substring, so
        this test alone does not independently decide that a

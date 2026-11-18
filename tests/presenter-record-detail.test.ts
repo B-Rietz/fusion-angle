@@ -9,13 +9,20 @@ import {
     allowedConstraintKinds,
     type AttributeDraft,
 } from '../web-app/app/presenters/record-detail.ts';
-import { RecordModel } from '../shared/types.ts';
+import {
+    RecordModel,
+    DEFAULT_LOCK_TIMEOUT,
+    storedWorkOrderFlowGraph,
+    type WorkOrderFlowGraph,
+} from '../shared/types.ts';
+import type { WorkOrder } from '../client/work-orders-queries.ts';
 import type { RecordState } from '../shared/types.ts';
 import { responseMessage } from './fixtures/response-message.ts';
 
 function pageFor(
     state: RecordState,
     roles: readonly string[],
+    workOrders: readonly WorkOrder[] = [],
 ): string {
     const model = new RecordModel(
         responseMessage({
@@ -33,7 +40,7 @@ function pageFor(
         record: model,
         attributes: [],
         boundFlows: [],
-        workOrders: [],
+        workOrders,
         instances: {
             instances: [],
             editing: null,
@@ -150,5 +157,49 @@ Deno.test(
             constraints: [],
         });
         assertNotMatch(page, /data-action="constraint-kind"/);
+    },
+);
+
+function workOrderShown(displayId: string): WorkOrder {
+    const graph: WorkOrderFlowGraph = {
+        name: 'Expense approval',
+        lockTimeout: DEFAULT_LOCK_TIMEOUT,
+        nodes: [],
+        edges: [],
+    };
+    const memberId = 'pjQzgITAPDQVyvCVpzpIfQ';
+    const at = '2026-04-01T12:00:00.000000Z';
+    return {
+        message: responseMessage({
+            id: 'wo-1',
+            organization_id: 'AjdvjuECVZEgZoFajaIEkg',
+            display_id: displayId,
+            flow_graph: storedWorkOrderFlowGraph(graph),
+            position: 0,
+            state: 'n-1',
+            transition: { member_id: memberId, at },
+            events: [],
+        }),
+        id: 'wo-1',
+        organizationId: 'AjdvjuECVZEgZoFajaIEkg',
+        displayId,
+        flowGraph: graph,
+        position: 0,
+        nodeId: 'n-1',
+        transition: { memberId, at },
+        claim: { state: 'unclaimed' },
+    };
+}
+
+Deno.test(
+    'a work order using the record is labelled'
+    + ' a work order',
+    () => {
+        const html = pageFor(
+            'active', ['admin'],
+            [workOrderShown('a7c3e1f9')],
+        );
+        assertMatch(html, /Work order a7c3e1f9/);
+        assertEquals(html.includes('#a7c3e1f9'), false);
     },
 );

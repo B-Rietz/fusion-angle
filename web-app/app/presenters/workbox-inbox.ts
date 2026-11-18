@@ -2,7 +2,10 @@ import {
     html, setHtml, SafeHtml,
     trusted, escapeForHtml,
 } from '../safe-html.ts';
-import { DISPLAY_ABSENT } from '../format.ts';
+import {
+    DISPLAY_ABSENT,
+    workOrderLabel,
+} from '../format.ts';
 import { buildPageUrl } from '../navigation.ts';
 import {
     type WorkOrder,
@@ -109,8 +112,8 @@ function buildUnplacedRow(
                     }</span>
                     <span class="${
                         'text-xs text-muted'
-                    }">#${
-                        item.displayId
+                    }">${
+                        workOrderLabel(item.displayId)
                     }</span>
                 </div>
                 <div class="${
@@ -217,8 +220,8 @@ export class WorkboxInboxPresenter {
                         }</span>
                         <span class="${
                             'text-xs text-muted'
-                        }">#${
-                            item.displayId
+                        }">${
+                            workOrderLabel(item.displayId)
                         }</span>
                     </a>
                     <div class="${

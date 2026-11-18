@@ -48,7 +48,7 @@ Deno.test('renders a row per provider event', () => {
     ]).render(rec.container);
     const out = rec.html();
     assertMatch(out, /google/);
-    assertMatch(out, /g-1/);
+    assertMatch(out, /Account g-1/);
     assertMatch(out, /linked/);
     assertMatch(out, /unlinked/);
 });

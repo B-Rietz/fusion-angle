@@ -1,4 +1,4 @@
-import { assertMatch } from '@std/assert';
+import { assertMatch, assertNotMatch } from '@std/assert';
 import {
     IdentityTokensPresenter,
 } from '../web-app/app/presenters/identity-tokens.ts';
@@ -57,6 +57,13 @@ Deno.test('renders a card per chain with each jti event', () => {
     assertMatch(out, /j2/);
     assertMatch(out, /issued/);
     assertMatch(out, /rotated/);
+    assertMatch(out, /Token jmvogLnzTmiQlAkVvDHrvQ/);
+    assertMatch(out, /Token j2/);
+    assertMatch(out, /Parent token —/);
+    assertMatch(
+        out, /Parent token jmvogLnzTmiQlAkVvDHrvQ/,
+    );
+    assertNotMatch(out, /parent:/);
 });
 
 Deno.test('renders an empty state when no chains', () => {
