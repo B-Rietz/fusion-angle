@@ -18,3 +18,8 @@ export function getHref(): string {
 export function putAddress(url: string): void {
     history.replaceState(history.state, '', url);
 }
+
+export function reloadLocation(): void {
+    latchPageLeaving();
+    window.location.reload();
+}
