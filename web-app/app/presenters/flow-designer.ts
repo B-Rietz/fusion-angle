@@ -50,6 +50,7 @@ import type {
     FlowGestureContext,
     FitBox,
 } from '../flow-interactions.ts';
+import { viewBoxResized } from '../flow-camera.ts';
 import {
     canUndoFlowEdits,
     canRedoFlowEdits,
@@ -981,14 +982,15 @@ Auto Fit</label>
         const vb =
             this.#snapshot.interaction
                 .viewBox;
-        const centerX = vb.x + vb.w / 2;
-        const centerY = vb.y + vb.h / 2;
-        const z =
-            this.#snapshot.interaction.zoom;
-        vb.w = w / z;
-        vb.h = h / z;
-        vb.x = centerX - vb.w / 2;
-        vb.y = centerY - vb.h / 2;
+        const resized = viewBoxResized(
+            vb,
+            this.#snapshot.interaction.zoom,
+            w, h,
+        );
+        vb.x = resized.x;
+        vb.y = resized.y;
+        vb.w = resized.w;
+        vb.h = resized.h;
         return this.#snapshot;
     }
 

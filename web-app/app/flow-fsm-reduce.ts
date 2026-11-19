@@ -9,10 +9,12 @@ import type {
     LastClick,
     Selection,
 } from './flow-fsm-types.ts';
+import {
+    cameraZoomedAt,
+    viewBoxPannedBy,
+    wheelZoomDirection,
+} from './flow-camera.ts';
 
-const MIN_ZOOM = 0.25;
-const MAX_ZOOM = 2.0;
-const ZOOM_STEP = 0.1;
 const DBLCLICK_MS = 400;
 const DBLCLICK_SLOP_PX = 4;
 const MIN_DRAG_DISTANCE = 20;
@@ -475,19 +477,15 @@ function onPointerMove(
             - state.pan.startX;
         const dy = input.clientY
             - state.pan.startY;
-        const scaleX =
-            state.viewBox.w / input.svgRectW;
-        const scaleY =
-            state.viewBox.h / input.svgRectH;
         const next: FsmState = {
             ...state,
-            viewBox: {
-                ...state.viewBox,
-                x: state.viewBox.x
-                    - dx * scaleX,
-                y: state.viewBox.y
-                    - dy * scaleY,
-            },
+            viewBox: viewBoxPannedBy(
+                state.viewBox, dx, dy,
+                {
+                    w: input.svgRectW,
+                    h: input.svgRectH,
+                },
+            ),
             pan: {
                 kind: 'panning',
                 startX: input.clientX,
@@ -727,30 +725,15 @@ function onWheel(
             ],
         };
     }
-    const prevZoom = state.zoom;
-    const delta = input.deltaY > 0
-        ? -ZOOM_STEP
-        : ZOOM_STEP;
-    const nextZoom = Math.max(
-        MIN_ZOOM,
-        Math.min(MAX_ZOOM, prevZoom + delta),
+    const camera = cameraZoomedAt(
+        { zoom: state.zoom, viewBox: state.viewBox },
+        wheelZoomDirection(input.deltaY),
+        { x: input.svgX, y: input.svgY },
     );
-    const ratio = prevZoom / nextZoom;
-    const newW = state.viewBox.w * ratio;
-    const newH = state.viewBox.h * ratio;
-    const newX =
-        input.svgX
-        - (input.svgX - state.viewBox.x) * ratio;
-    const newY =
-        input.svgY
-        - (input.svgY - state.viewBox.y) * ratio;
     const next: FsmState = {
         ...state,
-        zoom: nextZoom,
-        viewBox: {
-            x: newX, y: newY,
-            w: newW, h: newH,
-        },
+        zoom: camera.zoom,
+        viewBox: camera.viewBox,
     };
     return {
         state: next,
