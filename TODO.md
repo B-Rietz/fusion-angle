@@ -723,8 +723,8 @@ code comments cite; specs and plans written before the
   `web-app/flows/detail.ts` (`canvasFocusOf`'s walk
   among them); in-place
   `viewBox` mutation at four method sites
-  (`web-app/app/presenters/flow-designer.ts:489-490,
-  510-513, 990-993, 1020-1021`); `hasUndoHistory` as
+  (`web-app/app/presenters/flow-designer.ts:491-492,
+  512-515, 990-993, 1020-1021`); `hasUndoHistory` as
   the designer's own `versions.length > 1`, counting
   parts of `…/flows/:id/versions/`
   (`web-app/app/flow-operations.ts:841`, `:915`,
@@ -743,8 +743,7 @@ code comments cite; specs and plans written before the
   rotation only on the
   toggle path (`web-app/app/flow-layout.ts:1032-1037`);
   the mirror trigger; and the canvas entries of the
-  genericity bullet (two zoom
-  implementations, `#noteMutation`, `handleSpace`,
+  genericity bullet (`#noteMutation`, `handleSpace`,
   Delete's `preventDefault`).
 - **11a.** Assigned workbox pool — Available lists only
   unclaimed or released work whose current node lists
@@ -1679,14 +1678,14 @@ Off the critical path; each with its oracle.
   runs first: `withPanelOpen(true)` pans the camera to
   center the node — from a closed panel, and from an
   open one when the camera has left the node off center
-  (`web-app/app/flow-designer-actions.ts:475-486`,
-  `:502-507`) — writing `x` and `y` into the `viewBox`
+  (`web-app/app/flow-designer-actions.ts:485-496`,
+  `:512-517`) — writing `x` and `y` into the `viewBox`
   object in place
-  (`web-app/app/presenters/flow-designer.ts:489-490`),
+  (`web-app/app/presenters/flow-designer.ts:491-492`),
   an object the gesture's state shares. The drag's
   start point was mapped through the camera before
   that pan; each `pointermove` maps through it after
-  (`web-app/app/flow-interactions.ts:665-668`). A move
+  (`web-app/app/flow-interactions.ts:668-671`). A move
   before the release therefore carries the pan offset,
   and the release answers `move-nodes` by it, not by
   the pointer's travel. FLOW-CANVAS.md `## Camera
@@ -1696,7 +1695,7 @@ Off the critical path; each with its oracle.
   composition of the presenter and the reducer, not in
   the page. Auto Fit on is not affected:
   `applyPanelTransition` returns null under Auto Fit
-  (`web-app/app/flow-designer-actions.ts:474`), so
+  (`web-app/app/flow-designer-actions.ts:484`), so
   `withPanelOpen` writes no `viewBox` field, and the
   fit that follows assigns a fresh `viewBox` object
   (`flow-designer.ts:1020-1021`), which the gesture's
@@ -1722,10 +1721,10 @@ Off the critical path; each with its oracle.
   undo and redo committing `applyServerGraph`
   (`web-app/app/flow-operations.ts:707-709`), and a
   close under Auto Fit, where `applyPanelTransition`
-  returns null (`web-app/app/flow-designer-actions.ts:474`).
+  returns null (`web-app/app/flow-designer-actions.ts:484`).
   The transitions key on the snapshot's own previous
   open flag (`wasOpen`,
-  `web-app/app/presenters/flow-designer.ts:416`), so a
+  `web-app/app/presenters/flow-designer.ts:418`), so a
   close the snapshot already holds restores nothing and
   the next open recaptures the camera — by reading, not
   by test. Two loose ends: `handleUndo` and
@@ -1779,7 +1778,7 @@ Off the critical path; each with its oracle.
   longer requires Auto Fit off
 - A flow loaded with Auto Fit off does not fit on
   first paint. `withCanvasSize`
-  (`web-app/app/presenters/flow-designer.ts:974-995`)
+  (`web-app/app/presenters/flow-designer.ts:973-995`)
   fits only under `isAutoFit`, and the load-time block
   (`web-app/flows/detail.ts:1797-1813`) is the only
   load-time fit — its `reconcileFitFromDom()` returns
@@ -1790,10 +1789,22 @@ Off the critical path; each with its oracle.
   Oracle: a flow loaded with Auto Fit off fits on first
   paint, or the plan says it
   does not
+- The Flow Designer page overflows sideways at 800x700.
+  Its header outgrows the window, the page's
+  `scrollWidth` is 835, and its canvas runs 465 px wide
+  against the stats page's 430, so the stats page's
+  canvas parity with the designer is promised only
+  where the designer's header and page fit
+  (FLOW-CANVAS.md `## Stats variant`; the parity tests
+  run at 900x700 and up). A designer change of its own.
+  Oracle: a Layer 2 test in
+  `tests/browser/flow-canvas-box.test.ts` finds the
+  designer's `scrollWidth` 800 at 800x700 and its canvas
+  as wide as the stats canvas
 - A press's stamp is the wall clock. `bindInteractions`
   stamps each press with `Date.now()`
-  (`web-app/app/flow-interactions.ts:578`, `:619`,
-  `:634`, `:648`), and the three double-click checks in
+  (`web-app/app/flow-interactions.ts:581`, `:622`,
+  `:637`, `:651`), and the three double-click checks in
   `web-app/app/flow-fsm-reduce.ts` — a node press, an
   edge press, and `isSecondPressNear` — compare
   `now - time` to `DBLCLICK_MS`. A clock set back
@@ -1808,15 +1819,15 @@ Off the critical path; each with its oracle.
 - A Meta double-click opens the panel with nothing
   selected. A Meta press toggles its node in the
   selection (`nextSelectionForNodeClick`,
-  `web-app/app/flow-fsm-reduce.ts:350-363`), so the
+  `web-app/app/flow-fsm-reduce.ts:352-365`), so the
   first press of a pair on an unselected node selects
   it, and the second, inside `DBLCLICK_MS`, takes the
-  same-element path (`:184-197`): it removes the node,
+  same-element path (`:186-199`): it removes the node,
   still emits `open-panel: true`, and starts a drag
   over an empty selection (run: selection `none`;
   actions `open-panel`, `capture-pointer`,
   `request-update`). The adapter counts Ctrl as Meta
-  (`web-app/app/flow-interactions.ts:610-612`). It
+  (`web-app/app/flow-interactions.ts:613-615`). It
   predates the point rule; the tree before it behaves
   the same (run). Whether the pair should keep the
   node, or a Meta press should never count as a
@@ -2073,7 +2084,7 @@ Off the critical path; each with its oracle.
   - The Create-node edge group's deliberate lack of a
     `data-edge-id`, which is what keeps it
     non-interactive (AA30) — Layer 1, an absence
-    assertion over `web-app/app/flow-graph.ts:872-886`;
+    assertion over `web-app/app/flow-graph.ts:903-917`;
     its `data-edge-ref` is pinned
     (`tests/flow-graph-xss.test.ts:119`)
   - The auth form's client-side validation messages —
@@ -2252,7 +2263,7 @@ Off the critical path; each with its oracle.
     the node the first press hit. A `mousedown` focuses
     the pressed node, and its `focusin` dispatches
     `canvas-focus`
-    (`web-app/app/flow-interactions.ts:785-798`), which
+    (`web-app/app/flow-interactions.ts:788-801`), which
     selects it and re-centers; the page replaces the
     pressed node inside the `pointerdown` listener, so
     Chrome's focus default should find it gone — by
@@ -2266,12 +2277,14 @@ Off the critical path; each with its oracle.
     `buildConnectPreview` via `buildGraphSvg`
   - Auto Fit's refusal on the zoom BUTTONS (`withZoomedIn`
     / `withZoomedOut` through `#guardAutoFit`,
-    `web-app/app/presenters/flow-designer.ts:877-903`)
-    and the step path's 0.25 floor
-    (`web-app/app/flow-interactions.ts:953-958`) (F29) —
-    Layer 1, `tests/flow-designer-presenter.test.ts` for
-    the buttons (only the wheel path is covered); the fit
-    path's `MIN_ZOOM` clamp is pinned
+    `web-app/app/presenters/flow-designer.ts:876-902`)
+    (F29) — Layer 1, `tests/flow-designer-presenter.test.ts`
+    for the buttons (only the wheel path is covered); the
+    step path's 0.25 floor
+    (`web-app/app/flow-camera.ts:42-45`) is pinned
+    (`tests/flow-camera.test.ts` 'zoom stays within
+    0.25..2 after 30 steps either way'), and so is the
+    fit path's `MIN_ZOOM` clamp
     (`tests/flow-zoom-to-fit.test.ts:166`, `:206`, `:251`)
   - The pixel-identical position restore across an undo
     (F34) — Layer 1, asserting `positionX`/`positionY`
@@ -2359,9 +2372,10 @@ Off the critical path; each with its oracle.
   - The live Stats-button and back-button navigation and
     the preserved `projectId` (FS2) — Layer 2; the back
     handler is inline in `web-app/flows/stats.ts`
-  - The painted colour ramp — yellow/red hot, warm,
-    cool/no-data (FS3) — Layer 2, reading the colour
-    `--heat-t` resolves to
+  - The painted border and tint ramp — yellow/red hot,
+    cool teal — and the plain Create and Archive borders
+    (FS3) — Layer 2, reading the colour `--heat-t`
+    resolves to
   - The mouse-out wiring that hides the stat card
     (Layer 2, inline in `flows/stats.ts`), and that card
     carrying no inputs and no Save button (Layer 1, over
@@ -2385,11 +2399,12 @@ Off the critical path; each with its oracle.
     `tests/mock-flow-readiness.test.ts` pins Customer
     Onboarding READY, which excludes zero-member and
     dead-end nodes but not the one-member `warning` case
-  - The live click advancing the stepper, the accent
-    stroke, and the dimmed opacity's painted ~30% (FS7) —
-    Layer 2
-  - The painted contrast of tints and card text
-    (FS8) — Layer 2, reading computed contrast
+  - The live click advancing the stepper, the lit path's
+    normal paint, and the dimmed opacity's painted ~30%
+    (FS7) — Layer 2
+  - The painted contrast of the hover card's text
+    (FS8) — Layer 2, reading computed contrast; the node
+    text on the tints is pinned
   - The redirect to `flows/index.html` when `flowId` is
     absent (Layer 2; `init()` in `web-app/flows/stats.ts`
     is exported but untested) and the "Here now" WIP
@@ -3515,12 +3530,9 @@ Off the critical path; each with its oracle.
   detail's redundant reads (`refresh` on every member
   bell, `web-app/members/detail.ts:225-229`,
   `:261-271`, beside the save's own re-read at
-  `:563`); two zoom implementations and two constant
-  sets (`web-app/app/flow-fsm-reduce.ts:13-15, 712-761`,
-  `web-app/app/flow-interactions.ts:16-18, 916-974`);
-  `#noteMutation` / `history()` beside
+  `:563`); `#noteMutation` / `history()` beside
   `advanceHistory`
-  (`web-app/app/presenters/flow-designer.ts:198-204`);
+  (`web-app/app/presenters/flow-designer.ts:200-206`);
   the shell's hand-kept copy of the reveal header
   (`bin/postgres-lib:7` against `server/seed.ts:28-29`,
   guarded by no test); the second ancestor walk,
