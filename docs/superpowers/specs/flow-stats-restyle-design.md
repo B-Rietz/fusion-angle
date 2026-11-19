@@ -22,14 +22,17 @@ states and transitions, with heat laid softly on top.
 1. **Layout parity.** For the same flow, each page freshly
    loaded in the same window, stats places the states,
    routes the edges, labels the transitions, and frames
-   the camera exactly as the designer does with Auto
-   Layout and Auto Fit on.
-2. **The app's colours and contrast.** Canvas, strokes,
+   the camera exactly as the designer does.
+2. **The flow's own settings, read-only.** Stats honours
+   the flow's stored Auto Layout and Auto Fit settings
+   and offers no control for either. The page is for
+   consumption: it changes nothing about the flow.
+3. **The app's colours and contrast.** Canvas, strokes,
    and text come from the tokens the designer uses.
-3. **Softer heat, same ramp.** The four `--heat-stop-*`
+4. **Softer heat, same ramp.** The four `--heat-stop-*`
    tokens and their stops (0 / 50 / 75 / 100 %) stay; the
    way a node wears the colour changes.
-4. **One slim bar in the header.** The path stepper and
+5. **One slim bar in the header.** The path stepper and
    the legend become a single bar beside the title.
    Nothing sits below the canvas or over it.
 
@@ -41,7 +44,10 @@ states and transitions, with heat laid softly on top.
 - What the designer renders or does. Its stylesheet may
   take the shared size tokens named under "The same box";
   its page must look and behave as it does today.
-- Pan, zoom, or any other interaction on the stats canvas.
+- Editing of any kind. Stats selects nothing, moves no
+  state, and writes nothing.
+- Storing a camera. Where stats lets the reader pan and
+  zoom, the view lasts until the page reloads.
 - Merging the two renderers.
 
 ## Anti-goals
@@ -59,6 +65,8 @@ states and transitions, with heat laid softly on top.
   exact percentage.
 - Anything laid over the canvas that can hide a state from
   the pointer.
+- A control on this page that changes a flow setting, or
+  any write to the flow.
 
 ## Constraints
 
@@ -108,9 +116,10 @@ So the stats canvas has the designer's box exactly:
 
 - **Height.** The stats header and the designer header
   take one shared height token.
-- **Width.** A blank gutter stands where the designer
-  keeps its tool column, sized by one shared width token
-  that the tool column also takes.
+- **Width.** A gutter stands where the designer keeps its
+  tool column, sized by one shared width token that the
+  tool column also takes. It is blank, except for the
+  zoom buttons named under "Pan and zoom".
 - **No other chrome.** Nothing sits below the canvas. The
   canvas area carries no margin the designer's lacks.
 
@@ -120,15 +129,23 @@ height.
 
 ### Layout parity
 
-Stats does what the designer does with that box:
+Stats does what the designer does with that box, under
+the flow's two stored settings. It reads them; it shows no
+switch for either.
+
+| Setting | On | Off |
+|---|---|---|
+| Auto Layout | the designer's computed arrangement | the stored, hand-placed positions |
+| Auto Fit | the camera fits the flow to the canvas | the designer's opening view: 1:1 zoom, centred on the canvas origin |
 
 - **Measure, then lay out, once per load.** After the
-  shell renders, stats reads the size of its canvas and
-  lays the flow out with it, by the same rule the designer
-  uses to decide whether to lay out at all, with the
-  properties panel counted as closed. The designer's call
-  is `applyAutoLayout` (`flow-designer-actions.ts`) over
-  `runFlowLayout`.
+  shell renders, stats reads the size of its canvas. When
+  the designer would lay the flow out — Auto Layout on,
+  by the designer's own rule — stats lays it out with
+  that size, the properties panel counted as closed. The
+  designer's call is `applyAutoLayout`
+  (`flow-designer-actions.ts`) over `runFlowLayout`.
+  Otherwise stats draws the stored positions.
 - **Keep the waypoints.** The layout returns waypoints for
   edges that route around nodes. Stats discards them
   today; it keeps them and hands them to the edge
@@ -147,26 +164,54 @@ Stats does what the designer does with that box:
   carry the name alone, centred, as in the designer; the
   "—" they show today goes. Names truncate as the designer
   truncates them.
-- **One camera.** The viewBox is the result of the
-  designer's `fitBoxToCanvas` with no panel offset: first
-  over the node bounds, then again over the measured
-  extent of the drawn content, the way the designer's
-  `reconcileFitFromDom` corrects its own first fit. The
-  viewBox has the canvas's aspect, so nothing letterboxes.
-- **Never cropped.** The designer's fit stops at a minimum
-  zoom and crops what is left, because its user can pan.
-  Stats cannot pan, so where that clamp would crop, stats
-  shows the whole flow smaller. Every other flow gets the
-  designer's camera unchanged.
-- **Resize re-fits; it does not lay out.** This is what
-  the designer does: a resize re-fits the camera and
-  renders again, and the arrangement waits for the next
-  load. The selected path and a pinned card survive a
-  resize. No resize fetches.
+- **One camera, Auto Fit on.** The viewBox is the result
+  of the designer's `fitBoxToCanvas` with no panel
+  offset: first over the node bounds, then again over the
+  measured extent of the drawn content, the way the
+  designer's `reconcileFitFromDom` corrects its own first
+  fit. The viewBox has the canvas's aspect, so nothing
+  letterboxes.
+- **Never cropped, Auto Fit on.** The designer's fit
+  stops at a minimum zoom and crops what is left, because
+  its user can turn Auto Fit off and pan. A reader of
+  stats cannot turn it off, so where that clamp would
+  crop, stats shows the whole flow smaller. Every other
+  flow gets the designer's camera unchanged.
+- **One camera, Auto Fit off.** Stats opens where the
+  designer opens: the viewBox `buildInteractionState`
+  gives, 1:1 and centred on the origin.
+- **A resize never lays out.** This is what the designer
+  does: with Auto Fit on a resize re-fits the camera;
+  with it off the camera keeps its centre and its zoom.
+  The arrangement waits for the next load. The selected
+  path and a pinned card survive a resize. No resize
+  fetches.
 
-A flow with hand-placed states already uses its stored
-positions on both pages; it gains the shared edge
-geometry, the labels, and the camera.
+### Pan and zoom
+
+Only when the flow's Auto Fit is off. The designer's
+opening view can leave part of a flow outside the canvas,
+and its user pans to reach it; the reader of stats must be
+able to as well.
+
+- **Pan.** Dragging the canvas moves the camera. Stats has
+  no marquee and no pan mode to toggle: a drag is a pan.
+  A drag is not a click, so it neither pins nor unpins a
+  card.
+- **Zoom.** The wheel zooms about the pointer, and the
+  designer's − and + buttons stand in the gutter where the
+  designer keeps them. Step, range, and focal point are
+  the designer's.
+- **Keyboard.** Pan and zoom are both reachable without a
+  pointer.
+- **The card follows.** A pinned card stays beside its
+  node as the camera moves.
+- **Nothing is kept.** The camera is page state. It is
+  not written to the flow, and a reload opens at the
+  designer's opening view again.
+
+With Auto Fit on there is no pan, no zoom, and no zoom
+buttons: the gutter is blank.
 
 ### Paint
 
@@ -272,8 +317,18 @@ Covenants that are new:
   every edge path;
 - in one window, the stats canvas and the designer canvas
   measure the same;
-- the viewBox is the designer's camera fit for the canvas
-  size, except where that fit would crop;
+- with Auto Fit on, the viewBox is the designer's camera
+  fit for the canvas size, except where that fit would
+  crop; with it off, the viewBox is the designer's
+  opening view;
+- with Auto Layout off, every node sits at its stored
+  position;
+- with Auto Fit off, a drag pans, the wheel and the
+  buttons zoom within the designer's range, and a pinned
+  card stays beside its node; with it on, none of them
+  moves the camera and the buttons are absent;
+- the page carries no control for Auto Layout or Auto
+  Fit, and writes nothing;
 - a resize keeps every node where it was.
 
 The existing browser test (a hovered node keeps its card
@@ -302,5 +357,11 @@ open) holds unchanged.
   breakpoints. Parity is promised where the designer's
   header holds one row.
 - The mechanism of the hover text.
+- How much of the designer's pan and zoom arithmetic stats
+  reuses, so the two cannot disagree on step, range, or
+  focal point, without taking on the designer's editing
+  state machine.
+- The keyboard bindings for pan, and whether a held card
+  hides during a drag.
 - The highest level at which each parity covenant can be
   tested.
