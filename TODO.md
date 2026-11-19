@@ -14,7 +14,7 @@ performance wait on a measurement that earns them.
 
 ## Critical product path
 
-Fourteen items, in this order — each its own brainstorm
+Fifteen items, in this order — each its own brainstorm
 → spec → plan → ship cycle, implemented sequentially, a
 dependency (`## Sequencing`) ahead of benefit over cost.
 The 0-items finish the release: the ledger's one
@@ -23,7 +23,8 @@ deploy — `fa_` names (0e), the fence (0f),
 reseed that ships them (0i). Then what a pilot
 tenant needs (5–7), the process engine and its AI
 worker on that (9–12; 11a is the assigned workbox
-pool), and two processes last (13). An
+pool), two processes (13), and the member kinds
+unified (14). An
 item's number is its name, which specs, plans, and
 code comments cite; specs and plans written before the
 0-items were named call 0f and 0h items 2 and 3.
@@ -816,6 +817,44 @@ code comments cite; specs and plans written before the
   "do not run two replicas". Consumes items 4, 6, 9,
   and the examination report's lock and growth findings
   (`docs/superpowers/specs/2026-09-15-one-table-examined-report.md`).
+- **14.** Unify the three member kinds: human, AI agent,
+  service.
+  They are one thing (an identity with an accepted
+  membership) spelled three ways. A human is the
+  membership plus the identity's live PII
+  (`invitee_name`, `invitee_email`); an AI is a document
+  at `organizations/:id/ai-agents/:id`; a service is one
+  at `organizations/:id/services/:id`; and no `humans/`
+  collection exists. Every reader and writer branches on
+  the kind: `memberNamesOf` (`api/member-names.ts:22`)
+  merges four reads, `membershipSearchJoinsOf`
+  (`api/membership-search.ts:72`) repeats the AI and
+  service reads with their own validators, the creation
+  ops (`api/invitations-domain.ts:940-975`) differ only
+  in the collection and the body, `identity_kind` is
+  `person` or `service` while the AI is told apart by
+  its document, and the page has three presenters
+  (`web-app/app/presenters/human-member-detail.ts`,
+  `ai-member-detail.ts`, `service-member-detail.ts`),
+  the last two sharing `buildShell` byte for byte (the
+  bullet on the member detail chrome below). Decide
+  first, by measurement and a spec: one `members/`
+  collection keyed by a `kind` of `human`, `ai` or
+  `service`, with the kind-specific body as its own
+  validated shape (a join to PII for `human`); or the
+  collections stay and one `memberKind` reader and one
+  creation op serve all three. Either way the
+  vocabulary is the three words, `identity_kind` stops
+  half-saying it, and a fourth kind is one entry, not a
+  new route, validator, search join and presenter.
+  Storage already reads on disk, so this is a migration:
+  name the old routes' retirement and the seed's
+  counts (`EXPECTED_MESSAGE_PAIR_COUNT`). Oracle: one
+  reader answers a member's name and kind for all
+  three; `grep -rn "'/ai-agents/'\|'/services/'" api`
+  names one site, not five; the three presenters share
+  one chrome; and the members page, search, roster and
+  seed pass unchanged at Layer 1 and Layer 2.
 
 ## Critical functionality path
 
@@ -1269,43 +1308,6 @@ Off the critical path; each with its oracle.
 
 ## Later work
 
-- Unify the three member kinds: human, AI agent, service.
-  They are one thing (an identity with an accepted
-  membership) spelled three ways. A human is the
-  membership plus the identity's live PII
-  (`invitee_name`, `invitee_email`); an AI is a document
-  at `organizations/:id/ai-agents/:id`; a service is one
-  at `organizations/:id/services/:id`; and no `humans/`
-  collection exists. Every reader and writer branches on
-  the kind: `memberNamesOf` (`api/member-names.ts:22`)
-  merges four reads, `membershipSearchJoinsOf`
-  (`api/membership-search.ts:72`) repeats the AI and
-  service reads with their own validators, the creation
-  ops (`api/invitations-domain.ts:940-975`) differ only
-  in the collection and the body, `identity_kind` is
-  `person` or `service` while the AI is told apart by
-  its document, and the page has three presenters
-  (`web-app/app/presenters/human-member-detail.ts`,
-  `ai-member-detail.ts`, `service-member-detail.ts`),
-  the last two sharing `buildShell` byte for byte (the
-  bullet on the member detail chrome below). Decide
-  first, by measurement and a spec: one `members/`
-  collection keyed by a `kind` of `human`, `ai` or
-  `service`, with the kind-specific body as its own
-  validated shape (a join to PII for `human`); or the
-  collections stay and one `memberKind` reader and one
-  creation op serve all three. Either way the
-  vocabulary is the three words, `identity_kind` stops
-  half-saying it, and a fourth kind is one entry, not a
-  new route, validator, search join and presenter.
-  Storage already reads on disk, so this is a migration:
-  name the old routes' retirement and the seed's
-  counts (`EXPECTED_MESSAGE_PAIR_COUNT`). Oracle: one
-  reader answers a member's name and kind for all
-  three; `grep -rn "'/ai-agents/'\|'/services/'" api`
-  names one site, not five; the three presenters share
-  one chrome; and the members page, search, roster and
-  seed pass unchanged at Layer 1 and Layer 2.
 - Restore an archived idea. Archive on the idea detail
   page is one-way: `ideaIsVisible`
   (`shared/types.ts:1747`) drops `archived` from the
@@ -3855,6 +3857,9 @@ Off the critical path; each with its oracle.
   `user-agent`; the migrations; then the wipe and
   reseed that land them together
 - 6 → 13 (item 4 shipped: health, then per process)
+- 0h, 0i → 14 (the member kinds move storage, so item
+  0h's migrations carry it and item 0i's wipe and
+  reseed have already landed)
 - 7 → 11, 12 (the designer roster and AI seats read the
   profile)
 - 9 → 10 → 11 → 11a → 12 (the bell, then chats, then
