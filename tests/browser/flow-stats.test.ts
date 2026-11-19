@@ -561,3 +561,119 @@ Deno.test('at 1024x768 the header keeps its back button and its'
         }
     });
 });
+
+// Each part of the bar, end to end, that is not on screen,
+// not inside the header, or not the element at its own
+// centre: the bar's parts that are out of reach. A disabled
+// arrow takes no pointer, so the bar behind it answers.
+const BAR_PARTS_OUT_OF_REACH = `JSON.stringify((() => {
+    const header = document.querySelector('.flow-stats-header')
+        .getBoundingClientRect();
+    const parts = [...document.querySelectorAll(
+        '.flow-stats-bar, .flow-stats-bar [data-stepper],'
+        + ' .flow-stats-stepper-label, .flow-stats-legend-end,'
+        + ' .flow-stats-legend-bar')];
+    return parts.flatMap((part) => {
+        const r = part.getBoundingClientRect();
+        const name = part.dataset.stepper ?? part.className;
+        const inside = (box) => r.left >= box.left
+            && r.right <= box.right && r.top >= box.top
+            && r.bottom <= box.bottom;
+        const hit = document.elementFromPoint(
+            r.left + r.width / 2, r.top + r.height / 2);
+        const answers = part.matches(':disabled')
+            ? part.closest('.flow-stats-bar')
+            : part;
+        return [
+            ...(inside({ left: 0, top: 0,
+                right: innerWidth, bottom: innerHeight })
+                ? [] : [name + ' off screen']),
+            ...(inside(header) ? [] : [name + ' outside header']),
+            ...(hit !== null && answers.contains(hit)
+                ? [] : [name + ' covered']),
+        ];
+    });
+})())`;
+
+const NARROW_WINDOWS = [
+    NARROW_DESKTOP,
+    { width: 800, height: 700 },
+    { width: 375, height: 800 },
+];
+
+Deno.test('below xl the whole bar fits in the header',
+async () => {
+    for (const size of NARROW_WINDOWS) {
+        await withAdminPage(browser.get(), async (page, origin) => {
+            await page.setViewport(size.width, size.height, false);
+            await openStats(
+                page, origin, await flowIdNamed(origin, ONBOARDING),
+            );
+            for (const label of ['Path 1 of', 'Path 2 of',
+                'Path 3 of']) {
+                await page.until(
+                    `${PATH_LABEL}.startsWith(${
+                        JSON.stringify(label)})`,
+                    label,
+                );
+                assertEquals(
+                    JSON.parse(await page.evaluate<string>(
+                        BAR_PARTS_OUT_OF_REACH,
+                    )),
+                    [],
+                    `${label} at ${size.width}x${size.height}`,
+                );
+                if (label !== 'Path 3 of') {
+                    await page.click(NEXT_PATH);
+                }
+            }
+        });
+    }
+});
+
+const WIDE_DESKTOP = { width: 1280, height: 800 };
+type Caption = {
+    text: string; width: number; height: number; seen: boolean;
+};
+const CAPTION = `JSON.stringify((() => {
+    const caption = document.querySelector(
+        '.flow-stats-legend-caption');
+    const r = caption.getBoundingClientRect();
+    const hit = document.elementFromPoint(
+        r.left + r.width / 2, r.top + r.height / 2);
+    return {
+        text: caption.textContent,
+        width: r.width,
+        height: r.height,
+        seen: hit !== null && caption.contains(hit),
+    };
+})())`;
+
+Deno.test('the bar\'s caption is seen at xl and only heard'
++ ' below it', async () => {
+    await withAdminPage(browser.get(), async (page, origin) => {
+        const flowId = await flowIdNamed(origin, ONBOARDING);
+        await page.setViewport(
+            WIDE_DESKTOP.width, WIDE_DESKTOP.height, false,
+        );
+        await openStats(page, origin, flowId);
+        const wide = JSON.parse(
+            await page.evaluate<string>(CAPTION),
+        ) as Caption;
+        assertStrictEquals(wide.text, 'share of flow time');
+        assert(wide.seen, 'caption not seen at xl');
+        assert(wide.width > 1, `caption ${wide.width}px wide`);
+        await page.setViewport(
+            NARROW_DESKTOP.width, NARROW_DESKTOP.height, false,
+        );
+        await openStats(page, origin, flowId);
+        const narrow = JSON.parse(
+            await page.evaluate<string>(CAPTION),
+        ) as Caption;
+        assertStrictEquals(narrow.text, 'share of flow time');
+        assert(
+            narrow.width <= 1 && narrow.height <= 1,
+            `caption ${narrow.width}x${narrow.height} below xl`,
+        );
+    });
+});
