@@ -122,6 +122,11 @@ So the stats canvas has the designer's box exactly:
   zoom buttons named under "Pan and zoom".
 - **No other chrome.** Nothing sits below the canvas. The
   canvas area carries no margin the designer's lacks.
+- **No rule under the header.** The designer's header
+  rule lands on its tool column. Over the stats gutter it
+  would run off to the left of the canvas, so stats draws
+  none: the canvas's own border is the only line. The
+  rule's pixel stays as space, so the box does not move.
 
 The covenant: in one window, the stats canvas and the
 designer canvas measure the same width and the same
@@ -217,11 +222,11 @@ buttons: the gutter is blank.
 
 All of it lives in `pages-flow-stats.css`. Option A of
 the first brainstorm mockup is the reference for the
-canvas; option X of the second is the reference for the
-page. Both are untracked and sit in the main checkout, not
-this worktree:
+canvas; the third is the reference for the page, with
+Auto Fit on and off. Both are untracked and sit in the
+main checkout, not this worktree:
 `.superpowers/brainstorm/15492-1795071256/content/heat-options.html`
-and `bar-placement.html` beside it.
+and `header-rule-v3.html` beside it.
 
 - **Canvas.** `--background`, the designer's dotted grid,
   border, and radius.
