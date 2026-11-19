@@ -16,14 +16,10 @@ import {
     partsOf,
     storedPutBodyText,
 } from './http-fixtures.ts';
-import {
-    deriveIdeaSubmissions,
-    ideaSubmissionEntityOf,
-} from '../api/derive-ideas.ts';
-import {
-    deriveProjectFlows,
-    projectFlowEntityOf,
-} from '../api/derive-project-flows.ts';
+import { ideaSubmissionEntityOf } from
+    '../api/derive-ideas.ts';
+import { projectFlowEntityOf } from
+    '../api/derive-project-flows.ts';
 import {
     deriveFlowWorkOrders,
     flowWorkOrderEntityOf,
@@ -33,19 +29,12 @@ import {
     deriveFlowRecord,
     flowRecordEntityOf,
 } from '../api/derive-flow-records.ts';
-import {
-    deriveFlowTag,
-    flowTagEntityOf,
-} from '../api/derive-flow-tags.ts';
-import {
-    deriveObjectiveRevisions,
-    objectiveRevisionEntityOf,
-} from '../api/derive-objective-revisions.ts';
-import {
-    deriveBaselineScores,
-    deriveActualScores,
-    scoreEntityOf,
-} from '../api/derive-project-scores.ts';
+import { flowTagEntityOf } from
+    '../api/derive-flow-tags.ts';
+import { objectiveRevisionEntityOf } from
+    '../api/derive-objective-revisions.ts';
+import { scoreEntityOf } from
+    '../api/derive-project-scores.ts';
 import { nestedAttributeWireOf } from '../api/routes.ts';
 
 // G6: stored PUT = today's GET derive (*EntityOf). Pin
@@ -177,10 +166,6 @@ async () => {
     assertStrictEquals(Object.keys(expected)[0], 'id');
     assertEquals(stored, expected);
     assertEquals(stored, await put.json());
-    const derived = await deriveIdeaSubmissions(
-        db, ORGANIZATION, ideaId,
-    );
-    assertEquals(derived, [expected]);
     const got = await handleRequest(db, req(
         'GET', '/organizations/AjdvjuECVZEgZoFajaIEkg/ideas/' + ideaId
             + '/submissions/', token,
@@ -220,10 +205,6 @@ async () => {
     assertStrictEquals(Object.keys(expected)[0], 'id');
     assertEquals(stored, expected);
     assertEquals(stored, await put.json());
-    const derived = await deriveProjectFlows(
-        db, ORGANIZATION, projectId,
-    );
-    assertEquals(derived, [expected]);
     const got = await handleRequest(db, req(
         'GET', '/organizations/AjdvjuECVZEgZoFajaIEkg/projects/'
             + projectId + '/flows/', token,
@@ -381,12 +362,6 @@ async () => {
     assertStrictEquals(Object.keys(expected)[0], 'id');
     assertEquals(stored, expected);
     assertEquals(stored, await put.json());
-    assertEquals(
-        stored,
-        await deriveFlowTag(
-            db, ORGANIZATION, flowId, name,
-        ),
-    );
     const got = await handleRequest(db, req(
         'GET', '/organizations/AjdvjuECVZEgZoFajaIEkg/flows/' + flowId
             + '/tags/' + name, token,
@@ -497,10 +472,6 @@ async () => {
     );
     assertStrictEquals(Object.keys(expected)[0], 'id');
     assertEquals(stored, expected);
-    const derived = await deriveObjectiveRevisions(
-        db, ORGANIZATION, objectiveId,
-    );
-    assertEquals(derived, [expected]);
     const got = await handleRequest(db, req(
         'GET',
         '/organizations/AjdvjuECVZEgZoFajaIEkg/objectives/' + objectiveId
@@ -543,10 +514,6 @@ async () => {
     assertStrictEquals(Object.keys(expected)[0], 'id');
     assertEquals(stored, expected);
     assertEquals(stored, await put.json());
-    const derived = await deriveBaselineScores(
-        db, ORGANIZATION, projectId,
-    );
-    assertEquals(derived, [expected]);
     const got = await handleRequest(db, req(
         'GET',
         '/organizations/AjdvjuECVZEgZoFajaIEkg/projects/' + projectId
@@ -589,10 +556,6 @@ async () => {
     assertStrictEquals(Object.keys(expected)[0], 'id');
     assertEquals(stored, expected);
     assertEquals(stored, await put.json());
-    const derived = await deriveActualScores(
-        db, ORGANIZATION, projectId,
-    );
-    assertEquals(derived, [expected]);
     const got = await handleRequest(db, req(
         'GET',
         '/organizations/AjdvjuECVZEgZoFajaIEkg/projects/' + projectId
