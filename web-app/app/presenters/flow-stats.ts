@@ -83,6 +83,8 @@ export class FlowStatsPresenter {
                     === 1 ? '' : 's'
             } reference nodes omitted from this view.</div>`
             : trusted('');
+        // The page opens on the most-travelled path;
+        // renderUpdate redraws the bar for each selection.
         return html`<div class="flow-stats">
 <div class="flow-stats-header">
     <button
@@ -96,9 +98,11 @@ export class FlowStatsPresenter {
             'page-title'
             + ' flow-stats-flow-name'
         }"></h1>
+        ${footnote}
     </div>
     <div class="flow-stats-window-badge"
     >Trailing 90 days</div>
+    ${this.buildBar({ selectedPathIndex: 0 })}
 </div>
 <div class="flow-stats-body">
     <div class="flow-stats-canvas-area">
@@ -110,94 +114,94 @@ export class FlowStatsPresenter {
             class="flow-stats-card hidden"
         ></div>
     </div>
-    <div class="${
-        'flow-stats-stepper-bar'
-    }"></div>
 </div>
-${this.buildLegend()}${footnote}</div>`;
+</div>`;
     }
 
-    buildStepperBar(
+    // The detail (counts and in-flight work) leaves the
+    // visible label for the bar's title and an sr-only
+    // span the stepper group names; with no detail there
+    // is neither.
+    buildBar(
         ui: { selectedPathIndex: number },
     ): SafeHtml {
         const entries =
             this.#model.pathEntries;
         const total = entries.length;
-        const raw = ui.selectedPathIndex;
         const idx = total === 0
             ? 0
             : Math.max(
                 0,
-                Math.min(raw, total - 1),
+                Math.min(
+                    ui.selectedPathIndex, total - 1,
+                ),
             );
-        const entry =
-            total === 0
-                ? undefined
-                : entries[idx];
+        const entry = entries[idx];
 
         const inFlight =
-            this.#model
-                .incompleteWorkOrderCount;
-        const inflightFrag =
-            inFlight > 0
-            ? trusted(
-                ` · ${inFlight}`
-                + ' in flight',
-            )
-            : trusted('');
+            this.#model.incompleteWorkOrderCount;
+        const inFlightClause = inFlight > 0
+            ? ` · ${inFlight} in flight`
+            : '';
+        const completed =
+            this.#model.completedWorkOrderCount;
+        const workOrders = `${completed} completed work order${
+            completed === 1 ? '' : 's'
+        }`;
 
-        let label: SafeHtml;
-        if (!entry) {
-            label = html`No completed work orders yet${inflightFrag}`;
-        } else if (entry.kind === 'path') {
-            const pct = entry.path.sharePct;
-            const tot =
-                this.#model
-                    .completedWorkOrderCount;
-            label = html`Path ${
-                idx + 1
-            } of ${total} · ${
-                pct
-            }% of ${tot} work orders${
-                inflightFrag
-            }`;
+        let steps: SafeHtml;
+        let detail: string | null;
+        if (entry === undefined) {
+            steps = html`<span class="${
+                'flow-stats-stepper-label'
+            }">No completed work orders yet</span>`;
+            detail = inFlight > 0
+                ? `${inFlight} in flight`
+                : null;
+        } else if (total === 1) {
+            steps = trusted('');
+            detail = `1 path · ${workOrders}${inFlightClause}`;
         } else {
-            label = html`+ ${
-                entry.count
-            } rarer paths, combined ${
-                entry.combinedSharePct
-            }%${inflightFrag}`;
+            const pct = entry.kind === 'path'
+                ? entry.path.sharePct
+                : entry.combinedSharePct;
+            const label = entry.kind === 'path'
+                ? `Path ${idx + 1} of ${total} · ${pct}%`
+                : `+ ${entry.pathCount} rarer path${
+                    entry.pathCount === 1 ? '' : 's'
+                } · ${pct}%`;
+            const prevDis = trusted(
+                idx <= 0 ? ' disabled' : '',
+            );
+            const nextDis = trusted(
+                idx >= total - 1 ? ' disabled' : '',
+            );
+            steps = html`<button data-stepper="prev"${prevDis} class="${
+                'btn btn-ghost btn-icon'
+            }" aria-label="Previous path">&#9664;</button><span class="${
+                'flow-stats-stepper-label'
+            }">${label}</span><button data-stepper="next"${nextDis} class="${
+                'btn btn-ghost btn-icon'
+            }" aria-label="Next path">&#9654;</button>`;
+            detail = `${pct}% of ${workOrders}${inFlightClause}`;
         }
 
-        const prevDis = trusted(
-            idx <= 0 ? ' disabled' : '',
-        );
-        const nextDis = trusted(
-            idx >= total - 1
-                ? ' disabled' : '',
-        );
-
-        // Eyebrow names the control so a first-time
-        // reader knows the stepper walks the flow's
-        // paths from most- to least-travelled; styling
-        // is in pages-flow-stats.css.
-        return html`<span class="${
-            'flow-stats-stepper-eyebrow'
-        }">Most-traveled paths</span><div class="${
-            'flow-stats-stepper'
-        }"><button data-stepper="prev"${prevDis} class="${
-            'btn btn-ghost btn-icon'
-        }" aria-label="Previous path">&#9664;</button><span class="${
-            'flow-stats-stepper-label'
-        }">${label}</span><button data-stepper="next"${nextDis} class="${
-            'btn btn-ghost btn-icon'
-        }" aria-label="Next path">&#9654;</button></div>`;
-    }
-
-    buildLegend(): SafeHtml {
+        const titleAttr = detail === null
+            ? trusted('')
+            : html` title="${detail}"`;
+        const describedBy = detail === null
+            ? trusted('')
+            : trusted(
+                ' aria-describedby="flow-stats-path-detail"',
+            );
+        const detailSpan = detail === null
+            ? trusted('')
+            : html`<span id="flow-stats-path-detail" class="${
+                'sr-only'
+            }">${detail}</span>`;
         // Gradient is applied via CSS class;
         // no inline style needed here.
-        return html`<div class="${
+        const legend = html`<div class="${
             'flow-stats-legend'
         }"><span class="${
             'flow-stats-legend-end'
@@ -207,7 +211,12 @@ ${this.buildLegend()}${footnote}</div>`;
             'flow-stats-legend-end'
         }">100%</span><span class="${
             'flow-stats-legend-caption'
-        }">share of flow time, trailing 90 days</span></div>`;
+        }">share of flow time</span></div>`;
+        return html`<div class="flow-stats-bar"${titleAttr}><div class="${
+            'flow-stats-stepper'
+        }" role="group" aria-label="${
+            'Most-traveled paths'
+        }"${describedBy}>${steps}${detailSpan}</div>${legend}</div>`;
     }
 
     renderShell(container: HTMLElement): void {
@@ -247,17 +256,20 @@ ${this.buildLegend()}${footnote}</div>`;
                 ),
             );
         }
-        const stepperBar = $(
-            '.flow-stats-stepper-bar', container,
-        );
-        if (stepperBar) {
+        // The bar's title changes with the selection, so
+        // the whole bar is replaced, not just its children.
+        const bar = $('.flow-stats-bar', container);
+        if (bar) {
+            const fresh =
+                document.createElement('template');
             setHtml(
-                stepperBar,
-                this.buildStepperBar({
+                fresh,
+                this.buildBar({
                     selectedPathIndex:
                         ui.selectedPathIndex,
                 }),
             );
+            bar.replaceWith(fresh.content);
         }
         this.renderCard(container, ui.pinnedNodeId
             ?? ui.hoveredNodeId);

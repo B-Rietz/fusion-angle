@@ -13,6 +13,7 @@ import { FlowStatsPresenter }
     from '../web-app/app/presenters/flow-stats.ts';
 import { DISPLAY_ABSENT } from
     '../web-app/app/format.ts';
+import { cssDeclaration } from './fixtures/css-declaration.ts';
 import {
     NODE_LABEL_Y, NODE_LABEL_Y_CENTERED, NODE_META_Y,
     truncateEdgeLabel, truncateNodeName,
@@ -438,6 +439,29 @@ function modelWithPaths(): FlowStatsModel {
     };
 }
 
+function presenterOf(m: FlowStatsModel): FlowStatsPresenter {
+    return new FlowStatsPresenter(
+        m, arrangement(), { x: 0, y: 0, w: 600, h: 200 },
+    );
+}
+
+// The part of the shell from one marker to the next.
+function between(s: string, from: string, to: string): string {
+    const at = s.indexOf(from);
+    assert(at >= 0, `${from} not found`);
+    const end = s.indexOf(to, at);
+    assert(end >= 0, `${to} not found after ${from}`);
+    return s.slice(at, end);
+}
+
+// The stepper's visible label, or null when it draws none.
+function stepperLabel(bar: string): string | null {
+    const found = bar.match(
+        /class="flow-stats-stepper-label">([^<]*)</,
+    );
+    return found === null ? null : found[1]!;
+}
+
 Deno.test('buildShell contains required structural elements', () => {
     const p = new FlowStatsPresenter(
         modelWithPaths(),
@@ -454,6 +478,27 @@ Deno.test('buildShell contains required structural elements', () => {
     // no dropped nodes in this fixture
     assertNotMatch(s,
         /omitted from this view/i);
+    const header = between(
+        s, 'class="flow-stats-header"', 'class="flow-stats-body"',
+    );
+    const badge = header.indexOf('class="flow-stats-window-badge"');
+    const bar = header.indexOf('class="flow-stats-bar"');
+    assert(badge >= 0, 'badge not in the header');
+    assert(bar > badge, 'bar not in the header after the badge');
+    assertNotMatch(s, /flow-stats-stepper-bar/);
+    const bodyAt = s.indexOf('<div class="flow-stats-body">');
+    assert(bodyAt >= 0, 'body not found');
+    let depth = 0;
+    let bodyEnd = -1;
+    for (const tag of s.slice(bodyAt).matchAll(/<div\b|<\/div>/g)) {
+        depth += tag[0] === '</div>' ? -1 : 1;
+        if (depth === 0) {
+            bodyEnd = bodyAt + tag.index + '</div>'.length;
+            break;
+        }
+    }
+    assert(bodyEnd >= 0, 'body never closes');
+    assertEquals(s.slice(bodyEnd).trim(), '</div>');
 });
 
 Deno.test('buildShell includes footnote when droppedNodeIds non-empty',
@@ -472,84 +517,192 @@ Deno.test('buildShell includes footnote when droppedNodeIds non-empty',
     );
 });
 
-Deno.test('buildStepperBar idx 0: path label, 75%, prev disabled',
-    () => {
-    const p = new FlowStatsPresenter(
-        modelWithPaths(),
-        arrangement(),
-        { x: 0, y: 0, w: 600, h: 200 },
+Deno.test('the footnote sits under the title', () => {
+    const s = presenterOf({
+        ...modelWithPaths(),
+        droppedNodeIds: new Set(['x']),
+        pathsWithDroppedStepsCount: 2,
+    }).buildShell().toString();
+    const titleBlock = between(
+        s, 'class="flow-stats-title-block"',
+        'class="flow-stats-window-badge"',
     );
-    const s = p.buildStepperBar(
-        { selectedPathIndex: 0 },
-    ).toString();
-    assertMatch(s, /Path\s+1\s+of\s+3/);
-    assertMatch(s,
-        /75%\s+of\s+12\s+work\s+orders/);
-    assertMatch(s,
-        /data-stepper="prev"[^>]*disabled/);
-    // next must NOT be disabled at idx 0
-    assertNotMatch(s,
-        /data-stepper="next"[^>]*disabled/);
-    // in-flight count appended
-    assertMatch(s, /3\s+in\s+flight/);
+    assertMatch(titleBlock, new RegExp(
+        '</h1>\\s*<div class="flow-stats-footnote">'
+        + '2 work-order paths reference nodes omitted'
+        + ' from this view\\.</div>',
+    ));
 });
 
-Deno.test('buildStepperBar idx 1: prev not disabled', () => {
+Deno.test('the page carries no Auto Layout or Auto Fit control',
+    () => {
+    const s = presenterOf(modelWithPaths()).buildShell().toString();
+    assertNotMatch(s, /role="switch"/);
+    assertNotMatch(s, /Auto Layout|Auto Fit/i);
+});
+
+Deno.test(
+    'buildBar on the first path: label, hover text, prev disabled',
+    () => {
+        const s = presenterOf(modelWithPaths())
+            .buildBar({ selectedPathIndex: 0 }).toString();
+        const detail = '75% of 12 completed work orders · 3 in flight';
+        assertEquals(stepperLabel(s), 'Path 1 of 3 · 75%');
+        assertMatch(s, new RegExp(
+            `^<div class="flow-stats-bar" title="${detail}">`,
+        ));
+        assertMatch(s, new RegExp(
+            '<span id="flow-stats-path-detail" class="sr-only">'
+            + `${detail}</span>`,
+        ));
+        assertNotMatch(stepperLabel(s)!, /work orders/);
+        assertMatch(s,
+            /data-stepper="prev"[^>]*disabled/);
+        // next must NOT be disabled at idx 0
+        assertNotMatch(s,
+            /data-stepper="next"[^>]*disabled/);
+    },
+);
+
+Deno.test('buildBar idx 1: prev not disabled', () => {
     const p = new FlowStatsPresenter(
         modelWithPaths(),
         arrangement(),
         { x: 0, y: 0, w: 600, h: 200 },
     );
-    const s = p.buildStepperBar(
+    const s = p.buildBar(
         { selectedPathIndex: 1 },
     ).toString();
     assertNotMatch(s,
         /data-stepper="prev"[^>]*disabled/);
 });
 
-Deno.test('buildStepperBar idx 2: rest entry, next disabled', () => {
-    const p = new FlowStatsPresenter(
-        modelWithPaths(),
-        arrangement(),
-        { x: 0, y: 0, w: 600, h: 200 },
-    );
-    const s = p.buildStepperBar(
-        { selectedPathIndex: 2 },
-    ).toString();
-    assertMatch(s, /\+\s*1\s+rarer paths/);
-    assertMatch(s, /8%/);
+Deno.test('buildBar on the rest: label, next disabled', () => {
+    const s = presenterOf(modelWithPaths())
+        .buildBar({ selectedPathIndex: 2 }).toString();
+    const detail = '8% of 12 completed work orders · 3 in flight';
+    assertEquals(stepperLabel(s), '+ 1 rarer path · 8%');
+    assertMatch(s, new RegExp(`title="${detail}"`));
+    assertMatch(s, new RegExp(`class="sr-only">${detail}<`));
     assertMatch(s,
         /data-stepper="next"[^>]*disabled/);
+    const several = presenterOf({
+        ...modelWithPaths(),
+        pathEntries: modelWithPaths().pathEntries.map(e =>
+            e.kind === 'rest' ? { ...e, pathCount: 4 } : e,
+        ),
+    }).buildBar({ selectedPathIndex: 2 }).toString();
+    assertEquals(stepperLabel(several), '+ 4 rarer paths · 8%');
 });
 
-Deno.test('buildStepperBar names the control with an eyebrow',
-    () => {
-    const p = new FlowStatsPresenter(
-        modelWithPaths(),
-        arrangement(),
-        { x: 0, y: 0, w: 600, h: 200 },
-    );
-    const s = p.buildStepperBar(
-        { selectedPathIndex: 0 },
-    ).toString();
-    assertMatch(s, /flow-stats-stepper-eyebrow/);
-    assertMatch(s, /Most-traveled paths/);
+Deno.test('the rest label counts paths, not work orders', () => {
+    const restOf = (pathCount: number) => presenterOf({
+        ...modelWithPaths(),
+        pathEntries: modelWithPaths().pathEntries.map(e =>
+            e.kind === 'rest' ? { ...e, pathCount, count: 7 } : e,
+        ),
+    }).buildBar({ selectedPathIndex: 2 }).toString();
+    assertEquals(stepperLabel(restOf(3)), '+ 3 rarer paths · 8%');
+    assertEquals(stepperLabel(restOf(1)), '+ 1 rarer path · 8%');
 });
 
-Deno.test('buildLegend: structure, end labels, no linear-gradient',
-    () => {
-    const p = new FlowStatsPresenter(
-        modelWithPaths(),
-        arrangement(),
-        { x: 0, y: 0, w: 600, h: 200 },
-    );
-    const s = p.buildLegend().toString();
-    assertMatch(s, /class="flow-stats-legend"/);
-    assertMatch(s, />\s*0%\s*</);
-    assertMatch(s, />\s*100%\s*</);
-    assertNotMatch(s,
-        /linear-gradient\(/i);
+Deno.test('the stepper group carries the accessible name', () => {
+    const s = presenterOf(modelWithPaths())
+        .buildBar({ selectedPathIndex: 0 }).toString();
+    assertMatch(s, new RegExp(
+        '<div class="flow-stats-stepper" role="group"'
+        + ' aria-label="Most-traveled paths"'
+        + ' aria-describedby="flow-stats-path-detail">',
+    ));
+    assertNotMatch(s, /flow-stats-stepper-eyebrow/);
 });
+
+Deno.test("the bar's legend: end labels, caption, no inline gradient",
+    () => {
+    const s = presenterOf(modelWithPaths())
+        .buildBar({ selectedPathIndex: 0 }).toString();
+    const legend = s.slice(s.indexOf('<div class="flow-stats-legend">'));
+    assertMatch(legend, /^<div class="flow-stats-legend">/);
+    assertMatch(legend, /class="flow-stats-legend-end">0%</);
+    assertMatch(legend, /class="flow-stats-legend-bar"/);
+    assertMatch(legend, /class="flow-stats-legend-end">100%</);
+    assertMatch(legend,
+        /class="flow-stats-legend-caption">share of flow time</);
+    assertNotMatch(s, /trailing 90 days/i);
+    assertNotMatch(s, /linear-gradient\(/i);
+    assertNotMatch(s, /\sstyle=/);
+});
+
+function onePath(
+    completed: number, inFlight: number,
+): FlowStatsModel {
+    const first = modelWithPaths().pathEntries[0]!;
+    return {
+        ...modelWithPaths(),
+        completedWorkOrderCount: completed,
+        incompleteWorkOrderCount: inFlight,
+        pathEntries: [first],
+    };
+}
+
+Deno.test('one path shows no arrows and no label', () => {
+    const s = presenterOf(onePath(2, 3))
+        .buildBar({ selectedPathIndex: 0 }).toString();
+    assertNotMatch(s, /data-stepper/);
+    assertNotMatch(s, /<button\b/);
+    assertEquals(stepperLabel(s), null);
+    const detail = '1 path · 2 completed work orders · 3 in flight';
+    assertMatch(s, new RegExp(`title="${detail}"`));
+    assertMatch(s, new RegExp(`class="sr-only">${detail}<`));
+    assertMatch(s, /aria-describedby="flow-stats-path-detail"/);
+    const single = presenterOf(onePath(1, 3))
+        .buildBar({ selectedPathIndex: 0 }).toString();
+    assertMatch(single, new RegExp(
+        'title="1 path · 1 completed work order · 3 in flight"',
+    ));
+});
+
+Deno.test('no paths reads No completed work orders yet', () => {
+    const s = presenterOf({
+        ...model(), incompleteWorkOrderCount: 3,
+    }).buildBar({ selectedPathIndex: 0 }).toString();
+    assertEquals(stepperLabel(s), 'No completed work orders yet');
+    assertNotMatch(s, /data-stepper/);
+    assertMatch(s, /title="3 in flight"/);
+    assertMatch(s, /class="sr-only">3 in flight</);
+    assertMatch(s, /aria-describedby="flow-stats-path-detail"/);
+});
+
+Deno.test(
+    'no in-flight work drops the clause, and with no paths the'
+    + ' bar has no title or describedby',
+    () => {
+        const settled = presenterOf({
+            ...modelWithPaths(), incompleteWorkOrderCount: 0,
+        }).buildBar({ selectedPathIndex: 0 }).toString();
+        assertMatch(settled,
+            /title="75% of 12 completed work orders"/);
+        assertMatch(settled,
+            /class="sr-only">75% of 12 completed work orders</);
+        assertNotMatch(settled, /in flight/);
+        const single = presenterOf(onePath(2, 0))
+            .buildBar({ selectedPathIndex: 0 }).toString();
+        assertMatch(single,
+            /title="1 path · 2 completed work orders"/);
+        assertNotMatch(single, /in flight/);
+        const empty = presenterOf(model())
+            .buildBar({ selectedPathIndex: 0 }).toString();
+        assertEquals(
+            stepperLabel(empty), 'No completed work orders yet',
+        );
+        assertNotMatch(empty, /\stitle=/);
+        assertNotMatch(empty, /aria-describedby/);
+        assertNotMatch(empty, /flow-stats-path-detail/);
+        assertNotMatch(empty, /sr-only/);
+        assertMatch(empty,
+            /role="group" aria-label="Most-traveled paths">/);
+    },
+);
 
 // ---- buildCard / renderCard tests ----
 
@@ -712,4 +865,22 @@ Deno.test('renderCard hides the slot when nodeId is null', () => {
     } as unknown as HTMLElement;
     p.renderCard(container, null);
     assert(classes.has('hidden'));
+});
+
+Deno.test("the stats header pads as the designer's does", () => {
+    const read = (sheet: string) => Deno.readTextFileSync(
+        `web-app/app/styles/${sheet}`,
+    );
+    const designer = cssDeclaration(
+        read('pages-flow-detail.css'), '.flow-designer-header',
+        'padding',
+    );
+    assert(designer !== undefined, 'the designer header has no padding');
+    assertEquals(
+        cssDeclaration(
+            read('pages-flow-stats.css'), '.flow-stats-header',
+            'padding',
+        ),
+        designer,
+    );
 });
