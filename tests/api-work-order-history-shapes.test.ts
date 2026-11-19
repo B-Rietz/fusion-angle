@@ -124,7 +124,6 @@ function createBody(workOrderId: string) {
     return {
         id: workOrderId,
         workOrder: {
-            display_id: workOrderId.slice(0, 8),
             flow_graph: flowGraph(),
             position: 1,
         },

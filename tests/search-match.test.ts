@@ -116,7 +116,7 @@ const rows: readonly Row[] = [
         expected: matched(0),
     },
     {
-        name: '# display id',
+        name: '# prefixed term',
         query: '#a7c3e1f9',
         fields: ['a7c3e1f9'],
         expected: matched(0),

@@ -350,7 +350,6 @@ function workOrderBody(
     return {
         id,
         workOrder: {
-            display_id: 'union',
             flow_graph: {
                 name: 'Union Fixture Flow',
                 lockTimeout: 8 * 60 * 60,

@@ -304,7 +304,6 @@ async function seedReleasedWorkOrder(
         organization: 'AjdvjuECVZEgZoFajaIEkg',
         id: workOrderId,
         fields: {
-            display_id: 'WO-T',
             flow_graph: {
                 name: 'test',
                 nodes: [],
@@ -396,9 +395,11 @@ Deno.test(
     },
 );
 
-// Another writer's display id move: a conditional PUT of the
-// work order's own fields with a new display id.
-async function moveDisplayId(
+const RENAMED_FLOW_GRAPH = 'Renamed by another writer';
+
+// Another writer's flow graph rename: a conditional PUT of
+// the work order's own fields with a renamed flow graph.
+async function renameFlowGraph(
     ctx: RequestContext,
     id: string,
 ): Promise<void> {
@@ -406,15 +407,16 @@ async function moveDisplayId(
     const read = await ctx.GET<WorkOrderEntity>(path);
     const body = read.body().toValue();
     await ctx.PUT(path, {
-        display_id: 'ffffffff',
-        flow_graph: body.flow_graph,
+        flow_graph: {
+            ...body.flow_graph,
+            name: RENAMED_FLOW_GRAPH,
+        },
         position: body.position,
     }, [read]);
 }
 
 Deno.test(
-    'putWorkOrderPosition keeps the held'
-    + ' displayId and flow graph',
+    'putWorkOrderPosition keeps the held flow graph',
     async () => {
         const { db, ctx } = await setupDb();
         await seedFlow(
@@ -423,19 +425,18 @@ Deno.test(
         const id = await createWorkOrder(
             ctx, 'ZOousbbnzpqlxJExVAruYQ',
         );
-        const cached = await getWorkOrder(ctx, id);
-        await moveDisplayId(ctx, id);
-        // The page holds the head after another write moved
-        // its displayId; the position PUT carries the held
-        // fields, so the reorder keeps that displayId and the
-        // flow graph.
-        await putWorkOrderPosition(
-            ctx, await getWorkOrder(ctx, id), 7.5,
-        );
+        await renameFlowGraph(ctx, id);
+        // The page holds the head after another write
+        // renamed its flow graph; the position PUT carries
+        // the held flow graph, so the reorder keeps it.
+        const held = await getWorkOrder(ctx, id);
+        await putWorkOrderPosition(ctx, held, 7.5);
         const head = await getWorkOrder(ctx, id);
-        assertStrictEquals(head.displayId, 'ffffffff');
+        assertStrictEquals(
+            head.flowGraph.name, RENAMED_FLOW_GRAPH,
+        );
         assertStrictEquals(head.position, 7.5);
-        assertEquals(head.flowGraph, cached.flowGraph);
+        assertEquals(head.flowGraph, held.flowGraph);
     },
 );
 
@@ -452,7 +453,7 @@ Deno.test(
         const held = await getWorkOrder(ctx, id);
         // Another write moves the head after the page's
         // read and before the reorder.
-        await moveDisplayId(ctx, id);
+        await renameFlowGraph(ctx, id);
         const error = await assertRejects(
             () => putWorkOrderPosition(ctx, held, 7.5),
             RequestError,
@@ -461,7 +462,9 @@ Deno.test(
             error.status, HTTP_PRECONDITION_FAILED,
         );
         const head = await getWorkOrder(ctx, id);
-        assertStrictEquals(head.displayId, 'ffffffff');
+        assertStrictEquals(
+            head.flowGraph.name, RENAMED_FLOW_GRAPH,
+        );
     },
 );
 
@@ -1350,7 +1353,6 @@ Deno.test('queryWorkOrders answers the best match first,'
             organization: 'AjdvjuECVZEgZoFajaIEkg',
             id,
             fields: {
-                display_id: 'WO-Q',
                 flow_graph: {
                     name,
                     nodes: [],

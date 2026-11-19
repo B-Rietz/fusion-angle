@@ -399,7 +399,7 @@ A work order is one document with one head. Its
 version carries, in the order `ordered` forms it
 (`api/work-order-version.ts`; the store then sorts
 keys on write): `id`,
-`organization_id`, `display_id`, `flow_graph`,
+`organization_id`, `flow_graph`,
 `position`, then `state` (the current node) and
 `transition` as `{ member_id, at }`, the binding as
 `instance_id` and `record_type_id`, `claim` as
@@ -447,7 +447,7 @@ The four after the create are in order: `If-Match`
 names the work order's head, and a value-bearing
 transition names the instance's head too, one
 entity-tag each. The document PUT (If-Match) sets
-`display_id`, `flow_graph`, and `position` over the
+`flow_graph` and `position` over the
 head's other keys and records no event; a reorder
 (`putWorkOrderPosition`) reads the head and latches it.
 

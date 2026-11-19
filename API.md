@@ -296,7 +296,7 @@ keep the GET's order.
 
 | Route | Searched fields |
 |---|---|
-| `organizations/:id/work-orders/` | id, display id; the flow graph's name; the creating flow's id and name; state; the current node's name and task instructions; the transition's member id and name; the live claim holder's id and name; the bound record type id and instance id; the bound instance's values the caller's roles may read; every uncleared event field value. The organization's own id is not a field |
+| `organizations/:id/work-orders/` | id; the flow graph's name; the creating flow's id and name; state; the current node's name and task instructions; the transition's member id and name; the live claim holder's id and name; the bound record type id and instance id; the bound instance's values the caller's roles may read; every uncleared event field value. The organization's own id is not a field |
 | `organizations/:id/memberships/` | id, identity id, identity kind, state, type; the invitee's name and email while the GET serves them (erased PII is not searched); an AI agent's name, description, skill focus, and model; a service's name and description; a person's profile title and department, only for an organization admin and only on accepted seats |
 | `organizations/:id` | ideas, projects, and members, below |
 
@@ -638,7 +638,7 @@ HTTP nest. Validators, crypto, hash, and
 
 ## Seed pair formation
 
-Mock seed `EXPECTED_MESSAGE_PAIR_COUNT = 2501`, root
+Mock seed `EXPECTED_MESSAGE_PAIR_COUNT = 2553`, root
 included; bootstrap eight, root included. Pinned by
 `tests/mock-data-pairs.test.ts`. A pair's request holds
 what was received, or nothing. A seeded row was never

@@ -383,12 +383,13 @@ not repeat the note in every case.
   element was hit twice.
 - F70: if the Industry row is not in the open
   panel, DEFERRED on F69.
-- R14: `#gate0001` is unbound; bind-at-creation is
-  later. There is no action-screen picker; do not
-  invent one. No seeded bound Data Capture work
-  order exists; seeded bound WO01 is already
-  Archive. Drive a bound claimed-by-me Data Capture
-  screen only when one exists (seeded bound WO, or
+- R14: `eOlNZpGQfmCdpSFWXGkzFQ` is unbound;
+  bind-at-creation is later. There is no
+  action-screen picker; do not invent one. No
+  seeded bound Data Capture work order exists;
+  seeded bound WO01 is already Archive. Drive a
+  bound claimed-by-me Data Capture screen only
+  when one exists (seeded bound WO, or
   create after bind-at-creation). If none exists,
   BLOCKED naming that. A value-bearing transition
   while unbound is 400, not 409; 409 is rebind.
@@ -4457,15 +4458,15 @@ gesture pans instead of dragging, marquee-ing, or connecting.
 - [ ] **WB5** Click Customer Onboarding from the READY
   section. PASS: work order is created, browser navigates
   to the action screen at the first post-start state
-  ("Data Capture"). Display ID (8-char hex) is visible in
-  the header.
+  ("Data Capture"). The label `Work order <id>`
+  is visible in the header.
   Pin: tests/adapters-work-orders.test.ts
        'postWorkOrderCreation seeds work order, flow
        link, and three state events in one call' (decides
        creation lands the work order at the flow's
        post-start node, not the Create node itself);
        exploratory — the live click, navigation, and
-       Display ID render
+       `Work order <id>` render
 - [ ] **WB5a** Click the Data Capture → Review `submit`
   edge to select it, then click the Delete (trash)
   toolbar button — F28's own gesture. Reload Workbox and
@@ -4495,13 +4496,13 @@ gesture pans instead of dragging, marquee-ing, or connecting.
 ### Workbox — Action Screen (`workbox/detail.html`)
 
 - [ ] **WB6** The action screen shows: back button
-  (icon-only), flow name, display ID, current state
+  (icon-only), flow name, work order id, current state
   badge, and dynamically rendered attributes matching the
   current node's attribute references from the flow
   graph.
   Pin: tests/presenter-workbox-detail.test.ts
-       'WorkboxDetailPresenter exposes id, display id,
-       and flow name from the work order';
+       'WorkboxDetailPresenter exposes id and
+       flow name from the work order';
        tests/presenter-workbox-detail.test.ts
        'renderableAttributes are the current node refs
        and buildPage renders a labeled input per required
@@ -7184,7 +7185,7 @@ K30 only describes.
        unreferenced attributes (R12)';
        exploratory — the live node-panel paint
 - [ ] **R13** From workbox, open the gate-violation work
-  order (`#gate0001`, `eOlNZpGQfmCdpSFWXGkzFQ`) at Data
+  order (`eOlNZpGQfmCdpSFWXGkzFQ`) at Data
   Capture, unbound. Opening inspects; it does not claim.
   PASS: current node is Data Capture; attribute inputs
   are disabled and still show their values; transition
@@ -7194,9 +7195,11 @@ K30 only describes.
   the durable covenant; CLI pins it; constraint
   failures still surface via
   `WorkboxDetailPresenter.buildViolations` banner. Only
-  WO01 (`a7c3e1f9`) is instance-bound — `#gate0001`
-  stays unbound here (the seeded Customer Profile
-  instance, Acme, already has values set).
+  WO01 (`xqcXYHXBJJXcLkRYkRngKA`) is
+  instance-bound — `eOlNZpGQfmCdpSFWXGkzFQ`
+  stays unbound here (the seeded Customer
+  Profile instance, Acme, already has values
+  set).
   Pin: tests/adapters-record-transitions.test.ts
        'validateRecordTransition returns a required
        violation when the CURRENT node has a required
@@ -7209,9 +7212,10 @@ K30 only describes.
        with at least one required attribute with a
        null stored value'; exploratory — the action
        screen's disabled inputs; no bind prompt
-- [ ] **R14** `#gate0001` is unbound; bind-at-creation
-  is later. There is no action-screen picker; do not
-  invent one. Opening inspects. No seeded bound Data
+- [ ] **R14** `eOlNZpGQfmCdpSFWXGkzFQ` is unbound;
+  bind-at-creation is later. There is no
+  action-screen picker; do not invent one.
+  Opening inspects. No seeded bound Data
   Capture work order exists; seeded bound WO01 is
   already Archive. Drive a bound claimed-by-me Data
   Capture screen only when one exists. If none

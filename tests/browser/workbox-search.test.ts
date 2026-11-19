@@ -41,8 +41,10 @@ const SETTLE_MS = 600;
 // them. Each test checks the cards against a fresh
 // QUERY answer for the term, not the literal text.
 const TERM = 'capture';
-const CAPTURED = ['d0f2h4c6', 'e1g3i5d7'];
-const NOT_CAPTURED = '3Z8ZOBeh';
+const CAPTURED = [
+    'gButmqAicxcpsNuiTYQNKA', 'AbRcGuaSMFbUfPAexnegfw',
+];
+const NOT_CAPTURED = 'cHhNpUQxX6iZyLZ6N6PLzQ';
 const FAR_POSITION = 100;
 const WRITE_TIMEOUT_MS = 10_000;
 
@@ -62,22 +64,22 @@ async function adminContext(
 
 async function workOrderOf(
     ctx: RequestContext,
-    displayId: string,
+    workOrderId: string,
 ): Promise<WorkOrder> {
     const found = (await getWorkOrders(ctx)).find(
-        (wo) => wo.displayId === displayId,
+        (wo) => wo.id === workOrderId,
     );
-    assert(found !== undefined, displayId);
+    assert(found !== undefined, workOrderId);
     return found;
 }
 
 async function claimAt(
     ctx: RequestContext,
-    displayId: string,
+    workOrderId: string,
     position: number,
 ): Promise<void> {
     const claimed = await putWorkOrderClaim(
-        ctx, await workOrderOf(ctx, displayId),
+        ctx, await workOrderOf(ctx, workOrderId),
     );
     await putWorkOrderPosition(ctx, claimed, position);
 }

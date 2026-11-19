@@ -34,7 +34,6 @@ function relativeTime(iso: string): string {
 interface PlacedInboxItem {
     kind: 'placed';
     id: string;
-    displayId: string;
     flowName: string;
     stateName: string;
     transitionerName: string | null;
@@ -50,7 +49,6 @@ interface PlacedInboxItem {
 interface UnplacedInboxItem {
     kind: 'unplaced';
     id: string;
-    displayId: string;
     flowName: string;
     transitionerName: string | null;
     claimedByName: string | null;
@@ -111,9 +109,9 @@ function buildUnplacedRow(
                         item.flowName
                     }</span>
                     <span class="${
-                        'text-xs text-muted'
+                        'text-xs text-muted truncate'
                     }">${
-                        workOrderLabel(item.displayId)
+                        workOrderLabel(item.id)
                     }</span>
                 </div>
                 <div class="${
@@ -219,9 +217,9 @@ export class WorkboxInboxPresenter {
                             item.flowName
                         }</span>
                         <span class="${
-                            'text-xs text-muted'
+                            'text-xs text-muted truncate'
                         }">${
-                            workOrderLabel(item.displayId)
+                            workOrderLabel(item.id)
                         }</span>
                     </a>
                     <div class="${
@@ -261,7 +259,6 @@ function toItem(wo: WorkOrder): InboxItem {
     );
     const row = {
         id: wo.id,
-        displayId: wo.displayId,
         flowName: fg.name,
         transitionerName: null as string | null,
         claimedByName: null as string | null,

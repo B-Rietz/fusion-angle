@@ -151,9 +151,8 @@ function flowDocumentBody(name: string, stateEventId: string) {
 
 // The body OMITS organization_id: the fence hands the op
 // the organization, and the body gate refuses the key.
-function workOrderFields(displayId: string) {
+function workOrderFields() {
     return {
-        display_id: displayId,
         flow_graph: storedWorkOrderFlowGraph({
             name: 'Invariant Flow',
             lockTimeout: DEFAULT_LOCK_TIMEOUT,
@@ -175,7 +174,7 @@ function workOrderCreateBody(
 ) {
     return {
         id,
-        workOrder: workOrderFields('INV-WO-CREATE'),
+        workOrder: workOrderFields(),
         flowWorkOrderId,
         flowWorkOrder: {
             flow_id: flowId,
@@ -315,7 +314,7 @@ async function seededWithMixedBatch(): Promise<MemoryDbAdapter> {
     const head = await seedCreatedWorkOrder(db, {
         organization: STARK_ORGANIZATION,
         id: 'jAzfROfUUwRELEudEFwdGw',
-        fields: workOrderFields('INV-WO-1'),
+        fields: workOrderFields(),
         flowId: generateIdentifier(),
         births: [N_START, N_FINISH],
         at: AT,
@@ -327,7 +326,7 @@ async function seededWithMixedBatch(): Promise<MemoryDbAdapter> {
         path: '/organizations/AjdvjuECVZEgZoFajaIEkg/work-orders/'
             + 'jAzfROfUUwRELEudEFwdGw',
         token: org1Token,
-        body: { ...workOrderFields('INV-WO-1'), position: 2 },
+        body: { ...workOrderFields(), position: 2 },
         headers: { 'if-match': head.query('header.etag').toText() },
     }));
     assertStrictEquals(workOrderPut.status, 200);

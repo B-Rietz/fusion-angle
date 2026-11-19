@@ -115,7 +115,6 @@ async function seededDb(): Promise<MemoryDbAdapter> {
         organization: STARK_ORGANIZATION,
         id: 'yNSSnbrpacodQTzUEcdEVA',
         fields: {
-            display_id: 'abcd',
             flow_graph: graphJson(),
             position: 1,
         },
@@ -563,7 +562,7 @@ Deno.test('a PUT of the claimed head\'s fields answers the'
         '/organizations/AjdvjuECVZEgZoFajaIEkg/work-orders/'
             + 'yNSSnbrpacodQTzUEcdEVA',
         DEV_TOKEN,
-        { display_id: 'abcd', flow_graph: graphJson(), position: 1 },
+        { flow_graph: graphJson(), position: 1 },
         { 'If-Match': '"' + tag + '"' },
     ));
     assertStrictEquals(res.status, 200);

@@ -114,8 +114,8 @@ function trimStrings<
     return copy;
 }
 
-function workOrderLabel(displayId: string): string {
-    return 'Work order ' + displayId;
+function workOrderLabel(workOrderId: string): string {
+    return 'Work order ' + workOrderId;
 }
 
 function instanceLabel(instanceId: string): string {

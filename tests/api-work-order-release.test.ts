@@ -106,7 +106,6 @@ async function seededDb(): Promise<MemoryDbAdapter> {
         organization: STARK_ORGANIZATION,
         id: WO_ID,
         fields: {
-            display_id: 'abcd',
             flow_graph: graphJson(),
             position: 1,
         },

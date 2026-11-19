@@ -405,7 +405,9 @@ export function buildLeadToCloseWorkload(): GeneratedFlowData {
         totalWorkOrders: 100,
         oldestDaysAgo: 80,
         newestDaysAgo: 5,
-        seed: 0xC0DEF00D,
+        // Chosen so Qualification stays the single hot
+        // node; re-pick it whenever the draw order changes.
+        seed: 0xC0DEF00F,
         organizationId: STARK_ORGANIZATION,
         nowMs: now.getTime(),
     });

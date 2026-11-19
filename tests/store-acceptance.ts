@@ -763,7 +763,6 @@ export function defineStoreAcceptance(
                 organization: ORGANIZATION,
                 id,
                 fields: {
-                    display_id: 'acceptance',
                     flow_graph: {
                         name: 'Frozen',
                         lockTimeout: DEFAULT_LOCK_TIMEOUT,

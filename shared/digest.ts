@@ -1,8 +1,9 @@
 // The ONLY place web-app code names WebCrypto digest —
 // the divorce point for content fingerprinting. SHA-256
-// is part of the contract: derived display ids must stay
-// stable across releases, so the algorithm is named here
-// and nowhere else.
+// is part of the contract: pair roots and advisory-lock
+// keys are digests that must agree across releases and
+// processes, so the algorithm is named here and nowhere
+// else.
 export async function sha256Bytes(
     text: string,
 ): Promise<Uint8Array> {

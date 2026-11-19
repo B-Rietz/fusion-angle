@@ -59,7 +59,6 @@ const N_START = generateIdentifier();
 const N_MIDDLE = generateIdentifier();
 const N_FINISH = generateIdentifier();
 const DRIFT_STATES_WO_HYBRID_1 = generateIdentifier();
-const DRIFT_STATES_HYBRID = generateIdentifier();
 const DRIFT_STATES_WO_STANDALONE_RELEASE_1 = generateIdentifier();
 const DRIFT_STATES_WO_STANDALONE_RELEASE_FLOW = generateIdentifier();
 const DRIFT_STATES_FLOW_NODE_1 = generateIdentifier();
@@ -267,7 +266,6 @@ function createWorkOrderBody(
     return {
         id,
         workOrder: {
-            display_id: 'drift-states-' + id,
             flow_graph: graph,
             position: 1,
         },
@@ -712,7 +710,6 @@ Deno.test('case 4b: work-order live-write chain — birth-claimed'
     const entityPut = await handleRequest(db, req(
         'PUT', '/organizations/AjdvjuECVZEgZoFajaIEkg/work-orders/'
             + workOrderId, token, {
-            display_id: 'drift-states-' + workOrderId,
             flow_graph: workOrderFlowGraph(tinyLockTimeoutSeconds),
             position: 2,
         },
@@ -812,7 +809,6 @@ async () => {
         organization: STARK_ORGANIZATION,
         id: workOrderId,
         fields: {
-            display_id: DRIFT_STATES_HYBRID,
             flow_graph: workOrderFlowGraph(8 * 60 * 60),
             position: 1,
         },

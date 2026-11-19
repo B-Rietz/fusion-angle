@@ -1330,7 +1330,6 @@ function storedWorkOrderVersion(): Record<string, unknown> {
     return {
         id: 'xqcXYHXBJJXcLkRYkRngKA',
         organization_id: 'AjdvjuECVZEgZoFajaIEkg',
-        display_id: 'WO-1',
         flow_graph: {
             name: 'g', lockTimeout: 300,
             nodes: [], edges: [],

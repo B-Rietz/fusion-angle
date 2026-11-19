@@ -202,7 +202,6 @@ function flowDocument(): Record<string, unknown> {
 
 function workOrderDocument(): Record<string, unknown> {
     return {
-        display_id: 'display_id',
         flow_graph: {
             name: 'name',
             lockTimeout: 0,

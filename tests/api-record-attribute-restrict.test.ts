@@ -481,7 +481,6 @@ Deno.test(
         await POST(db, 'organizations/AjdvjuECVZEgZoFajaIEkg/work-orders/', {
             id: 'yNSSnbrpacodQTzUEcdEVA',
             workOrder: {
-                display_id: 'WO',
                 flow_graph: {
                     name: 'Intake',
                     lockTimeout: 0,

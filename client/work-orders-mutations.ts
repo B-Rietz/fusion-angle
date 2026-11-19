@@ -33,7 +33,6 @@ import type { HttpMessage } from
 import {
     generateIdentifier,
 } from '../shared/identifier.ts';
-import { sha256Bytes } from '../shared/digest.ts';
 import {
     recordTransitionViolationsFrom,
     RecordTransitionViolations,
@@ -63,20 +62,6 @@ export function notifyWorkOrderChanges(): void {
     workOrderChanges.notify();
 }
 
-async function generateDisplayId(
-    uuid: string,
-): Promise<string> {
-    const bytes = await sha256Bytes(uuid);
-    let hex = '';
-    const ID_LENGTH = 4;
-    for (let i = 0; i < ID_LENGTH; i++) {
-        hex += (bytes[i]!)
-            .toString(16)
-            .padStart(2, '0');
-    }
-    return hex;
-}
-
 export interface WorkOrderCreationInput {
     workOrderId: string;
     flowLinkId: string;
@@ -95,9 +80,6 @@ export async function postWorkOrderCreation(
     ctx: RequestContext,
     creation: WorkOrderCreation,
 ): Promise<void> {
-    const displayId = await generateDisplayId(
-        creation.workOrderId,
-    );
     const flow = creation.flow.body().toValue();
     const graph: StoredGraph =
         asStoredGraph(
@@ -155,7 +137,6 @@ export async function postWorkOrderCreation(
         {
         id: creation.workOrderId,
         workOrder: {
-            display_id: displayId,
             flow_graph: flowGraphField,
             position: creation.position,
         },
@@ -413,10 +394,10 @@ export async function putWorkOrderBinding(
     return toWorkOrder(bound);
 }
 
-// A reorder carries only the position: the display id and
-// flow graph come from the held work order, and the PUT
-// latches its head, so a newer value written since the
-// page read it refuses the reorder rather than being lost.
+// A reorder carries only the position: the flow graph
+// comes from the held work order, and the PUT latches its
+// head, so a newer value written since the page read it
+// refuses the reorder rather than being lost.
 export async function putWorkOrderPosition(
     ctx: RequestContext,
     held: WorkOrder,
@@ -425,7 +406,6 @@ export async function putWorkOrderPosition(
     const moved = await ctx.PUT<WorkOrderEntity>(
         organizationItem(ctx, 'work-orders', held.id),
         {
-            display_id: held.displayId,
             flow_graph: storedWorkOrderFlowGraph(
                 held.flowGraph,
             ),

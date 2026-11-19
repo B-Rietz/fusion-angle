@@ -253,10 +253,6 @@ export class WorkboxDetailPresenter {
         return this.#flowGraph.name;
     }
 
-    displayIdText(): string {
-        return this.#workOrder.displayId;
-    }
-
     isArchive(): boolean {
         return this.#currentNode.isArchive;
     }
@@ -364,7 +360,7 @@ export class WorkboxDetailPresenter {
                             class="badge
                                 badge-neutral">
                             ${workOrderLabel(
-                                this.displayIdText(),
+                                this.idValue(),
                             )}
                         </span>
                         <span

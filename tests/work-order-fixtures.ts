@@ -14,7 +14,6 @@ export type WorkOrderSeed = {
     readonly organization: Id,
     readonly id: Id,
     readonly fields: {
-        readonly display_id: string,
         readonly flow_graph: Record<string, unknown>,
         readonly position: number,
     },

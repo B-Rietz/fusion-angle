@@ -115,7 +115,6 @@ async function seedWorkOrder(
         organization: 'AjdvjuECVZEgZoFajaIEkg',
         id,
         fields: {
-            display_id: 'WO-1',
             flow_graph: storedWorkOrderFlowGraph(flowGraph),
             position: 0,
         },

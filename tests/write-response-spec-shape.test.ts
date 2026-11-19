@@ -68,7 +68,6 @@ const DUMMY_BODIES: Readonly<
         revivals: [],
     },
     'organizations/:id/work-orders/:id': {
-        display_id: 'wo',
         flow_graph: {
             name: 'F', lockTimeout: 1,
             nodes: [], edges: [],

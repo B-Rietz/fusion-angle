@@ -991,7 +991,7 @@ Off the critical path; each with its oracle.
   control. Once create binds, drop
   `bindGenesisInstance` from
   `tests/browser/workbox-transition.test.ts`.
-  `#gate0001` stays unbound.
+  The gate-violation work order stays unbound.
 - Class the ideas-list drop indicator. Walk `62291ec`
   D37 BLOCKED: `buildIndicator`
   (`web-app/app/drag-reorder.ts`) returns an unclassed
@@ -1009,10 +1009,12 @@ Off the critical path; each with its oracle.
   Capture subject. Oracle: the mock seed includes one
   bound Customer Onboarding work order at Data
   Capture that a claim-drag (or a birth-claimed seed
-  row) can open; a later walk can fill Company Name
-  + Contact Email and submit; `#gate0001` stays
-  unbound. Bind-at-creation consumes the live-create
-  half of this item and does not remove `#gate0001`.
+  row) can open; a later walk can fill Company
+  Name and Contact Email and submit; the
+  gate-violation work order stays unbound.
+  Bind-at-creation consumes the live-create
+  half of this item and does not remove the
+  gate-violation work order.
 - A latched write aligned to RFC 9110 §13.1.1. When
   its `If-Match` fails, the RFC lets the origin answer
   2xx if it can verify that the requested state change
@@ -3818,7 +3820,7 @@ Off the critical path; each with its oracle.
 - `postServiceDocumentOp` (`api/routes.ts:2640-2657`)
   and the AI op answer an entity and write nothing when
   given no pair; `tests/mock-data-pairs.test.ts:84-170`'s
-  count addends do not sum to 2501. Oracle: the ops
+  count addends do not sum to 2553. Oracle: the ops
   refuse a missing pair, and the addends sum to
   `EXPECTED_MESSAGE_PAIR_COUNT`.
 - A mouse-focused `select.input` glows at 0.3, not

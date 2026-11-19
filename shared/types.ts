@@ -1259,7 +1259,6 @@ export function storedWorkOrderFlowGraph(
 export interface WorkOrderFieldsEntity {
     id: Id;
     organization_id: Id;
-    display_id: string;
     flow_graph: Record<string, unknown>;
     position: number;
 }

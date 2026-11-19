@@ -114,7 +114,6 @@ function flowGraph(): Record<string, unknown> {
 
 function documentFields() {
     return {
-        display_id: 'wo-doc-1',
         flow_graph: flowGraph(),
         position: 2,
     };
@@ -199,7 +198,7 @@ Deno.test('validateWorkOrderDocumentBody tolerates a legacy'
             flowId: generateIdentifier(),
         },
     });
-    assertStrictEquals(doc.entity.display_id, 'wo-doc-1');
+    assertStrictEquals(doc.entity.position, 2);
 });
 
 Deno.test('validateWorkOrderDocumentBody rejects a JSON-encoded'
@@ -312,10 +311,10 @@ function req(
 }
 
 // The workOrder facet reuses documentFields() — the SAME
-// {display_id, flow_graph, position} shape section 1 above
-// already validates — so the create body and the synthesized
+// {flow_graph, position} shape section 1 above already
+// validates — so the create body and the synthesized
 // document message pair's expected body are ONE construction,
-// never two divergent literals. `displayId` defaults to
+// never two divergent literals. `position` defaults to
 // documentFields()'s own value; a duplicate-create test
 // overrides it so the SECOND create's document sub-body
 // genuinely differs from the first's.
@@ -323,13 +322,13 @@ function workOrderCreateBody(
     id: string,
     flowWorkOrderId: string,
     flowId: string,
-    displayId = 'wo-doc-1',
+    position = documentFields().position,
 ) {
     return {
         id,
         workOrder: {
             ...documentFields(),
-            display_id: displayId,
+            position,
         },
         flowWorkOrderId,
         flowWorkOrder: {
@@ -402,7 +401,6 @@ async () => {
     );
     assertEquals(
         {
-            display_id: version.display_id,
             flow_graph: version.flow_graph,
             position: version.position,
         },
@@ -447,7 +445,7 @@ async () => {
         'POST', '/organizations/AjdvjuECVZEgZoFajaIEkg/work-orders/'
             , DEV_TOKEN,
         workOrderCreateBody(
-            WO_C2, WO_C2_FWO_B, FLOW_C2, 'wo-c2-revised',
+            WO_C2, WO_C2_FWO_B, FLOW_C2, 3,
         ),
     ));
     assertStrictEquals(second.status, 409);
@@ -483,7 +481,7 @@ Deno.test('a duplicate work-order create\'s operation shares'
         'POST', '/organizations/AjdvjuECVZEgZoFajaIEkg/work-orders/'
             , DEV_TOKEN,
         workOrderCreateBody(
-            WO_C3, WO_C3_FWO_B, FLOW_C3, 'wo-c3-revised',
+            WO_C3, WO_C3_FWO_B, FLOW_C3, 3,
         ),
     ));
     assertStrictEquals(second.status, 409);
@@ -812,4 +810,59 @@ async () => {
     assert(head !== null);
     assertStrictEquals(pairIdOf(get), head.id);
     assertEquals(await get.json(), responseRecordOf(head.response));
+});
+
+Deno.test('a document PUT carrying display_id answers 400',
+async () => {
+    const db = await freshDb();
+    const id = generateIdentifier();
+    const head = await seedCreatedWorkOrder(db, {
+        organization: 'AjdvjuECVZEgZoFajaIEkg', id,
+        fields: documentFields(),
+        flowId: generateIdentifier(),
+        births: [NODE_START, NODE_FINISH],
+        at: nowUtc(),
+        token: DEV_TOKEN,
+        claim: 'kept',
+    });
+    const before = (await db.messagePairs.getAll()).length;
+    const res = await handleRequest(db, apiRequest({
+        method: 'PUT',
+        path: ENTITY_PREFIX + id,
+        token: DEV_TOKEN,
+        headers: {
+            'If-Match': head.query('header.etag').toText(),
+        },
+        body: { ...documentFields(), display_id: 'x' },
+    }));
+    assertStrictEquals(res.status, 400);
+    assertEquals(await res.json(), {
+        error: 'unexpected key "display_id" for'
+            + ' WorkOrderDocumentBody',
+    });
+    assertStrictEquals(
+        (await db.messagePairs.getAll()).length, before,
+    );
+});
+
+Deno.test('a work order GET serves no display_id', async () => {
+    const db = await freshDb();
+    const id = generateIdentifier();
+    await seedCreatedWorkOrder(db, {
+        organization: 'AjdvjuECVZEgZoFajaIEkg', id,
+        fields: documentFields(),
+        flowId: generateIdentifier(),
+        births: [NODE_START, NODE_FINISH],
+        at: nowUtc(),
+        token: DEV_TOKEN,
+        claim: 'kept',
+    });
+    const get = await handleRequest(db, apiRequest({
+        method: 'GET',
+        path: ENTITY_PREFIX + id,
+        token: DEV_TOKEN,
+    }));
+    assertStrictEquals(get.status, 200);
+    const body = await get.json() as Record<string, unknown>;
+    assertEquals('display_id' in body, false);
 });

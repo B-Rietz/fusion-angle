@@ -106,7 +106,6 @@ export function buildWorkOrders():
     return [
         {
             id: woId,
-            display_id: 'a7c3e1f9',
             flow_graph: {
                 name:
                     'Customer Onboarding',
@@ -124,133 +123,111 @@ export function buildWorkOrders():
         // the hot node in heat stats.
         {
             id: 'krzCXtfVNOLvbGcYnSrhng',
-            display_id: 'b2d4f6a8',
             flow_graph: woGraph(),
             position: 2,
         },
         {
             id: 'uxTjfwTdFboxQRRfLQBfjA',
-            display_id: 'c3e5g7b9',
             flow_graph: woGraph(),
             position: 3,
         },
         {
             id: 'JwjCJbRVYCGojtDDMbFISw',
-            display_id: 'd4f6h8c0',
             flow_graph: woGraph(),
             position: 4,
         },
         {
             id: 'VdkdxziHStBwGlqXMplgzg',
-            display_id: 'e5g7i9d1',
             flow_graph: woGraph(),
             position: 5,
         },
         {
             id: 'SEHtXAFBwzspwfqzUgLOGg',
-            display_id: 'f6h8j0e2',
             flow_graph: woGraph(),
             position: 6,
         },
         {
             id: 'EXifLeJkIZYAFlniPDbnyw',
-            display_id: 'g7i9k1f3',
             flow_graph: woGraph(),
             position: 7,
         },
         {
             id: 'XNCcLuvJJIMafjqfDQcysA',
-            display_id: 'h8j0l2g4',
             flow_graph: woGraph(),
             position: 8,
         },
         {
             id: 'kuHSbxoxnsegYoJpuziaIA',
-            display_id: 'i9k1m3h5',
             flow_graph: woGraph(),
             position: 9,
         },
         {
             id: 'ZIKwhTVQUmZbzpUElPynGg',
-            display_id: 'j0l2n4i6',
             flow_graph: woGraph(),
             position: 10,
         },
         {
             id: 'eGKKhdvQWwAgjMJCmOiWsg',
-            display_id: 'k1m3o5j7',
             flow_graph: woGraph(),
             position: 11,
         },
         {
             id: 'kwfRAQskBMDhxupBJSXBXg',
-            display_id: 'l2n4p6k8',
             flow_graph: woGraph(),
             position: 12,
         },
         {
             id: 'FPRJDMIESNrhvDpngiVgAA',
-            display_id: 'm3o5q7l9',
             flow_graph: woGraph(),
             position: 13,
         },
         {
             id: 'HEEYmJQUuZTwpwZwEvDHIA',
-            display_id: 'n4p6r8m0',
             flow_graph: woGraph(),
             position: 14,
         },
         {
             id: 'AgBUgTINNElBAvqwWMUegw',
-            display_id: 'o5q7s9n1',
             flow_graph: woGraph(),
             position: 15,
         },
         {
             id: 'SwOSfDtxXEdmGGuHaNzXAQ',
-            display_id: 'p6r8t0o2',
             flow_graph: woGraph(),
             position: 16,
         },
         {
             id: 'swamOcwhrDmLKzRKlqunFw',
-            display_id: 'q7s9u1p3',
             flow_graph: woGraph(),
             position: 17,
         },
         {
             id: 'TRzdRYgxAuHFJsJxdGtngw',
-            display_id: 'r8t0v2q4',
             flow_graph: woGraph(),
             position: 18,
         },
         {
             id: 'QfOuwFUXrsWqHFnJgTSDCg',
-            display_id: 's9u1w3r5',
             flow_graph: woGraph(),
             position: 19,
         },
         {
             id: 'GJyTGedIrFfonBxkniEylA',
-            display_id: 't0v2x4s6',
             flow_graph: woGraph(),
             position: 20,
         },
         {
             id: 'BqOPvRjANCSRrdRwRGbyUw',
-            display_id: 'u1w3y5t7',
             flow_graph: woGraph(),
             position: 21,
         },
         {
             id: 'UegjcqnhNlWGJMWYjRMgCQ',
-            display_id: 'v2x4z6u8',
             flow_graph: woGraph(),
             position: 22,
         },
         {
             id: 'QtuoBiqabeXfgMIMUgMUaQ',
-            display_id: 'w3y5a7v9',
             flow_graph: woGraph(),
             position: 23,
         },
@@ -260,37 +237,31 @@ export function buildWorkOrders():
         // rate and the Review→Capture branch split.
         {
             id: 'NQLhTgeebJflEfLNiIKRbw',
-            display_id: 'x4z6b8w0',
             flow_graph: woGraph(),
             position: 24,
         },
         {
             id: 'FEDdQbmpanDFVZdPnUbwWg',
-            display_id: 'y5a7c9x1',
             flow_graph: woGraph(),
             position: 25,
         },
         {
             id: 'OAvDqHdtlzUeHVxrxlcFgg',
-            display_id: 'z6b8d0y2',
             flow_graph: woGraph(),
             position: 26,
         },
         {
             id: 'yuPIkpaXrJNwIzfKMytkfg',
-            display_id: 'a7c9e1z3',
             flow_graph: woGraph(),
             position: 27,
         },
         {
             id: 'xiekvzKePoUXMiQlySGHag',
-            display_id: 'b8d0f2a4',
             flow_graph: woGraph(),
             position: 28,
         },
         {
             id: 'BRDKCttpdvJSFqPxmPEAxg',
-            display_id: 'c9e1g3b5',
             flow_graph: woGraph(),
             position: 29,
         },
@@ -300,31 +271,26 @@ export function buildWorkOrders():
         // incompleteWorkOrderCount.
         {
             id: 'gButmqAicxcpsNuiTYQNKA',
-            display_id: 'd0f2h4c6',
             flow_graph: woGraph(),
             position: 30,
         },
         {
             id: 'AbRcGuaSMFbUfPAexnegfw',
-            display_id: 'e1g3i5d7',
             flow_graph: woGraph(),
             position: 31,
         },
         {
             id: 'nTIlwHvYCLLpcgDPpZfJsw',
-            display_id: 'f2h4j6e8',
             flow_graph: woGraph(),
             position: 32,
         },
         {
             id: 'HxoTWjMKYqZWVZZGzxYjXA',
-            display_id: 'g3i5k7f9',
             flow_graph: woGraph(),
             position: 33,
         },
         {
             id: 'qMXousWjIHczNUwqWDGsXg',
-            display_id: 'h4j6l8g0',
             flow_graph: woGraph(),
             position: 34,
         },
@@ -335,13 +301,11 @@ export function buildWorkOrders():
         // is false.
         {
             id: 'JSKYLSrCcNBvfdHXrPNOWw',
-            display_id: 'i5k7m9h1',
             flow_graph: woGraph(),
             position: 35,
         },
         {
             id: 'zvwXWNSafFwBskEQVfnfaw',
-            display_id: 'j6l8n0i2',
             flow_graph: woGraph(),
             position: 36,
         },
@@ -351,13 +315,11 @@ export function buildWorkOrders():
         // values for their node visits are clipped.
         {
             id: 'DELkFWgEyhoqyuyrbnQuEA',
-            display_id: 'k7m9o1j3',
             flow_graph: woGraph(),
             position: 37,
         },
         {
             id: 'GybPgWucvmsPHNwjNAyOiw',
-            display_id: 'l8n0p2k4',
             flow_graph: woGraph(),
             position: 38,
         },
@@ -366,25 +328,21 @@ export function buildWorkOrders():
         // revisit, 1 in-flight.
         {
             id: 'fCGVSSzsRHDgDLvPXbYkDw',
-            display_id: 'CVEXKOCDSjDmnTqpSknTuw',
             flow_graph: prcGraph(),
             position: 39,
         },
         {
             id: 'MMbQqbhcKfHVHWhnsjIqnA',
-            display_id: 'ULfkJZlbqdHVlWfVLUijog',
             flow_graph: prcGraph(),
             position: 40,
         },
         {
             id: 'oqpwipJxpRbKzypGkStjjw',
-            display_id: 'JMmkmIRZgKoymnSUsSjnYg',
             flow_graph: prcGraph(),
             position: 41,
         },
         {
             id: 'TMRENIJdzgBtLiMyuxUkNg',
-            display_id: 'BUFsyZgBRCNYqZRollYBIw',
             flow_graph: prcGraph(),
             position: 42,
         },
@@ -392,14 +350,12 @@ export function buildWorkOrders():
         // to Revise then Draft before completing.
         {
             id: 'zOSyhzfDZMJDhZPsOvFwRg',
-            display_id: 'vMvcjAuxIBaZnmGoaRwCrg',
             flow_graph: prcGraph(),
             position: 43,
         },
         // prc06: in-flight -- stuck at Decision.
         {
             id: 'FCEBEWzmelSFTOlqcZsbdQ',
-            display_id: 'RPrxMUsXnqqYTxKaHAKdOg',
             flow_graph: prcGraph(),
             position: 44,
         },
@@ -411,7 +367,6 @@ export function buildWorkOrders():
         // the fillable browser-testing case (R13/R14).
         {
             id: 'eOlNZpGQfmCdpSFWXGkzFQ',
-            display_id: 'gate0001',
             flow_graph: woGraph(),
             position: 45,
         },

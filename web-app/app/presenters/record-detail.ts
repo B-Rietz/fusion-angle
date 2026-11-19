@@ -631,7 +631,7 @@ export class RecordDetailPresenter {
                             w.id
                         }"
                             >${workOrderLabel(
-                                w.displayId,
+                                w.id,
                             )}</button>
                     </li>`,
                 )}

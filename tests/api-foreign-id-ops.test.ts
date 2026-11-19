@@ -91,7 +91,6 @@ Deno.test('foreign-org work-order claim is 404', async () => {
         organization: ORGANIZATION_A,
         id: 'yCFjxREVDLjycQDxFIsqIg',
         fields: {
-            display_id: 'abcd',
             flow_graph: graphJson(),
             position: 1,
         },
@@ -134,7 +133,6 @@ Deno.test('foreign-org work-order release is 404', async () => {
         organization: ORGANIZATION_A,
         id: 'yDEYnDEKhTTMRnyKdusvCw',
         fields: {
-            display_id: 'efgh',
             flow_graph: graphJson(),
             position: 2,
         },
@@ -168,7 +166,6 @@ Deno.test('foreign-org work-order transition is 404', async () => {
         organization: ORGANIZATION_A,
         id: 'yHJmosJCPJCTxoRaPwKdQA',
         fields: {
-            display_id: 'ijkl',
             flow_graph: graphJson(),
             position: 3,
         },
