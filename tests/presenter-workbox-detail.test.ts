@@ -3,8 +3,12 @@ import {
     assertEquals,
     assertMatch,
     assertStrictEquals,
+    assertStringIncludes,
     assertThrows,
 } from '@std/assert';
+import { buildPageUrl } from '../web-app/app/navigation.ts';
+import { escapeForHtml } from '../web-app/app/safe-html.ts';
+import { idLabel } from '../web-app/app/presenters/id-label.ts';
 import {
     nowUtc,
     storedWorkOrderFlowGraph,
@@ -144,7 +148,6 @@ function makeWorkOrder(
         message: responseMessage({
             id: 'wo-1',
             organization_id: 'AjdvjuECVZEgZoFajaIEkg',
-            display_id: 'WO-42',
             flow_graph: storedWorkOrderFlowGraph(graph),
             position: 0,
             state: graph.nodes[0]!.id,
@@ -156,7 +159,6 @@ function makeWorkOrder(
         }),
         id: 'wo-1',
         organizationId: 'AjdvjuECVZEgZoFajaIEkg',
-        displayId: 'WO-42',
         flowGraph: graph,
         position: 0,
         nodeId: graph.nodes[0]!.id,
@@ -383,10 +385,38 @@ Deno.test(
             .toString();
         assertMatch(out, /value="from-head"/);
         assertMatch(out, /data-binding="bound"/);
-        assertMatch(out, /Instance inst-xyz/);
+        assertMatch(
+            out,
+            /Instance <code class="displayed-id">inst-xyz<\/code>/,
+        );
         assertMatch(out, /title="type rt-cust"/);
     },
 );
+
+Deno.test('the binding badge links to its instance', () => {
+    const out = makePresenter({
+        binding: {
+            instanceId: 'inst-xyz',
+            recordTypeId: 'rt-cust',
+        },
+    }).buildPage().toString();
+    const badge = out.match(
+        /<a\b([^>]*data-binding="bound"[^>]*)>([\s\S]*?)<\/a>/,
+    );
+    assert(badge !== null, 'the bound badge is an <a>');
+    const [, attributes, text] = badge;
+    const href = escapeForHtml(buildPageUrl('record-detail', {
+        id: 'rt-cust',
+        instance: 'inst-xyz',
+    }));
+    assertStringIncludes(attributes!, `href="${href}"`);
+    assertStringIncludes(
+        attributes!, 'class="badge badge-success"',
+    );
+    assertStringIncludes(
+        text!, idLabel('Instance', 'inst-xyz').toString(),
+    );
+});
 
 Deno.test(
     'buildPage claimed-by-me enables fields'
@@ -588,14 +618,11 @@ Deno.test(
 // WorkboxDetailPresenter: getters + buildPage
 
 Deno.test(
-    'WorkboxDetailPresenter exposes id, display'
-    + ' id, and flow name from the work order',
+    'WorkboxDetailPresenter exposes id and flow'
+    + ' name from the work order',
     () => {
         const presenter = makePresenter();
         assertStrictEquals(presenter.idValue(), 'wo-1');
-        assertStrictEquals(
-            presenter.displayIdText(), 'WO-42',
-        );
         assertStrictEquals(
             presenter.flowNameText(),
             'Expense approval',
@@ -787,7 +814,10 @@ Deno.test(
             'work-order-transitions',
         ));
         assert(!out.includes('unclaim-btn'));
-        assertMatch(out, /WO-42/);
+        assertMatch(
+            out,
+            /Work order <code class="displayed-id">wo-1<\/code>/,
+        );
         assertMatch(out, /Done/);
     },
 );
@@ -1139,10 +1169,12 @@ Deno.test(
 );
 
 Deno.test(
-    'the header labels the display id as a work order',
+    'the header labels the work order by its id',
     () => {
         const out = makePresenter().buildPage().toString();
-        assertMatch(out, /Work order WO-42/);
-        assert(!out.includes('#WO-42'));
+        assertMatch(
+            out,
+            /Work order <code class="displayed-id">wo-1<\/code>/,
+        );
     },
 );

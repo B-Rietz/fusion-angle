@@ -331,7 +331,25 @@ when asked.
   `fetch-discarding-body.ts` (a `fetch` that cancels
   the response body so the resource sanitizer does not
   see it as a leak, for tests that assert only status
-  and headers); `client-init.ts` (the test composition
+  and headers), `recording-fetch.ts` (a `fetch` that
+  records each request's method, path, preconditions,
+  and body, for pins that count requests),
+  `response-message.ts` (a JSON `HttpMessage` for a
+  test standing in for a transport or a verb),
+  `cross-tab-refresh.ts` (run one body with the refresh
+  lock and peer channel detached, so it never waits on
+  another file's refresh), `refresh-peer-worker.ts`
+  (the worker that plays a peer test file holding the
+  refresh lock), `record-attributes.ts` (seed a
+  member-readable record type per attribute id, so
+  recorded event values name real attributes),
+  `work-order-events.ts` (a work order's history as the
+  product reads it), `work-order-histories.json` (a
+  captured snapshot of the seeded histories, which the
+  oracle test compares the seed against), and
+  `css-declaration.ts` (read one declaration from a
+  stylesheet, for tests that pin a CSS rule);
+  `client-init.ts` (the test composition
   root) and `in-page-facade.ts` (the in-process
   transport)
 - `web-app/` — pages, presenters, browser adapters, app

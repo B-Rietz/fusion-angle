@@ -304,7 +304,6 @@ async function seedWorkOrder(
         organization: ORGANIZATION,
         id: woId,
         fields: {
-            display_id: 'abcd',
             flow_graph: graphJson(),
             position: 1,
         },

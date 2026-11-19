@@ -106,7 +106,6 @@ export function generateFlowWorkload(args: {
 
     for (let i = 0; i < totalWorkOrders; i++) {
         const woId = seedIdentifier(b62Id(rng, 22));
-        const displayId = b62Id(rng, 8);
         const path = pickWeighted(
             rng, paths, p => p.weight,
         );
@@ -212,7 +211,6 @@ export function generateFlowWorkload(args: {
         workOrders.push({
             id: woId,
             organization_id: organizationId,
-            display_id: displayId,
             flow_graph: frozenFlowGraph,
             position: i + 1,
         });

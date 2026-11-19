@@ -1460,7 +1460,7 @@ export function validateFlowNodeAttributeEntity(
 }
 
 const WORK_ORDER_DOCUMENT_BODY_KEYS: readonly string[] = [
-    'display_id', 'flow_graph', 'position',
+    'flow_graph', 'position',
 ];
 
 export interface WorkOrderDocumentBody {
@@ -1492,7 +1492,6 @@ export function validateWorkOrderDocumentBody(
     );
     return {
         entity: {
-            display_id: pickString(body, 'display_id'),
             flow_graph: flowGraph,
             position: pickNumber(body, 'position'),
         },
@@ -1500,8 +1499,8 @@ export function validateWorkOrderDocumentBody(
 }
 
 const WORK_ORDER_VERSION_KEYS: readonly string[] = [
-    'id', 'organization_id', 'display_id', 'flow_graph',
-    'position', 'state', 'transition', 'events',
+    'id', 'organization_id', 'flow_graph', 'position',
+    'state', 'transition', 'events',
 ];
 
 // Absent until a binding or a claim sets them; never null
@@ -1637,7 +1636,6 @@ export function validateWorkOrderVersion(
         organization_id: pickIdentifier(
             body, 'organization_id',
         ),
-        display_id: pickString(body, 'display_id'),
         flow_graph: flowGraph,
         position: pickNumber(body, 'position'),
         state: pickString(body, 'state'),

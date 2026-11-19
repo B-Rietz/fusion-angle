@@ -24,7 +24,6 @@ const NEXT = generateIdentifier();
 
 function fields(position: number) {
     return {
-        display_id: 'WO-V',
         flow_graph: {
             name: 'Versions', lockTimeout: DEFAULT_LOCK_TIMEOUT,
             nodes: [], edges: [],

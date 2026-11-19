@@ -172,7 +172,6 @@ async function seedOrder(
     order: {
         readonly flowName: string,
         readonly graphName: string,
-        readonly displayId: string,
         readonly nodeName: string,
         readonly taskInstructions: string,
     },
@@ -185,7 +184,6 @@ async function seedOrder(
         organization: ORGANIZATION,
         id,
         fields: {
-            display_id: order.displayId,
             flow_graph: {
                 name: order.graphName,
                 lockTimeout: DEFAULT_LOCK_TIMEOUT,
@@ -223,14 +221,12 @@ async function twoOrders(): Promise<{
     const approval = await seedOrder(w, {
         flowName: 'Approval',
         graphName: 'Approval',
-        displayId: 'a7c3e1f9',
         nodeName: 'Inspection',
         taskInstructions: 'Verify the invoice totals',
     });
     const shipping = await seedOrder(w, {
         flowName: 'Shipping',
         graphName: 'Shipping',
-        displayId: 'b8d4f2a0',
         nodeName: 'Packaging',
         taskInstructions: 'Wrap the parcel',
     });
@@ -387,14 +383,12 @@ Deno.test('ranks an exact match above a typo', async () => {
     const typo = await seedOrder(w, {
         flowName: 'Aproval',
         graphName: 'Aproval',
-        displayId: 'c1c1c1c1',
         nodeName: 'Start',
         taskInstructions: '',
     });
     const exact = await seedOrder(w, {
         flowName: 'Approval',
         graphName: 'Approval',
-        displayId: 'd2d2d2d2',
         nodeName: 'Start',
         taskInstructions: '',
     });
@@ -415,7 +409,6 @@ Deno.test('ranks an exact match above a typo', async () => {
 const FIELD_CASES: readonly (readonly [
     string, (approval: Order) => string,
 ])[] = [
-    ['display id with its hash', () => '#a7c3e1f9'],
     ['whole work-order id', (approval) => approval.id],
     ['state name', () => 'inspection'],
     ['task instructions', () => 'invoice totals'],
@@ -470,7 +463,6 @@ async function seedOrderBy(
         organization: ORGANIZATION,
         id,
         fields: {
-            display_id: 'e3e3e3e3',
             flow_graph: {
                 name: 'Intake',
                 lockTimeout: DEFAULT_LOCK_TIMEOUT,
@@ -630,7 +622,6 @@ Deno.test('a deleted flow\'s name does not match', async () => {
     const order = await seedOrder(w, {
         flowName: 'Vanishing',
         graphName: 'Frozen Graph',
-        displayId: 'f4f4f4f4',
         nodeName: 'Start',
         taskInstructions: '',
     });

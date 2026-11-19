@@ -61,7 +61,6 @@ function ordered(version: WorkOrderVersion): WorkOrderVersion {
     return {
         id: version.id,
         organization_id: version.organization_id,
-        display_id: version.display_id,
         flow_graph: version.flow_graph,
         position: version.position,
         state: version.state,
@@ -145,8 +144,7 @@ function sameFields(
     head: WorkOrderFields,
     fields: WorkOrderFields,
 ): boolean {
-    return head.display_id === fields.display_id
-        && head.position === fields.position
+    return head.position === fields.position
         && JSON.stringify(sortJsonKeys(head.flow_graph))
             === JSON.stringify(sortJsonKeys(fields.flow_graph));
 }

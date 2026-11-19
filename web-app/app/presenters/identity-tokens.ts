@@ -4,6 +4,7 @@ import {
 import { formatDateTime } from '../format.ts';
 import { DISPLAY_ABSENT } from '../format.ts';
 import { mutedEmptyNote } from './empty-note.ts';
+import { idLabel } from './id-label.ts';
 import type {
     TokenEvent,
     TokenChain,
@@ -17,25 +18,40 @@ function actionBadgeClass(
     return 'badge badge-default';
 }
 
+// A parent links to its row only when that row is on the
+// page; a parent outside every rendered chain stays plain text.
+function buildParentLabel(
+    parentJti: string,
+    firstRows: ReadonlyMap<string, TokenEvent>,
+): SafeHtml {
+    const label = idLabel('Parent token', parentJti);
+    return firstRows.has(parentJti)
+        ? html`<a href="#token-${parentJti}">${label}</a>`
+        : label;
+}
+
+// Only the first row of each jti carries its anchor, so the
+// document's ids stay unique.
 function buildEventRow(
     event: TokenEvent,
+    firstRows: ReadonlyMap<string, TokenEvent>,
 ): SafeHtml {
     return html`
         <div class="${
-            'flex items-center gap-4 py-2'
-        }">
+            'token-row flex items-center gap-4 py-2'
+        }"${firstRows.get(event.jti) === event
+            ? html` id="token-${event.jti}"`
+            : html``}>
             <div class="flex-fill min-w-0">
-                <p class="${
-                    'text-sm font-medium truncate'
-                }">Token ${event.jti}</p>
-                <p class="${
-                    'text-xs text-muted truncate'
-                }">
-                    Parent token ${
-                        event.parentJti === undefined
-                            ? DISPLAY_ABSENT
-                            : event.parentJti
-                    }
+                <p class="text-sm font-medium">${
+                    idLabel('Token', event.jti)
+                }</p>
+                <p class="text-xs text-muted">
+                    ${event.parentJti === undefined
+                        ? `Parent token ${DISPLAY_ABSENT}`
+                        : buildParentLabel(
+                            event.parentJti, firstRows,
+                        )}
                 </p>
             </div>
             <div class="${
@@ -53,15 +69,20 @@ function buildEventRow(
         </div>`;
 }
 
-function buildChainCard(chain: TokenChain): SafeHtml {
+function buildChainCard(
+    chain: TokenChain,
+    firstRows: ReadonlyMap<string, TokenEvent>,
+): SafeHtml {
     return html`
         <div class="card p-6">
             <h3 class="${
                 'font-display font-semibold mb-2'
-                + ' text-sm truncate'
-            }">Chain ${chain.chainId}</h3>
+                + ' text-sm'
+            }">${idLabel('Chain', chain.chainId)}</h3>
             <div class="flex flex-col gap-1">
-                ${chain.events.map(buildEventRow)}
+                ${chain.events.map(
+                    event => buildEventRow(event, firstRows),
+                )}
             </div>
         </div>`;
 }
@@ -74,10 +95,19 @@ export class IdentityTokensPresenter {
     }
 
     render(container: HTMLElement): void {
+        const firstRows = new Map<string, TokenEvent>();
+        for (const event of this.#chains.flatMap(
+            chain => chain.events,
+        )) {
+            if (!firstRows.has(event.jti)) {
+                firstRows.set(event.jti, event);
+            }
+        }
         setHtml(container, html`${
             this.#chains.length === 0
                 ? mutedEmptyNote('No tokens.')
-                : html`${this.#chains.map(buildChainCard)}`
+                : html`${this.#chains.map(chain =>
+                    buildChainCard(chain, firstRows))}`
         }`);
     }
 }

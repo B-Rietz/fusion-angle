@@ -1,6 +1,7 @@
 /* Identities: person + service list, detail, providers,
     tokens. Reuses the component library; only the large
-    detail avatar is page-specific (mirrors .member-avatar). */
+    detail avatar (mirrors .member-avatar) and the token
+    row's scroll margin are page-specific. */
 
 .identity-avatar {
     width: 6rem;
@@ -13,4 +14,13 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+}
+
+/* A parent-token link jumps to its row, and a fragment jump
+    aligns the row to the viewport top, under the sticky
+    .top-header. The margin is that header's height plus a
+    gap, so the row lands below it; a test pins the two
+    together. */
+.token-row {
+    scroll-margin-top: calc(4rem + var(--space-2));
 }

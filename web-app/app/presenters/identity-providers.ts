@@ -3,6 +3,7 @@ import {
 } from '../safe-html.ts';
 import { formatDateTime } from '../format.ts';
 import { mutedEmptyNote } from './empty-note.ts';
+import { idLabel } from './id-label.ts';
 import type { ProviderEvent } from '../../../client/index.ts';
 
 function actionBadgeClass(
@@ -24,10 +25,8 @@ function buildEventRow(
                 <p class="font-medium truncate">
                     ${event.provider}
                 </p>
-                <p class="${
-                    'text-xs text-muted truncate'
-                }">
-                    Account ${event.providerSubject}
+                <p class="text-xs text-muted">
+                    ${idLabel('Account', event.providerSubject)}
                 </p>
             </div>
             <div class="${

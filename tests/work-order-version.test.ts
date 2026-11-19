@@ -15,7 +15,6 @@ const WORK_ORDER = 'xqcXYHXBJJXcLkRYkRngKA';
 const ALICE = 'XXZruirZyAOoRpNxaDnpSA';
 const BOB = 'yatHlUsoiwxMlkqjKvCVGQ';
 const FIELDS = {
-    display_id: 'WO-1',
     flow_graph: { nodes: [], edges: [] },
     position: 1,
 };
@@ -44,8 +43,8 @@ Deno.test('a created version holds three births and a claim',
 () => {
     const version = created();
     assertEquals(Object.keys(version), [
-        'id', 'organization_id', 'display_id', 'flow_graph',
-        'position', 'state', 'transition', 'claim', 'events',
+        'id', 'organization_id', 'flow_graph', 'position',
+        'state', 'transition', 'claim', 'events',
     ]);
     assertStrictEquals(version.state, 'node-1');
     assertEquals(version.transition, { member_id: ALICE, at: T1 });

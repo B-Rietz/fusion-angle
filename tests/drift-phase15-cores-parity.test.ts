@@ -78,7 +78,6 @@ const P15_SOFTDEL_FNA = generateIdentifier();
 const P15_SOFTDEL_DEL = generateIdentifier();
 const P15_RESTRICT_FNA = generateIdentifier();
 const N_WO = generateIdentifier();
-const P15_RESTRICT_WO = generateIdentifier();
 const WORKORDERID_FWO = generateIdentifier();
 const WORKORDERID_EV1 = generateIdentifier();
 const WORKORDERID_EV2 = generateIdentifier();
@@ -201,7 +200,6 @@ async () => {
         'POST', '/organizations/AjdvjuECVZEgZoFajaIEkg/work-orders/', token, {
             id: workOrderId,
             workOrder: {
-                display_id: 'p15-' + workOrderId,
                 flow_graph: graph,
                 position: 7,
             },
@@ -265,7 +263,6 @@ async () => {
         organization: STARK_ORGANIZATION,
         id: workOrderId,
         fields: {
-            display_id: 'before',
             flow_graph: graph1,
             position: 1,
         },
@@ -279,7 +276,6 @@ async () => {
     const put2 = await handleRequest(db, req(
         'PUT', '/organizations/AjdvjuECVZEgZoFajaIEkg/work-orders/'
             + workOrderId, token, {
-            display_id: 'after',
             flow_graph: graph2,
             position: 3,
         },
@@ -294,12 +290,10 @@ async () => {
     );
     assertStrictEquals(getRes.status, 200);
     const wire = await getRes.json() as {
-        display_id: string;
         position: number;
     };
     const derived = await headVersionOf(db, workOrderId);
     assertEquals(derived, wire);
-    assertStrictEquals(derived!['display_id'], 'after');
     assertStrictEquals(derived!['position'], 3);
 });
 
@@ -321,7 +315,6 @@ async () => {
         organization: STARK_ORGANIZATION,
         id: workOrderId,
         fields: {
-            display_id: 'p15-cg-' + workOrderId,
             flow_graph: graph,
             position: 2,
         },
@@ -1225,7 +1218,6 @@ async function transitionWithFieldValue(
         'POST', '/organizations/AjdvjuECVZEgZoFajaIEkg/work-orders/', token, {
             id: workOrderId,
             workOrder: {
-                display_id: 'fv-' + workOrderId,
                 flow_graph: graph,
                 position: 1,
             },
@@ -1568,7 +1560,6 @@ async () => {
         'POST', '/organizations/AjdvjuECVZEgZoFajaIEkg/work-orders/', token, {
             id: woId,
             workOrder: {
-                display_id: P15_RESTRICT_WO,
                 flow_graph: woGraph,
                 position: 1,
             },

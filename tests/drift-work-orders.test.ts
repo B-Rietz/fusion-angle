@@ -431,7 +431,6 @@ function createWorkOrderBody(
     return {
         id,
         workOrder: {
-            display_id: 'drift-' + id,
             flow_graph: graph,
             position: 1,
         },
@@ -616,7 +615,6 @@ async () => {
     const entityPut = await handleRequest(db, req(
         'PUT', '/organizations/AjdvjuECVZEgZoFajaIEkg/work-orders/'
             + workOrderId, tokenA, {
-            display_id: 'drift-' + workOrderId,
             flow_graph: graph,
             position: 2,
         },
@@ -827,7 +825,6 @@ async () => {
         organization: STARK_ORGANIZATION,
         id: workOrderId,
         fields: {
-            display_id: 'first',
             flow_graph: workOrderFlowGraph(8 * 60 * 60),
             position: 1,
         },
@@ -841,7 +838,6 @@ async () => {
     const second = await handleRequest(db, req(
         'PUT', '/organizations/AjdvjuECVZEgZoFajaIEkg/work-orders/'
             + workOrderId, token, {
-            display_id: 'second',
             flow_graph: workOrderFlowGraph(4 * 60 * 60),
             position: 2,
         },
@@ -860,7 +856,6 @@ async () => {
         db, STARK_ORGANIZATION, workOrderId,
     );
     assertEquals(await getRes.json(), derived);
-    assertStrictEquals(derived.display_id, 'second');
     assertStrictEquals(derived.position, 2);
     // Phase Final Stage B: work_orders table retired.
 });

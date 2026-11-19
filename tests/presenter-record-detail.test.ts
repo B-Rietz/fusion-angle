@@ -160,7 +160,7 @@ Deno.test(
     },
 );
 
-function workOrderShown(displayId: string): WorkOrder {
+function workOrderShown(id: string): WorkOrder {
     const graph: WorkOrderFlowGraph = {
         name: 'Expense approval',
         lockTimeout: DEFAULT_LOCK_TIMEOUT,
@@ -171,18 +171,16 @@ function workOrderShown(displayId: string): WorkOrder {
     const at = '2026-04-01T12:00:00.000000Z';
     return {
         message: responseMessage({
-            id: 'wo-1',
+            id,
             organization_id: 'AjdvjuECVZEgZoFajaIEkg',
-            display_id: displayId,
             flow_graph: storedWorkOrderFlowGraph(graph),
             position: 0,
             state: 'n-1',
             transition: { member_id: memberId, at },
             events: [],
         }),
-        id: 'wo-1',
+        id,
         organizationId: 'AjdvjuECVZEgZoFajaIEkg',
-        displayId,
         flowGraph: graph,
         position: 0,
         nodeId: 'n-1',
@@ -197,9 +195,14 @@ Deno.test(
     () => {
         const html = pageFor(
             'active', ['admin'],
-            [workOrderShown('a7c3e1f9')],
+            [workOrderShown('xqcXYHXBJJXcLkRYkRngKA')],
         );
-        assertMatch(html, /Work order a7c3e1f9/);
-        assertEquals(html.includes('#a7c3e1f9'), false);
+        assertMatch(
+            html,
+            new RegExp(
+                'Work order <code class="displayed-id">'
+                + 'xqcXYHXBJJXcLkRYkRngKA</code>',
+            ),
+        );
     },
 );

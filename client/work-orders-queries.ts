@@ -121,7 +121,6 @@ export interface WorkOrder {
     readonly message: HttpMessage<WorkOrderEntity>;
     id: Id;
     organizationId: Id;
-    displayId: string;
     flowGraph: WorkOrderFlowGraph;
     position: number;
     nodeId: Id;
@@ -140,7 +139,6 @@ export function toWorkOrder(
         message,
         id: entity.id,
         organizationId: entity.organization_id,
-        displayId: entity.display_id,
         flowGraph: validateWorkOrderFlowGraph(
             entity.flow_graph,
         ),

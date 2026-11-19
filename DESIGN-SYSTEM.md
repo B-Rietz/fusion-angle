@@ -40,6 +40,17 @@ Buttons: `btn-primary`, `secondary`, `outline`, `ghost`,
 `outline-error`, `.link`. Cards:
 `.card`, `.card-flat`.
 
+**Displayed id.** Every id a page shows renders through
+`idLabel(thing, id)` (`presenters/id-label.ts`) as a
+`<code class="displayed-id">`. The markup holds the
+whole id, for copy, search, and screen readers; CSS
+alone clips it with an ellipsis. The clip needs room
+to shrink: the id is a nowrap inline-block, so its full
+width sets the min-content of every grid track and flex
+item around it. Give each one that holds an id
+`min-w-0`, as the workbox inbox columns and label spans
+do, or the page widens instead.
+
 **Dialog pattern.** Native `<dialog>` driven by `openDialog(id)`
 / `closeDialog(id)` from `dialog.ts`. The element is
 `id="{id}-dialog"` with `class="dialog"` (and `aria-labelledby`

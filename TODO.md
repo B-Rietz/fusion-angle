@@ -991,7 +991,7 @@ Off the critical path; each with its oracle.
   control. Once create binds, drop
   `bindGenesisInstance` from
   `tests/browser/workbox-transition.test.ts`.
-  `#gate0001` stays unbound.
+  The gate-violation work order stays unbound.
 - Class the ideas-list drop indicator. Walk `62291ec`
   D37 BLOCKED: `buildIndicator`
   (`web-app/app/drag-reorder.ts`) returns an unclassed
@@ -1009,10 +1009,12 @@ Off the critical path; each with its oracle.
   Capture subject. Oracle: the mock seed includes one
   bound Customer Onboarding work order at Data
   Capture that a claim-drag (or a birth-claimed seed
-  row) can open; a later walk can fill Company Name
-  + Contact Email and submit; `#gate0001` stays
-  unbound. Bind-at-creation consumes the live-create
-  half of this item and does not remove `#gate0001`.
+  row) can open; a later walk can fill Company
+  Name and Contact Email and submit; the
+  gate-violation work order stays unbound.
+  Bind-at-creation consumes the live-create
+  half of this item and does not remove the
+  gate-violation work order.
 - A latched write aligned to RFC 9110 §13.1.1. When
   its `If-Match` fails, the RFC lets the origin answer
   2xx if it can verify that the requested state change
@@ -1273,6 +1275,43 @@ Off the critical path; each with its oracle.
   Oracle: a Layer 2 test that drags a `.baseline-slider`
   to its minimum and reads `.slider-value` as
   `formatSigned(-100)`
+- Inbox rows wrap at desktop width. At 1280×800 a
+  "Customer Onboarding" card grows from 92px to 116px
+  tall because the flow name and the `Work order` label
+  both break (`web-app/app/presenters/workbox-inbox.ts:112`,
+  `:220`). A nowrap fix overflowed at phone widths, so
+  it needs its own small design. Oracle: a Layer 2 test
+  reads every inbox card one line tall at 1280×800 and
+  `scrollWidth <= innerWidth` at 320px
+- The two id links show no affordance and no arrival.
+  The Instance badge
+  (`web-app/app/presenters/workbox-detail.ts:431`)
+  looks like the unlinked Work order badge, and a linked
+  `Parent token` (`presenters/identity-tokens.ts:27`)
+  like an unlinked one; nothing marks the token row a
+  jump lands on or the instance row `?instance=`
+  scrolls to. The spec rejected one badge everywhere
+  because it "hides which ids are clickable". A
+  design-system call; `.token-row:target` on a token
+  background is the cheapest step. Oracle: a linked id
+  differs in computed style from an unlinked one beside
+  it, and the jumped-to row from its siblings
+- A failed first load skips the `?instance=` scroll.
+  `init` scrolls once, after the first `load`
+  (`web-app/records/detail.ts:103-107`); when that load
+  fails, the Try Again render (`retry` at `:221`) draws
+  the rows and nothing scrolls to the linked one.
+  Oracle: a Layer 2 test fails the first instances read,
+  clicks Try Again, and finds the linked row in view
+- Header badges and the work order link button clip no
+  id. The detail header's `Work order` badge
+  (`presenters/workbox-detail.ts:358-364`) and the record
+  detail's `.record-wo-link` button
+  (`presenters/record-detail.ts:620-630`) hold an id
+  much longer than 22 characters at full width; nothing
+  bounds them for `.displayed-id`'s `max-width: 100%`.
+  Oracle: a 64-character id in either renders within its
+  container at 320px, with an ellipsis
 - R6 and R7 against the constraint editor. R6 holds in
   a stronger form: no picker renders for
   `select`. R7's primary clause is false: `regex` is
@@ -3818,7 +3857,7 @@ Off the critical path; each with its oracle.
 - `postServiceDocumentOp` (`api/routes.ts:2640-2657`)
   and the AI op answer an entity and write nothing when
   given no pair; `tests/mock-data-pairs.test.ts:84-170`'s
-  count addends do not sum to 2501. Oracle: the ops
+  count addends do not sum to 2553. Oracle: the ops
   refuse a missing pair, and the addends sum to
   `EXPECTED_MESSAGE_PAIR_COUNT`.
 - A mouse-focused `select.input` glows at 0.3, not

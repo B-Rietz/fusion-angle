@@ -1,7 +1,6 @@
 import {
     assert,
     assertEquals,
-    assertNotStrictEquals,
     assertStrictEquals,
     assertStringIncludes,
 } from '@std/assert';
@@ -247,7 +246,6 @@ Deno.test(
             item.stateName, 'Doing work',
         );
         assertStrictEquals(item.completed, false);
-        assertNotStrictEquals(item.displayId, '');
         assertStrictEquals(
             typeof item.lastTransitionedAt,
             'string',
@@ -412,7 +410,6 @@ Deno.test(
         const unplaced = {
             ...placed,
             id: generateIdentifier(),
-            displayId: 'unplaced-7',
             nodeId: generateIdentifier(),
             position: placed.position + 1,
             claim: { state: 'unclaimed' as const },
@@ -848,7 +845,6 @@ Deno.test(
         const unplaced = {
             ...placed,
             id: generateIdentifier(),
-            displayId: 'unplaced-7',
             nodeId: generateIdentifier(),
             position: placed.position + 1,
             claim: { state: 'unclaimed' as const },
@@ -893,7 +889,8 @@ Deno.test(
         for (const present of [
             'class="badge badge-warning"',
             'State unknown', 'Test flow',
-            'Work order unplaced-7',
+            'Work order <code class="displayed-id">'
+            + unplaced.id + '</code>',
         ]) {
             assertStringIncludes(unplacedRow, present);
         }

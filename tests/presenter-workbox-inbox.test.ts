@@ -1,5 +1,6 @@
 import {
     assertEquals,
+    assertMatch,
     assertStringIncludes,
 } from '@std/assert';
 import {
@@ -17,7 +18,6 @@ function placed(
     return {
         kind: 'placed',
         id: 'wo-1',
-        displayId: 'WO-1',
         flowName: 'Onboarding',
         stateName: 'Review',
         transitionerName: 'Ada',
@@ -94,8 +94,10 @@ Deno.test(
     () => {
         const out = capture([placed()], 'available', NO_FILTER);
         assertStringIncludes(out, 'Onboarding');
-        assertStringIncludes(out, 'Work order WO-1');
-        assertEquals(out.includes('#WO-1'), false);
+        assertMatch(
+            out,
+            /Work order <code class="displayed-id">wo-1<\/code>/,
+        );
         assertStringIncludes(out, 'Review');
         assertStringIncludes(
             out, 'data-work-order-card="wo-1"',
@@ -120,7 +122,6 @@ Deno.test(
         const out = capture([{
             kind: 'unplaced',
             id: 'wo-u',
-            displayId: 'unplaced-7',
             flowName: 'Test flow',
             transitionerName: 'Demo Test',
             claimedByName: null,
@@ -130,10 +131,10 @@ Deno.test(
         }], 'available', NO_FILTER);
         assertStringIncludes(out, 'State unknown');
         assertStringIncludes(out, 'Test flow');
-        assertStringIncludes(
-            out, 'Work order unplaced-7',
+        assertMatch(
+            out,
+            /Work order <code class="displayed-id">wo-u<\/code>/,
         );
-        assertEquals(out.includes('#unplaced-7'), false);
         assertEquals(
             out.includes('data-work-order-card'),
             false,

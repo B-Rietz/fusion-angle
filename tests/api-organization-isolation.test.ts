@@ -361,7 +361,7 @@ function flowBody(organization: string) {
 
 function workOrderBody(organization: string) {
     return {
-        organization_id: organization, display_id: 'WO',
+        organization_id: organization,
         flow_graph: {
             flowId: 'f', name: 'f', lockTimeout: 0,
             nodes: [], edges: [],

@@ -146,7 +146,7 @@ function messagePairJsonOf(message: string): {
 // hashSeedCredentials (api/mock-data.ts) computes first,
 // before pass 1) + 0 role-grant document message
 // pairs (retired: membership type carries privilege; mint
-// bakes claims) + 1138 trace pairs (861 events less each
+// bakes claims) + 1190 trace pairs (887 events less each
 // work order's two births and WO01's two value-bearing
 // events, each its received POST and the work order's
 // version) +
@@ -159,7 +159,8 @@ function messagePairJsonOf(message: string): {
 // /identities/:id/default-organization/ document; Phase Final
 // Task 2
 // strips the identity_default_organizations ROW half — pairs
-// alone remain) + 1 gate0001 Capture step (R1-FIX-A re-home)
+// alone remain) + 1 gate-violation work order's Capture
+// step (R1-FIX-A re-home)
 // Task 55 retires leftover members / memberships /
 // ai-members / human-members seed pairs. + 2
 // unaffiliated-identity documents (identities/:id +
@@ -169,7 +170,7 @@ function messagePairJsonOf(message: string): {
 // invitation's operation + document, granted by
 // postOrganizationInvitation). Measure after
 // seed — do not invent. Bootstrap absolute is 8.
-const EXPECTED_MESSAGE_PAIR_COUNT = 2501;
+const EXPECTED_MESSAGE_PAIR_COUNT = 2553;
 
 Deno.test('a mock-data seed populates pairs',
 async () => {
@@ -629,9 +630,8 @@ Deno.test('a seeded work-order document message pair sits at its'
     assertEquals(
         Object.keys(embedded.body).sort(),
         [
-            'claim', 'display_id', 'events', 'flow_graph',
-            'id', 'organization_id', 'position', 'state',
-            'transition',
+            'claim', 'events', 'flow_graph', 'id',
+            'organization_id', 'position', 'state', 'transition',
         ],
     );
 });

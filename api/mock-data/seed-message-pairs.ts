@@ -1578,7 +1578,7 @@ export function buildMockDataInvocations():
         });
     }
     // States-document retirement: every trace event from its
-    // third (861 less 290 births its create carries) reshapes
+    // third (887 less 290 births its create carries) reshapes
     // 1:1 into a work-orders/:id/transition op-shaped pair —
     // the LIVE op shape, nothing invented: transitionEventId =
     // the event's own id, transitionAt = its at, targetState =

@@ -86,7 +86,6 @@ async () => {
     await seedCreatedWorkOrder(db, {
         organization: 'AjdvjuECVZEgZoFajaIEkg', id,
         fields: {
-            display_id: 'WO-H',
             flow_graph: flowGraph(),
             position: 1,
         },
@@ -116,7 +115,6 @@ Deno.test(
             organization: 'AjdvjuECVZEgZoFajaIEkg',
             id: generateIdentifier(),
             fields: {
-                display_id: 'WO-H',
                 flow_graph: flowGraph(),
                 position: 1,
             },

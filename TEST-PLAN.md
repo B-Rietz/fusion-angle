@@ -383,12 +383,13 @@ not repeat the note in every case.
   element was hit twice.
 - F70: if the Industry row is not in the open
   panel, DEFERRED on F69.
-- R14: `#gate0001` is unbound; bind-at-creation is
-  later. There is no action-screen picker; do not
-  invent one. No seeded bound Data Capture work
-  order exists; seeded bound WO01 is already
-  Archive. Drive a bound claimed-by-me Data Capture
-  screen only when one exists (seeded bound WO, or
+- R14: `eOlNZpGQfmCdpSFWXGkzFQ` is unbound;
+  bind-at-creation is later. There is no
+  action-screen picker; do not invent one. No
+  seeded bound Data Capture work order exists;
+  seeded bound WO01 is already Archive. Drive a
+  bound claimed-by-me Data Capture screen only
+  when one exists (seeded bound WO, or
   create after bind-at-creation). If none exists,
   BLOCKED naming that. A value-bearing transition
   while unbound is 400, not 409; 409 is rebind.
@@ -4457,15 +4458,15 @@ gesture pans instead of dragging, marquee-ing, or connecting.
 - [ ] **WB5** Click Customer Onboarding from the READY
   section. PASS: work order is created, browser navigates
   to the action screen at the first post-start state
-  ("Data Capture"). Display ID (8-char hex) is visible in
-  the header.
+  ("Data Capture"). The label `Work order <id>`
+  is visible in the header.
   Pin: tests/adapters-work-orders.test.ts
        'postWorkOrderCreation seeds work order, flow
        link, and three state events in one call' (decides
        creation lands the work order at the flow's
        post-start node, not the Create node itself);
        exploratory — the live click, navigation, and
-       Display ID render
+       `Work order <id>` render
 - [ ] **WB5a** Click the Data Capture → Review `submit`
   edge to select it, then click the Delete (trash)
   toolbar button — F28's own gesture. Reload Workbox and
@@ -4495,13 +4496,13 @@ gesture pans instead of dragging, marquee-ing, or connecting.
 ### Workbox — Action Screen (`workbox/detail.html`)
 
 - [ ] **WB6** The action screen shows: back button
-  (icon-only), flow name, display ID, current state
+  (icon-only), flow name, work order id, current state
   badge, and dynamically rendered attributes matching the
   current node's attribute references from the flow
   graph.
   Pin: tests/presenter-workbox-detail.test.ts
-       'WorkboxDetailPresenter exposes id, display id,
-       and flow name from the work order';
+       'WorkboxDetailPresenter exposes id and
+       flow name from the work order';
        tests/presenter-workbox-detail.test.ts
        'renderableAttributes are the current node refs
        and buildPage renders a labeled input per required
@@ -4555,10 +4556,17 @@ gesture pans instead of dragging, marquee-ing, or connecting.
   flow that has a record-type join. PASS: there is no
   "Bind instance" button, no bind-instance dialog, and
   no bind-prompt title. A bound instance may still show
-  an Instance badge that identifies the record.
+  an Instance badge that identifies the record; the
+  badge is a link (`?instance=<id>`) to the record
+  type's detail, which opens with that instance's row
+  scrolled into view.
   Pin: tests/presenter-workbox-detail.test.ts
        'buildPage claimed-by-me enables fields and omits
-       bind chrome'
+       bind chrome'; tests/presenter-workbox-detail.test.ts
+       'the binding badge links to its instance' (decides
+       the link); tests/browser/record-instance-link.test.ts
+       'an instance link scrolls its row into view'
+       (decides the scroll)
 - [ ] **WB10b — Unclaimed fields disabled with values.**
   Open an unclaimed (or lapsed) work order that has
   instance values. PASS: attribute inputs are disabled
@@ -5973,7 +5981,11 @@ FSM, unlike `flows/detail`).
   `Parent token —`. A non-canonical `identityId` (any
   value that is not a 22-character identifier) 400s at
   the route gate; an absent one bounces to
-  `identities/`.
+  `identities/`. A `Parent token <jti>` whose parent
+  row is on the page is a link (`#token-<jti>`):
+  clicking it jumps to that token's first row, which
+  lands below the sticky header, not under it; a
+  parent absent from the page stays plain text.
   Source: `GET identities/:id/tokens` via
   `web-app/app/adapters/identity-tokens.ts` (`TokenEvent`),
   `web-app/app/presenters/identity-tokens.ts`.
@@ -5989,10 +6001,21 @@ FSM, unlike `flows/detail`).
        'getTokenChainsFor groups one identity\'s tokens'
        (decides tokens group by chain id and each chain's
        event count — the mechanism behind multiple chains,
-       and not the `parentJti` field either); exploratory —
+       and not the `parentJti` field either);
+       tests/presenter-identity-tokens.test.ts 'a parent
+       token on the page is a link to its row' and 'a
+       parent token absent from the page is not a link'
+       (decide which parents link);
+       tests/presenter-identity-tokens.test.ts 'the first
+       row of each token carries its anchor' (decides the
+       jump target); tests/presenter-identity-tokens.test.ts
+       'an anchored row clears the sticky header' and 'a
+       token row keeps a header-high scroll margin'
+       (decide the landing below the header); exploratory —
        the live page title/subtitle, the local-time stamp,
-       the HEAD-only reversion to `Parent token —`, and the
-       non-canonical/absent identityId route-gate behavior
+       the HEAD-only reversion to `Parent token —`, the
+       live jump, and the non-canonical/absent identityId
+       route-gate behavior
 - [ ] **G26** From the same detail, click its
   "Providers" link (`data-identity-link="providers"`).
   PASS: the page title is "Identity Providers" with
@@ -7184,7 +7207,7 @@ K30 only describes.
        unreferenced attributes (R12)';
        exploratory — the live node-panel paint
 - [ ] **R13** From workbox, open the gate-violation work
-  order (`#gate0001`, `eOlNZpGQfmCdpSFWXGkzFQ`) at Data
+  order (`eOlNZpGQfmCdpSFWXGkzFQ`) at Data
   Capture, unbound. Opening inspects; it does not claim.
   PASS: current node is Data Capture; attribute inputs
   are disabled and still show their values; transition
@@ -7194,9 +7217,11 @@ K30 only describes.
   the durable covenant; CLI pins it; constraint
   failures still surface via
   `WorkboxDetailPresenter.buildViolations` banner. Only
-  WO01 (`a7c3e1f9`) is instance-bound — `#gate0001`
-  stays unbound here (the seeded Customer Profile
-  instance, Acme, already has values set).
+  WO01 (`xqcXYHXBJJXcLkRYkRngKA`) is
+  instance-bound — `eOlNZpGQfmCdpSFWXGkzFQ`
+  stays unbound here (the seeded Customer
+  Profile instance, Acme, already has values
+  set).
   Pin: tests/adapters-record-transitions.test.ts
        'validateRecordTransition returns a required
        violation when the CURRENT node has a required
@@ -7209,9 +7234,10 @@ K30 only describes.
        with at least one required attribute with a
        null stored value'; exploratory — the action
        screen's disabled inputs; no bind prompt
-- [ ] **R14** `#gate0001` is unbound; bind-at-creation
-  is later. There is no action-screen picker; do not
-  invent one. Opening inspects. No seeded bound Data
+- [ ] **R14** `eOlNZpGQfmCdpSFWXGkzFQ` is unbound;
+  bind-at-creation is later. There is no
+  action-screen picker; do not invent one.
+  Opening inspects. No seeded bound Data
   Capture work order exists; seeded bound WO01 is
   already Archive. Drive a bound claimed-by-me Data
   Capture screen only when one exists. If none

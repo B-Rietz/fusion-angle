@@ -3139,9 +3139,9 @@ export const API_DOC_ROOMS:
         verb: 'PUT',
         uri: '/api/organizations/:id/work-orders/:id',
         body:
-            '{\n  "display_id": "display_id",\n  "flow_graph": {\n    "name"'
-            + ': "name",\n    "lockTimeout": 0,\n    "nodes": [],\n    "edge'
-            + 's": []\n  },\n  "position": 0\n}',
+            '{\n  "flow_graph": {\n    "name": "name",\n    "lockTimeout": 0'
+            + ',\n    "nodes": [],\n    "edges": []\n  },\n  "position": 0\n'
+            + '}',
         headers:
         [
             'Authorization: Bearer …',

@@ -101,7 +101,6 @@ function workOrderFieldsOf(
     const bound = joins.boundValues.get(order.id);
     return [
         order.id,
-        order.display_id,
         graph.name,
         ...(flow === undefined ? [] : [flow.id, flow.name]),
         order.state,

@@ -162,7 +162,6 @@ async function seededWithHiddenValue(): Promise<{
         organization: ORGANIZATION,
         id: WO_ID,
         fields: {
-            display_id: 'acl1',
             flow_graph: {
                 name: 'Acl Flow',
                 lockTimeout: DEFAULT_LOCK_TIMEOUT,
@@ -322,7 +321,6 @@ for (const [label, request] of [
         (tag: string) => req(
             'PUT', WORK_ORDER, token,
             {
-                display_id: 'acl1',
                 flow_graph: {
                     name: 'Acl Flow',
                     lockTimeout: DEFAULT_LOCK_TIMEOUT,

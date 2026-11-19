@@ -311,7 +311,6 @@ Deno.test(
             organization: 'AjdvjuECVZEgZoFajaIEkg',
             id: 'yNSSnbrpacodQTzUEcdEVA',
             fields: {
-                display_id: 'WO-1',
                 flow_graph: {
                     name: 'Onboarding',
                     lockTimeout: 0, nodes: [], edges: [],
@@ -328,7 +327,6 @@ Deno.test(
             organization: 'AjdvjuECVZEgZoFajaIEkg',
             id: 'yNXXsTEwShOozlQCEWKIIw',
             fields: {
-                display_id: 'WO-2',
                 flow_graph: {
                     name: 'Onboarding',
                     lockTimeout: 0, nodes: [], edges: [],
@@ -461,7 +459,6 @@ async () => {
         await seedCreatedWorkOrder(db, {
             organization: 'AjdvjuECVZEgZoFajaIEkg', id,
             fields: {
-                display_id: 'WO-' + position,
                 flow_graph: {
                     name: 'Stats', lockTimeout: 0,
                     nodes: [], edges: [],
@@ -526,7 +523,6 @@ Deno.test(
             organization: 'AjdvjuECVZEgZoFajaIEkg',
             id: 'yNSSnbrpacodQTzUEcdEVA',
             fields: {
-                display_id: 'WO-1',
                 flow_graph: {
                     name: 'AutoLayout',
                     lockTimeout: 0, nodes: [], edges: [],

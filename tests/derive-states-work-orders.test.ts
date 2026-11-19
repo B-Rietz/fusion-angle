@@ -158,7 +158,6 @@ function createWorkOrderBody(
     return {
         id,
         workOrder: {
-            display_id: 'lifecycle-' + id,
             flow_graph: graph,
             position: 1,
         },
@@ -224,7 +223,6 @@ Deno.test('a created work order whose birth claim is released'
         organization: ORGANIZATION_A,
         id: workOrderId,
         fields: {
-            display_id: 'seeded',
             flow_graph: workOrderFlowGraph(8 * 60 * 60),
             position: 1,
         },
@@ -260,7 +258,6 @@ Deno.test('a claim, then a claim past lockTimeout supersedes with'
         organization: ORGANIZATION_A,
         id: workOrderId,
         fields: {
-            display_id: 'claimable',
             flow_graph: workOrderFlowGraph(tinyLockTimeoutSeconds),
             position: 1,
         },
@@ -336,7 +333,6 @@ Deno.test('claim → release → reclaim derives claimed,'
         organization: ORGANIZATION_A,
         id: workOrderId,
         fields: {
-            display_id: 'releasable',
             flow_graph: workOrderFlowGraph(8 * 60 * 60),
             position: 1,
         },
@@ -503,7 +499,6 @@ Deno.test('a created work order (three births and a release)'
         organization: ORGANIZATION_A,
         id: workOrderId,
         fields: {
-            display_id: 'hybrid',
             flow_graph: workOrderFlowGraph(8 * 60 * 60),
             position: 1,
         },

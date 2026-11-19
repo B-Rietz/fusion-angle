@@ -119,7 +119,6 @@ async function seededDb(): Promise<MemoryDbAdapter> {
         organization: ORGANIZATION,
         id: WO_ID,
         fields: {
-            display_id: 'cut1',
             flow_graph: graphJson(),
             position: 1,
         },

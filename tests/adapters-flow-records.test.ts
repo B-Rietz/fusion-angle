@@ -57,7 +57,6 @@ async function seedFlow(
 async function seedWorkOrder(
     db: MemoryDbAdapter,
     id: string,
-    displayId: string,
     flowId: string,
     position: number,
 ): Promise<void> {
@@ -77,7 +76,6 @@ async function seedWorkOrder(
         organization: 'AjdvjuECVZEgZoFajaIEkg',
         id,
         fields: {
-            display_id: displayId,
             flow_graph: storedWorkOrderFlowGraph(flowGraph),
             position,
         },
@@ -158,7 +156,7 @@ Deno.test(
         const { db, ctx } = await adminContext();
         const workOrderId = generateIdentifier();
         await seedWorkOrder(
-            db, workOrderId, 'A001', 'aEsGMmBEFaVdWihhHXwCbw', 1,
+            db, workOrderId, 'aEsGMmBEFaVdWihhHXwCbw', 1,
         );
         await seedRecord(db, 'rbfHGatkwQzGZJVXKJEeyw');
         await putFlowRecord(ctx, 'dCnpryxCNwuTnCrBBDIMOw', {
@@ -202,7 +200,7 @@ Deno.test(
         const { db, ctx } = await adminContext();
         const workOrderId = generateIdentifier();
         await seedWorkOrder(
-            db, workOrderId, 'A001', 'aEsGMmBEFaVdWihhHXwCbw', 1,
+            db, workOrderId, 'aEsGMmBEFaVdWihhHXwCbw', 1,
         );
         assertStrictEquals(
             await getRecordForWorkOrder(
@@ -286,17 +284,12 @@ Deno.test(
             at: AT,
         });
         // One work order on each.
-        await seedWorkOrder(
-            db, woA, 'A001', flowA, 1,
-        );
-        await seedWorkOrder(
-            db, woB, 'B001', flowB, 2,
-        );
+        await seedWorkOrder(db, woA, flowA, 1);
+        await seedWorkOrder(db, woB, flowB, 2);
         // Plus a noise work order on an
         // unrelated flow.
         await seedWorkOrder(
-            db, generateIdentifier(), 'X001',
-            generateIdentifier(), 3,
+            db, generateIdentifier(), generateIdentifier(), 3,
         );
         const workOrders =
             await getWorkOrdersForRecord(

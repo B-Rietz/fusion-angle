@@ -87,7 +87,6 @@ function flowGraph(): Record<string, unknown> {
 // stamps it from the verified token before the store validates.
 function workOrderFields() {
     return {
-        display_id: 'abcd',
         flow_graph: flowGraph(),
         position: 1,
     };
@@ -133,7 +132,6 @@ Deno.test(
 
         const wo = (await GET<{
             id: string;
-            display_id: string;
             position: number;
             organization_id: string;
         }>(
@@ -142,7 +140,6 @@ Deno.test(
                 + WO_ID,
             DEV_TOKEN,
             operationIdHeader())).body().toValue();
-        assertStrictEquals(wo.display_id, 'abcd');
         assertStrictEquals(wo.position, 1);
         // The fence stamped the bound org — never the body.
         assertStrictEquals(wo.organization_id, 'AjdvjuECVZEgZoFajaIEkg');
@@ -266,7 +263,6 @@ Deno.test(
         assertEquals(await res.json(), {
             id: WO_ID,
             organization_id: 'AjdvjuECVZEgZoFajaIEkg',
-            display_id: 'abcd',
             flow_graph: flowGraph(),
             position: 1,
             state: NODE_MIDDLE,
@@ -303,6 +299,34 @@ Deno.test(
                 + WO_ID + '/claim/',
         );
         assertStrictEquals(claims.length, 0);
+    },
+);
+
+Deno.test(
+    'a create whose workOrder carries display_id answers 400',
+    async () => {
+        const db = await freshDb();
+        const body = createBody();
+        const res = await handleRequest(db, createRequest(
+            {
+                ...body,
+                workOrder: {
+                    ...body.workOrder,
+                    display_id: 'abcd',
+                },
+            },
+            generateIdentifier(),
+        ));
+        assertStrictEquals(res.status, 400);
+        await res.body?.cancel();
+        const get = await handleRequest(db, apiRequest({
+            method: 'GET',
+            path: '/organizations/AjdvjuECVZEgZoFajaIEkg'
+                + '/work-orders/' + WO_ID,
+            token: DEV_TOKEN,
+        }));
+        assertStrictEquals(get.status, 404);
+        await get.body?.cancel();
     },
 );
 

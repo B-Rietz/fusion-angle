@@ -1,4 +1,6 @@
-/* Badges: pill-shaped status indicators, tone variants. */
+/* Badges: pill-shaped status indicators, tone variants;
+    and the displayed id (.displayed-id) they and other
+    text carry. */
 
 .badge-fixed-w {
     min-width: 6rem;
@@ -156,6 +158,22 @@
     background: hsl(var(--error-soft));
     color: hsl(var(--error-text));
     border-color: hsl(var(--error) / 0.3);
+}
+
+/* Displayed id: the whole id in the markup, clipped by CSS
+    alone. Inline-block so the ellipsis applies inside a line
+    of text. Regular weight and normal tracking even inside a
+    heading: only the 400 mono face ships. */
+.displayed-id {
+    font-family: var(--font-mono);
+    font-weight: var(--font-weight-regular);
+    letter-spacing: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
+    max-width: 100%;
+    vertical-align: bottom;
 }
 
 /* Stat cell tinted card (used by organization, idea, project) */
