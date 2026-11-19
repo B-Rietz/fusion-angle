@@ -80,6 +80,12 @@
     --width-overview: 64rem;
     --width-workspace: 96rem;
 
+    /* Flow canvas chrome, shared by designer and stats */
+    /* padding 2x1rem + switches 3x1.5rem + gaps 2x0.5rem + 1px rule */
+    --height-flow-header: calc(7.5rem + 1px);
+    /* a 2.5rem icon button + padding 2x0.25rem */
+    --width-flow-tools: 3rem;
+
     /* Component sizing */
     --gauge-stroke-width: 14;
 
