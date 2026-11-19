@@ -19,6 +19,7 @@ import {
     NODE_WIDTH, NODE_HEIGHT,
 } from '../app/flow-layout.ts';
 import type { GraphNode } from '../../shared/types.ts';
+import { arrangeFlow } from '../app/flow-arrangement.ts';
 
 // Empty canvas fallback when no nodes exist.
 const EMPTY_W = 200;
@@ -137,9 +138,12 @@ async function load(host: HTMLElement): Promise<void> {
                 graph.nodes,
                 STATS_VIEW_PADDING_PX,
             );
+            const arrangement = arrangeFlow(
+                graph, { kind: 'unmeasured' },
+            );
             const presenter =
                 new FlowStatsPresenter(
-                    model, viewBox,
+                    model, arrangement, viewBox,
                 );
             presenter.renderShell(host);
 

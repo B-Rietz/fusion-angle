@@ -14,6 +14,7 @@ import { ICON_SIZE, iconArrowLeft } from '../icons.ts';
 import {
     buildStatsGraphSvg,
 } from '../flow-stats-graph.ts';
+import type { FlowArrangement } from '../flow-arrangement.ts';
 import {
     DISPLAY_ABSENT,
 } from '../format.ts';
@@ -56,13 +57,16 @@ export interface FlowStatsUi {
 
 export class FlowStatsPresenter {
     readonly #model: FlowStatsModel;
+    readonly #arrangement: FlowArrangement;
     readonly #viewBox: ViewBox;
 
     constructor(
         model: FlowStatsModel,
+        arrangement: FlowArrangement,
         viewBox: ViewBox,
     ) {
         this.#model = model;
+        this.#arrangement = arrangement;
         this.#viewBox = viewBox;
     }
 
@@ -237,6 +241,7 @@ ${this.buildLegend()}${footnote}</div>`;
                 canvasHost,
                 buildStatsGraphSvg(
                     this.#model,
+                    this.#arrangement,
                     this.#viewBox,
                     highlight,
                 ),

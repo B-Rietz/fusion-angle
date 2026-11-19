@@ -22,6 +22,9 @@ export const ICON_SIZE = {
 export type IconSize =
     (typeof ICON_SIZE)[keyof typeof ICON_SIZE];
 
+// Every icon draws its shapes in this box.
+export const ICON_VIEWBOX = '0 0 24 24';
+
 function icon(
     paths: string,
     size: IconSize,
@@ -30,7 +33,7 @@ function icon(
     return new SafeHtml(
         '<svg xmlns="http://www.w3.org/2000/svg"'
         + ` width="${size}" height="${size}"`
-        + ' viewBox="0 0 24 24" fill="none"'
+        + ` viewBox="${ICON_VIEWBOX}" fill="none"`
         + ' stroke="currentColor" stroke-width="2"'
         + ' stroke-linecap="round"'
         + ' stroke-linejoin="round"'
@@ -387,32 +390,31 @@ export function iconAlertCircle(
     );
 }
 
+// The two hazard glyphs' shapes, bare, for a canvas whose
+// stylesheet paints them (flow-stats-graph.ts).
+export const ALERT_TRIANGLE_SHAPES =
+    '<path d="m21.73 18-8-14a2 2 0 0'
+    + ' 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a'
+    + '2 2 0 0 0 1.73-3Z"/>'
+    + '<path d="M12 9v4"/>'
+    + '<path d="M12 17h.01"/>';
+export const NO_ENTRY_SHAPES =
+    '<circle cx="12" cy="12" r="10"/>'
+    + '<line x1="5" x2="19" y1="12"'
+    + ' y2="12"/>';
+
 export function iconAlertTriangle(
     size: IconSize,
     cssClass: string,
 ) {
-    return icon(
-        '<path d="m21.73 18-8-14a2 2 0 0'
-        + ' 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a'
-        + '2 2 0 0 0 1.73-3Z"/>'
-        + '<path d="M12 9v4"/>'
-        + '<path d="M12 17h.01"/>',
-        size,
-        cssClass,
-    );
+    return icon(ALERT_TRIANGLE_SHAPES, size, cssClass);
 }
 
 export function iconNoEntry(
     size: IconSize,
     cssClass: string,
 ) {
-    return icon(
-        '<circle cx="12" cy="12" r="10"/>'
-        + '<line x1="5" x2="19" y1="12"'
-        + ' y2="12"/>',
-        size,
-        cssClass,
-    );
+    return icon(NO_ENTRY_SHAPES, size, cssClass);
 }
 
 export function iconCheckCircle(

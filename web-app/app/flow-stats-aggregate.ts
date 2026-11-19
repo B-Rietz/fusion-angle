@@ -28,8 +28,6 @@ export interface NodeStat {
     readonly displayName: string;
     readonly isCreate: boolean;
     readonly isArchive: boolean;
-    readonly positionX: number;
-    readonly positionY: number;
     readonly outgoingEdgeIds: readonly string[];
     readonly heatPct: number;
     readonly heatT:   number;
@@ -70,6 +68,7 @@ export type PathEntry =
     | { readonly kind: 'path';
         readonly path: FlowPath }
     | { readonly kind: 'rest';
+        readonly pathCount: number;
         readonly count: number;
         readonly combinedSharePct: number };
 
@@ -92,8 +91,6 @@ function emptyNodeStat(n: GraphNode): NodeStat {
         displayName: n.name,
         isCreate: n.isCreate,
         isArchive: n.isArchive,
-        positionX: n.positionX,
-        positionY: n.positionY,
         outgoingEdgeIds: [],
         heatPct: 0,
         heatT: 0,
@@ -539,7 +536,9 @@ export function buildFlowStats(
         const restCount =
             restBuckets.reduce((s, b) => s + b.count, 0);
         pathEntries.push({
-            kind: 'rest', count: restCount,
+            kind: 'rest',
+            pathCount: restBuckets.length,
+            count: restCount,
             combinedSharePct: totalCompleted > 0
                 ? Math.round(
                     (restCount / totalCompleted) * 100,

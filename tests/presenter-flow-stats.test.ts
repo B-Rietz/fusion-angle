@@ -1,20 +1,28 @@
-import { assert, assertMatch, assertNotMatch } from '@std/assert';
+import {
+    assert, assertEquals, assertMatch, assertNotMatch,
+} from '@std/assert';
 import { buildStatsGraphSvg }
     from '../web-app/app/flow-stats-graph.ts';
 import type {
     FlowStatsModel, NodeStat,
 } from '../web-app/app/flow-stats-aggregate.ts';
+import type { FlowArrangement }
+    from '../web-app/app/flow-arrangement.ts';
+import type { GraphNode } from '../shared/types.ts';
 import { FlowStatsPresenter }
     from '../web-app/app/presenters/flow-stats.ts';
 import { DISPLAY_ABSENT } from
     '../web-app/app/format.ts';
+import {
+    NODE_LABEL_Y, NODE_LABEL_Y_CENTERED, NODE_META_Y,
+    truncateEdgeLabel, truncateNodeName,
+} from '../web-app/app/flow-graph.ts';
 
 function model(): FlowStatsModel {
     const node =
         (over: Partial<NodeStat> & { id: string }): NodeStat => ({
             displayName: over.id.toUpperCase(),
             isCreate: false, isArchive: false,
-            positionX: 0, positionY: 0,
             outgoingEdgeIds: [], heatPct: 0, heatT: 0,
             avgSeconds: null, medianSeconds: null, p90Seconds: null,
             visitsInWindow: 0, distinctWorkOrders: 0,
@@ -26,16 +34,13 @@ function model(): FlowStatsModel {
         });
     return {
         nodes: [
-            node({ id:'c', displayName:'Create',  isCreate:true,
-                   positionX:0,   positionY:0 }),
+            node({ id:'c', displayName:'Create',  isCreate:true }),
             node({ id:'a', displayName:'A',
-                   positionX:200, positionY:0,
                    heatT:0.32, heatPct:32,
                    avgSeconds: 510,
                    outgoingEdgeIds: ['e2'],
                    memberHazard: 'danger' }),
-            node({ id:'z', displayName:'Archive', isArchive:true,
-                   positionX:400, positionY:0 }),
+            node({ id:'z', displayName:'Archive', isArchive:true }),
         ],
         edges: [
             { id:'YiJPbufDpkyrZcZCYbUJpg', name:'',
@@ -49,6 +54,28 @@ function model(): FlowStatsModel {
         windowDays: 90,
         droppedNodeIds: new Set(),
         pathsWithDroppedStepsCount: 0,
+    };
+}
+
+// Where model()'s states sit: the positions the fixture
+// carried before positions left the statistics.
+function arrangement(): FlowArrangement {
+    const at = (
+        id: string, positionX: number,
+        o: { isCreate?: boolean; isArchive?: boolean } = {},
+    ): GraphNode => ({
+        id, name: id, positionX, positionY: 0,
+        isCreate: o.isCreate === true,
+        isArchive: o.isArchive === true,
+        memberIds: [], attributes: [], taskInstructions: '',
+    });
+    return {
+        nodes: [
+            at('c', 0, { isCreate: true }),
+            at('a', 200),
+            at('z', 400, { isArchive: true }),
+        ],
+        edgeWaypoints: new Map(),
     };
 }
 
@@ -66,7 +93,9 @@ function nodeGroup(svg: string, id: string): string {
 }
 
 Deno.test('emits an svg with role=img and no editor affordances', () => {
-    const html = buildStatsGraphSvg(model(), VB, null).toString();
+    const html = buildStatsGraphSvg(
+        model(), arrangement(), VB, null,
+    ).toString();
     assertMatch(html, /<svg[^>]*role="img"/);
     assertNotMatch(html, /role="button"/);
     assertNotMatch(html, /\btabindex\b/);
@@ -76,7 +105,9 @@ Deno.test('emits an svg with role=img and no editor affordances', () => {
 });
 
 Deno.test('each node carries style="--heat-t:..." and no data-heat', () => {
-    const html = buildStatsGraphSvg(model(), VB, null).toString();
+    const html = buildStatsGraphSvg(
+        model(), arrangement(), VB, null,
+    ).toString();
     assertMatch(html,
         /data-node-id="a"[^>]*style="[^"]*--heat-t:\s*0\.32[^"]*"/);
     assertMatch(html,
@@ -86,20 +117,59 @@ Deno.test('each node carries style="--heat-t:..." and no data-heat', () => {
     assertNotMatch(html, /\bdata-heat\b/);
 });
 
-Deno.test('regular nodes show avg-sojourn face; special nodes show —',
+// Every <text> of one node's group, in order.
+function texts(group: string): string[] {
+    return group.match(/<text\b[^>]*>[^<]*<\/text>/g) ?? [];
+}
+
+Deno.test(
+    'regular nodes show avg sojourn; special nodes show no'
+    + ' second line',
     () => {
-    const html = buildStatsGraphSvg(model(), VB, null).toString();
-    assertMatch(html, />8\.5m</);
-    assertMatch(html, new RegExp(
-        'data-node-id="c"[\\s\\S]*?'
-        + 'flow-stats-node-face[^>]*>'
-        + DISPLAY_ABSENT + '<',
-    ));
-});
+        const html = buildStatsGraphSvg(
+            model(), arrangement(), VB, null,
+        ).toString();
+        const regular = texts(nodeGroup(html, 'a'));
+        assertEquals(regular.length, 2);
+        assertMatch(regular[0]!, new RegExp(
+            'class="flow-stats-node-name"[^>]*'
+            + ` y="${NODE_LABEL_Y}">A<`,
+        ));
+        assertMatch(regular[1]!, new RegExp(
+            'class="flow-stats-node-face"[^>]*'
+            + ` y="${NODE_META_Y}">8\\.5m<`,
+        ));
+        for (const [id, name] of [
+            ['c', 'Create'], ['z', 'Archive'],
+        ] as const) {
+            const special = texts(nodeGroup(html, id));
+            assertEquals(special.length, 1);
+            assertMatch(special[0]!, new RegExp(
+                'class="flow-stats-node-name"[^>]*'
+                + ` y="${NODE_LABEL_Y_CENTERED}">${name}<`,
+            ));
+        }
+        const m = model();
+        const idle: FlowStatsModel = {
+            ...m,
+            nodes: m.nodes.map(n =>
+                n.id === 'a' ? { ...n, avgSeconds: null } : n,
+            ),
+        };
+        const idleHtml = buildStatsGraphSvg(
+            idle, arrangement(), VB, null,
+        ).toString();
+        assertMatch(texts(nodeGroup(idleHtml, 'a'))[1]!, new RegExp(
+            `class="flow-stats-node-face"[^>]*>${DISPLAY_ABSENT}<`,
+        ));
+    },
+);
 
 Deno.test('danger hazard glyph appears when memberHazard is danger',
     () => {
-    const html = buildStatsGraphSvg(model(), VB, null).toString();
+    const html = buildStatsGraphSvg(
+        model(), arrangement(), VB, null,
+    ).toString();
     assertMatch(nodeGroup(html, 'a'),
         /class="flow-stats-node-danger"/);
     assertNotMatch(nodeGroup(html, 'c'),
@@ -117,13 +187,17 @@ Deno.test('warning hazard glyph appears when memberHazard is warning',
                 : n,
         ),
     };
-    const html = buildStatsGraphSvg(warned, VB, null).toString();
+    const html = buildStatsGraphSvg(
+        warned, arrangement(), VB, null,
+    ).toString();
     assertMatch(nodeGroup(html, 'a'),
         /class="flow-stats-node-warning"/);
 });
 
 Deno.test('edges carry data-edge-id and no interactive attributes', () => {
-    const html = buildStatsGraphSvg(model(), VB, null).toString();
+    const html = buildStatsGraphSvg(
+        model(), arrangement(), VB, null,
+    ).toString();
     assertMatch(html, /<g[^>]*data-edge-id="YiJPbufDpkyrZcZCYbUJpg"/);
     assertMatch(html, /<g[^>]*data-edge-id="e2"/);
 });
@@ -135,7 +209,9 @@ Deno.test('highlight set marks on-path and dims off-path nodes/edges',
         edgeIds: new Set(['YiJPbufDpkyrZcZCYbUJpg']),
     };
     const html =
-        buildStatsGraphSvg(model(), VB, highlight).toString();
+        buildStatsGraphSvg(
+            model(), arrangement(), VB, highlight,
+        ).toString();
     assertMatch(html, /data-node-id="c"[^>]*data-on-path="true"/);
     assertMatch(html, /data-node-id="a"[^>]*data-on-path="true"/);
     assertMatch(html, /data-node-id="z"[^>]*data-dim="true"/);
@@ -145,7 +221,9 @@ Deno.test('highlight set marks on-path and dims off-path nodes/edges',
 });
 
 Deno.test('no highlight ⇒ no data-dim or data-on-path anywhere', () => {
-    const html = buildStatsGraphSvg(model(), VB, null).toString();
+    const html = buildStatsGraphSvg(
+        model(), arrangement(), VB, null,
+    ).toString();
     assertNotMatch(html, /data-dim="true"/);
     assertNotMatch(html, /data-on-path="true"/);
 });
@@ -161,13 +239,167 @@ Deno.test('a back-edge gets data-cycle; forward edges do not', () => {
         ],
     };
     const html =
-        buildStatsGraphSvg(cyclic, VB, null).toString();
+        buildStatsGraphSvg(
+            cyclic, arrangement(), VB, null,
+        ).toString();
     assertMatch(html,
         /data-edge-id="e3"[^>]*data-cycle="true"/);
     assertNotMatch(html,
         /data-edge-id="YiJPbufDpkyrZcZCYbUJpg"[^>]*data-cycle="true"/);
     assertNotMatch(html,
         /data-edge-id="e2"[^>]*data-cycle="true"/);
+});
+
+// One edge's group, from its id to its close.
+function edgeGroup(svg: string, id: string): string {
+    const at = svg.indexOf(`data-edge-id="${id}"`);
+    assert(at >= 0, `edge ${id} not found`);
+    const rest = svg.slice(at);
+    return rest.slice(0, rest.indexOf('</g>'));
+}
+
+function withNames(
+    m: FlowStatsModel,
+    nodeName: string,
+    edgeName: string,
+): FlowStatsModel {
+    return {
+        ...m,
+        nodes: m.nodes.map(n =>
+            n.id === 'a' ? { ...n, displayName: nodeName } : n,
+        ),
+        edges: m.edges.map(e => ({ ...e, name: edgeName })),
+    };
+}
+
+Deno.test(
+    "a transition's name is drawn on its edge, not on an edge"
+    + ' out of Create',
+    () => {
+        const html = buildStatsGraphSvg(
+            withNames(model(), 'A', 'Ship it'),
+            arrangement(), VB, null,
+        ).toString();
+        const out = edgeGroup(html, 'e2');
+        assertMatch(out, new RegExp(
+            '<rect class="flow-stats-edge-label-bg"'
+            + ' x="[-0-9.]+" y="[-0-9.]+" width="[0-9.]+"'
+            + ' height="20" rx="4"/>',
+        ));
+        assertMatch(out,
+            /<text class="flow-stats-edge-label"[^>]*>Ship it<\/text>/);
+        const fromCreate =
+            edgeGroup(html, 'YiJPbufDpkyrZcZCYbUJpg');
+        assertMatch(fromCreate, /class="flow-stats-edge-path"/);
+        assertNotMatch(fromCreate, /flow-stats-edge-label/);
+        assertNotMatch(fromCreate, /Ship it/);
+    },
+);
+
+Deno.test("long names truncate as the designer's", () => {
+    const stateName = 'Quality assurance review';
+    const transitionName = 'Send back for another look';
+    assertEquals(truncateNodeName(stateName), 'Quality assurance…');
+    assertEquals(
+        truncateEdgeLabel(transitionName), 'Send back for ano…',
+    );
+    const html = buildStatsGraphSvg(
+        withNames(model(), stateName, transitionName),
+        arrangement(), VB, null,
+    ).toString();
+    assertMatch(texts(nodeGroup(html, 'a'))[0]!,
+        />Quality assurance…</);
+    const label = edgeGroup(html, 'e2');
+    assertMatch(label, />Send back for ano…</);
+    assertMatch(label, /flow-stats-edge-label-bg"[^>]* width="138"/);
+    assertNotMatch(html, new RegExp(stateName));
+    assertNotMatch(html, new RegExp(transitionName));
+});
+
+const PAINT_ATTRIBUTE = new RegExp(
+    '\\s(fill|stroke|stroke-width|stroke-dasharray'
+    + '|stroke-linecap|stroke-linejoin|opacity|font-size'
+    + '|font-weight|text-anchor|filter|marker-end)=',
+);
+
+Deno.test('the renderer emits no paint', () => {
+    const m = withNames(model(), 'A', 'Ship it');
+    const highlight = {
+        nodeIds: new Set(['c', 'a']),
+        edgeIds: new Set(['YiJPbufDpkyrZcZCYbUJpg']),
+    };
+    const warned: FlowStatsModel = {
+        ...m,
+        nodes: m.nodes.map(n =>
+            n.id === 'a' ? { ...n, memberHazard: 'warning' } : n,
+        ),
+    };
+    const cyclic: FlowStatsModel = {
+        ...m,
+        edges: [
+            ...m.edges,
+            { id: 'e3', name: 'again',
+              fromNodeId: 'z', toNodeId: 'a' },
+        ],
+    };
+    for (const [svgModel, hazard] of [
+        [m, 'danger'], [warned, 'warning'], [cyclic, 'danger'],
+    ] as const) {
+        const html = buildStatsGraphSvg(
+            svgModel, arrangement(), VB, highlight,
+        ).toString();
+        assertMatch(html,
+            new RegExp(`class="flow-stats-node-${hazard}"`));
+        assertNotMatch(html, PAINT_ATTRIBUTE);
+        const styles = html.match(/\sstyle="[^"]*"/g) ?? [];
+        assertEquals(styles.length, svgModel.nodes.length);
+        for (const style of styles) {
+            assertMatch(style, /^\sstyle="--heat-t: [0-9.]+"$/);
+        }
+    }
+});
+
+Deno.test('a hazard glyph keeps its place and size', () => {
+    const html = buildStatsGraphSvg(
+        model(), arrangement(), VB, null,
+    ).toString();
+    assertMatch(nodeGroup(html, 'a'), new RegExp(
+        '<g class="flow-stats-node-danger"'
+        + ' transform="translate\\(6, 42\\)">'
+        + '<title>[^<]+</title>'
+        + '<svg [^>]*width="16" height="16"'
+        + ' viewBox="0 0 24 24" aria-hidden="true">',
+    ));
+});
+
+Deno.test('content sits in one group', () => {
+    const html = buildStatsGraphSvg(
+        model(), arrangement(), VB, null,
+    ).toString();
+    const grid = html.indexOf('class="flow-stats-grid-dots"');
+    assert(grid >= 0, 'grid dots not found');
+    const after = html.slice(html.indexOf('/>', grid) + 2);
+    const open = '<g class="flow-stats-content">';
+    const close = '</g></svg>';
+    assert(after.startsWith(open), after.slice(0, 80));
+    assert(after.endsWith(close));
+    let depth = 0;
+    let groupEnd = -1;
+    for (const tag of after.matchAll(/<g\b|<\/g>/g)) {
+        depth += tag[0] === '</g>' ? -1 : 1;
+        if (depth === 0) {
+            groupEnd = tag.index;
+            break;
+        }
+    }
+    assertEquals(groupEnd, after.length - close.length);
+    const content = after.slice(0, groupEnd);
+    for (const id of ['c', 'a', 'z']) {
+        assertMatch(content, new RegExp(`data-node-id="${id}"`));
+    }
+    for (const id of ['YiJPbufDpkyrZcZCYbUJpg', 'e2']) {
+        assertMatch(content, new RegExp(`data-edge-id="${id}"`));
+    }
 });
 
 // ---- FlowStatsPresenter tests ----
@@ -198,6 +430,7 @@ function modelWithPaths(): FlowStatsModel {
             },
             {
                 kind: 'rest',
+                pathCount: 1,
                 count: 1,
                 combinedSharePct: 8,
             },
@@ -208,6 +441,7 @@ function modelWithPaths(): FlowStatsModel {
 Deno.test('buildShell contains required structural elements', () => {
     const p = new FlowStatsPresenter(
         modelWithPaths(),
+        arrangement(),
         { x: 0, y: 0, w: 600, h: 200 },
     );
     const s = p.buildShell().toString();
@@ -230,7 +464,7 @@ Deno.test('buildShell includes footnote when droppedNodeIds non-empty',
         pathsWithDroppedStepsCount: 2,
     };
     const p = new FlowStatsPresenter(
-        m, { x: 0, y: 0, w: 600, h: 200 },
+        m, arrangement(), { x: 0, y: 0, w: 600, h: 200 },
     );
     assertMatch(
         p.buildShell().toString(),
@@ -242,6 +476,7 @@ Deno.test('buildStepperBar idx 0: path label, 75%, prev disabled',
     () => {
     const p = new FlowStatsPresenter(
         modelWithPaths(),
+        arrangement(),
         { x: 0, y: 0, w: 600, h: 200 },
     );
     const s = p.buildStepperBar(
@@ -262,6 +497,7 @@ Deno.test('buildStepperBar idx 0: path label, 75%, prev disabled',
 Deno.test('buildStepperBar idx 1: prev not disabled', () => {
     const p = new FlowStatsPresenter(
         modelWithPaths(),
+        arrangement(),
         { x: 0, y: 0, w: 600, h: 200 },
     );
     const s = p.buildStepperBar(
@@ -274,6 +510,7 @@ Deno.test('buildStepperBar idx 1: prev not disabled', () => {
 Deno.test('buildStepperBar idx 2: rest entry, next disabled', () => {
     const p = new FlowStatsPresenter(
         modelWithPaths(),
+        arrangement(),
         { x: 0, y: 0, w: 600, h: 200 },
     );
     const s = p.buildStepperBar(
@@ -289,6 +526,7 @@ Deno.test('buildStepperBar names the control with an eyebrow',
     () => {
     const p = new FlowStatsPresenter(
         modelWithPaths(),
+        arrangement(),
         { x: 0, y: 0, w: 600, h: 200 },
     );
     const s = p.buildStepperBar(
@@ -302,6 +540,7 @@ Deno.test('buildLegend: structure, end labels, no linear-gradient',
     () => {
     const p = new FlowStatsPresenter(
         modelWithPaths(),
+        arrangement(),
         { x: 0, y: 0, w: 600, h: 200 },
     );
     const s = p.buildLegend().toString();
@@ -323,8 +562,6 @@ function nodeStat(
             over.displayName ?? over.id.toUpperCase(),
         isCreate: over.isCreate ?? false,
         isArchive: over.isArchive ?? false,
-        positionX: over.positionX ?? 0,
-        positionY: over.positionY ?? 0,
         outgoingEdgeIds:
             over.outgoingEdgeIds ?? [],
         heatPct: over.heatPct ?? 0,
@@ -354,6 +591,7 @@ Deno.test('rich card renders all stat blocks for a regular node',
     () => {
     const p = new FlowStatsPresenter(
         modelWithPaths(),
+        arrangement(),
         { x: 0, y: 0, w: 600, h: 200 },
     );
     const s = nodeStat({
@@ -411,6 +649,7 @@ Deno.test('rich card renders all stat blocks for a regular node',
 Deno.test('sub-1/wk throughput reads <1/wk', () => {
     const p = new FlowStatsPresenter(
         modelWithPaths(),
+        arrangement(),
         { x: 0, y: 0, w: 600, h: 200 },
     );
     const html = p.buildCard(nodeStat({
@@ -423,6 +662,7 @@ Deno.test('sub-1/wk throughput reads <1/wk', () => {
 Deno.test('top producer not in clan is flagged', () => {
     const p = new FlowStatsPresenter(
         modelWithPaths(),
+        arrangement(),
         { x: 0, y: 0, w: 600, h: 200 },
     );
     const s = nodeStat({
@@ -441,6 +681,7 @@ Deno.test('special-node card is lean (no clan/producer/branch)',
     () => {
     const p = new FlowStatsPresenter(
         modelWithPaths(),
+        arrangement(),
         { x: 0, y: 0, w: 600, h: 200 },
     );
     const s = nodeStat({
@@ -457,6 +698,7 @@ Deno.test('special-node card is lean (no clan/producer/branch)',
 Deno.test('renderCard hides the slot when nodeId is null', () => {
     const p = new FlowStatsPresenter(
         modelWithPaths(),
+        arrangement(),
         { x: 0, y: 0, w: 600, h: 200 },
     );
     const classes = new Set<string>();

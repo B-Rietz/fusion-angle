@@ -112,6 +112,9 @@ svg.flow-stats-canvas {
 .flow-stats-grid-dot {
     fill: hsl(var(--border));
 }
+.flow-stats-grid-dots {
+    fill: url(#stats-grid);
+}
 
 /* Edges are muted context. The single #stats-arrow   */
 /* marker's head tracks the line's own stroke via     */
@@ -207,6 +210,16 @@ svg.flow-stats-canvas
 }
 .flow-stats-node-danger {
     color: hsl(var(--danger));
+}
+/* The renderer draws each hazard glyph bare; this is the */
+/* paint icons.ts's icon() gives the same shapes.          */
+.flow-stats-node-warning svg,
+.flow-stats-node-danger svg {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 .flow-stats-node {
     cursor: pointer;
