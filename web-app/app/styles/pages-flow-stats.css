@@ -12,21 +12,28 @@
     * renderer emits structure only.
 */
 
+/* The designer's page chain (pages-flow-detail.css), so  */
+/* the canvas gets the box the designer's canvas gets.    */
 html[data-page="flow-stats"],
 html[data-page="flow-stats"] body {
     height: 100vh;
     margin: 0;
-    overflow: hidden;
 }
 html[data-page="flow-stats"] #page-root {
+    height: 100vh;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 html[data-page="flow-stats"] .sidebar-layout {
     height: 100vh;
 }
+/* min-width: the header's bar does not shrink, and must   */
+/* not widen the page — and so the canvas — past the       */
+/* designer's.                                             */
 html[data-page="flow-stats"] .main-content {
     min-height: 0;
+    min-width: 0;
 }
 html[data-page="flow-stats"] .page-content {
     display: flex;
@@ -61,6 +68,11 @@ html[data-page="flow-stats"] #flow-stats {
     padding: var(--space-4) var(--space-6);
     border-bottom: 1px solid transparent;
 }
+/* Only the title gives way when the row runs short: the */
+/* way back keeps its size, as the badge and bar do.      */
+#flow-stats-back {
+    flex-shrink: 0;
+}
 .flow-stats-title-block {
     flex: 1;
     min-width: 0;
@@ -94,23 +106,34 @@ html[data-page="flow-stats"] #flow-stats {
     border-radius: var(--radius-full);
 }
 
+/* The designer's body: a gutter where its tool column   */
+/* stands, then the canvas, so the two canvases measure   */
+/* the same.                                              */
 .flow-stats-body {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     flex: 1;
     min-height: 0;
+}
+.flow-stats-gutter {
+    width: var(--width-flow-tools);
+    flex-shrink: 0;
 }
 .flow-stats-canvas-area {
     position: relative;
     flex: 1;
     min-height: 0;
     overflow: hidden;
-    /* Matches .flow-stats-grid-bg so the letterboxed */
-    /* margins around the SVG's viewBox don't show a seam. */
+}
+/* The designer wrap's border and radius, and no margin   */
+/* it lacks. The fill matches .flow-stats-grid-bg.        */
+.flow-stats-canvas-wrap {
+    width: 100%;
+    height: 100%;
     background: hsl(var(--card));
     border: 1px solid hsl(var(--border));
     border-radius: var(--radius-lg);
-    margin: var(--space-3);
+    overflow: hidden;
 }
 .flow-stats-canvas-host {
     width: 100%;
@@ -155,6 +178,15 @@ svg.flow-stats-canvas {
 .flow-stats-edge-path {
     stroke: hsl(var(--warning));
     stroke-dasharray: 6 3;
+}
+
+/* A transition's name, centred in its label box at the  */
+/* designer's size. Geometry, not paint: the Auto Fit     */
+/* camera measures the drawn flow, so a name set wider or */
+/* off-centre would frame the flow off the designer's.    */
+.flow-stats-edge-label {
+    text-anchor: middle;
+    font-size: var(--text-2xs);
 }
 
 /* Heat fill -- the doctrine. blue->green->yellow->red, */

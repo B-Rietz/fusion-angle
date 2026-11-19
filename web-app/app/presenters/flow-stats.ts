@@ -15,6 +15,7 @@ import {
     buildStatsGraphSvg,
 } from '../flow-stats-graph.ts';
 import type { FlowArrangement } from '../flow-arrangement.ts';
+import type { Camera } from '../flow-camera.ts';
 import {
     DISPLAY_ABSENT,
 } from '../format.ts';
@@ -37,37 +38,26 @@ function fmtThroughput(n: number): string {
         : `~${Math.round(n)}/wk`;
 }
 
-// ViewBox mirrors the parameter shape expected
-// by buildStatsGraphSvg; kept local so this
-// module has no runtime dep on flow-layout.ts.
-interface ViewBox {
-    x: number;
-    y: number;
-    w: number;
-    h: number;
-}
-
 // One absence encoding: null means no pin / no hover. The
 // fields are required, so no undefined shadow-absence exists.
+// The camera is where the canvas looks; the page moves it.
 export interface FlowStatsUi {
     selectedPathIndex: number;
     pinnedNodeId: string | null;
     hoveredNodeId: string | null;
+    camera: Camera;
 }
 
 export class FlowStatsPresenter {
     readonly #model: FlowStatsModel;
     readonly #arrangement: FlowArrangement;
-    readonly #viewBox: ViewBox;
 
     constructor(
         model: FlowStatsModel,
         arrangement: FlowArrangement,
-        viewBox: ViewBox,
     ) {
         this.#model = model;
         this.#arrangement = arrangement;
-        this.#viewBox = viewBox;
     }
 
     buildShell(): SafeHtml {
@@ -105,10 +95,13 @@ export class FlowStatsPresenter {
     ${this.buildBar({ selectedPathIndex: 0 })}
 </div>
 <div class="flow-stats-body">
+    <div class="flow-stats-gutter"></div>
     <div class="flow-stats-canvas-area">
-        <div class="${
-            'flow-stats-canvas-host'
-        }"></div>
+        <div class="flow-stats-canvas-wrap">
+            <div class="${
+                'flow-stats-canvas-host'
+            }"></div>
+        </div>
         <div
             id="flow-stats-card"
             class="flow-stats-card hidden"
@@ -251,7 +244,7 @@ export class FlowStatsPresenter {
                 buildStatsGraphSvg(
                     this.#model,
                     this.#arrangement,
-                    this.#viewBox,
+                    ui.camera.viewBox,
                     highlight,
                 ),
             );
@@ -273,6 +266,34 @@ export class FlowStatsPresenter {
         }
         this.renderCard(container, ui.pinnedNodeId
             ?? ui.hoveredNodeId);
+    }
+
+    // A camera move redraws nothing: the svg takes the new
+    // view, and the grid's two rects stretch to cover it.
+    renderCamera(
+        container: HTMLElement,
+        viewBox: Camera['viewBox'],
+    ): void {
+        const svg = $required(
+            'svg.flow-stats-canvas', container,
+        );
+        svg.setAttribute(
+            'viewBox',
+            String(viewBox.x)
+            + ' ' + String(viewBox.y)
+            + ' ' + String(viewBox.w)
+            + ' ' + String(viewBox.h),
+        );
+        const rects = [
+            $required('.flow-stats-grid-bg', svg),
+            $required('.flow-stats-grid-dots', svg),
+        ];
+        for (const rect of rects) {
+            rect.setAttribute('x', String(viewBox.x));
+            rect.setAttribute('y', String(viewBox.y));
+            rect.setAttribute('width', String(viewBox.w));
+            rect.setAttribute('height', String(viewBox.h));
+        }
     }
 
     buildCard(s: NodeStat): SafeHtml {

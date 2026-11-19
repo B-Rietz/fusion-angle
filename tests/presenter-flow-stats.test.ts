@@ -441,7 +441,7 @@ function modelWithPaths(): FlowStatsModel {
 
 function presenterOf(m: FlowStatsModel): FlowStatsPresenter {
     return new FlowStatsPresenter(
-        m, arrangement(), { x: 0, y: 0, w: 600, h: 200 },
+        m, arrangement(),
     );
 }
 
@@ -466,7 +466,6 @@ Deno.test('buildShell contains required structural elements', () => {
     const p = new FlowStatsPresenter(
         modelWithPaths(),
         arrangement(),
-        { x: 0, y: 0, w: 600, h: 200 },
     );
     const s = p.buildShell().toString();
     assertMatch(s, /id="flow-stats-back"/);
@@ -509,7 +508,7 @@ Deno.test('buildShell includes footnote when droppedNodeIds non-empty',
         pathsWithDroppedStepsCount: 2,
     };
     const p = new FlowStatsPresenter(
-        m, arrangement(), { x: 0, y: 0, w: 600, h: 200 },
+        m, arrangement(),
     );
     assertMatch(
         p.buildShell().toString(),
@@ -568,7 +567,6 @@ Deno.test('buildBar idx 1: prev not disabled', () => {
     const p = new FlowStatsPresenter(
         modelWithPaths(),
         arrangement(),
-        { x: 0, y: 0, w: 600, h: 200 },
     );
     const s = p.buildBar(
         { selectedPathIndex: 1 },
@@ -745,7 +743,6 @@ Deno.test('rich card renders all stat blocks for a regular node',
     const p = new FlowStatsPresenter(
         modelWithPaths(),
         arrangement(),
-        { x: 0, y: 0, w: 600, h: 200 },
     );
     const s = nodeStat({
         id: 'a', displayName: 'Review',
@@ -803,7 +800,6 @@ Deno.test('sub-1/wk throughput reads <1/wk', () => {
     const p = new FlowStatsPresenter(
         modelWithPaths(),
         arrangement(),
-        { x: 0, y: 0, w: 600, h: 200 },
     );
     const html = p.buildCard(nodeStat({
         id: 'a', displayName: 'Review',
@@ -816,7 +812,6 @@ Deno.test('top producer not in clan is flagged', () => {
     const p = new FlowStatsPresenter(
         modelWithPaths(),
         arrangement(),
-        { x: 0, y: 0, w: 600, h: 200 },
     );
     const s = nodeStat({
         id: 'a',
@@ -835,7 +830,6 @@ Deno.test('special-node card is lean (no clan/producer/branch)',
     const p = new FlowStatsPresenter(
         modelWithPaths(),
         arrangement(),
-        { x: 0, y: 0, w: 600, h: 200 },
     );
     const s = nodeStat({
         id: 'c', isCreate: true,
@@ -852,7 +846,6 @@ Deno.test('renderCard hides the slot when nodeId is null', () => {
     const p = new FlowStatsPresenter(
         modelWithPaths(),
         arrangement(),
-        { x: 0, y: 0, w: 600, h: 200 },
     );
     const classes = new Set<string>();
     const cardEl = {

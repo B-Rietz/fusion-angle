@@ -16,6 +16,10 @@ export const EDGE = '.flow-edge';
 export const ONBOARDING = 'Customer Onboarding';
 export const LAYOUT_TEST =
     'Layout Test: Proposal Review Cycle';
+// Long enough that auto-layout wraps it into rows.
+export const WRAPPING = 'Fusion Angle Flow';
+export const STATS_CANVAS = 'svg.flow-stats-canvas';
+export const STATS_WRAP = '.flow-stats-canvas-wrap';
 
 type FlowRow = { id: string; name: string };
 export type GraphNode = {
@@ -23,6 +27,9 @@ export type GraphNode = {
     positionX: number; positionY: number;
 };
 type FlowGraph = {
+    is_auto_layout: boolean;
+    is_auto_fit: boolean;
+    is_locked: boolean;
     graph: { nodes: GraphNode[]; edges: unknown[] };
 };
 
@@ -63,6 +70,16 @@ export async function openFlow(
     await page.ready('flow-detail');
     await page.waitFor(NODE);
     return id;
+}
+
+export async function openStats(
+    page: Page, origin: Origin, flowId: string,
+): Promise<void> {
+    await page.navigate(registryUrl(
+        origin.baseUrl, 'flow-stats', `flowId=${flowId}`,
+    ));
+    await page.ready('flow-stats');
+    await page.waitFor(STATS_CANVAS);
 }
 
 export function nodeIdNamed(

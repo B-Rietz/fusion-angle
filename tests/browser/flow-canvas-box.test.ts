@@ -1,7 +1,8 @@
 import { assert, assertStrictEquals } from '@std/assert';
 import { useBrowser, withAdminPage, VIEWPORT } from './fixtures.ts';
 import {
-    LAYOUT_TEST, ONBOARDING, WRAP, openFlow,
+    LAYOUT_TEST, ONBOARDING, STATS_WRAP, WRAP, openFlow,
+    openStats,
 } from './canvas.ts';
 
 const browser = useBrowser();
@@ -66,6 +67,71 @@ Deno.test(
                     assertStrictEquals(
                         seen.canvasHeight, box.canvasHeight,
                         `canvas height ${at}`,
+                    );
+                },
+            );
+        }
+    },
+);
+
+type StatsBox = {
+    header: number;
+    headerClientHeight: number; headerScrollHeight: number;
+    canvasWidth: number; canvasHeight: number;
+};
+
+const STATS_BOX_OF = `JSON.stringify({
+    header: document.querySelector('.flow-stats-header')
+        .offsetHeight,
+    headerClientHeight: document.querySelector(
+        '.flow-stats-header').clientHeight,
+    headerScrollHeight: document.querySelector(
+        '.flow-stats-header').scrollHeight,
+    canvasWidth: document.querySelector('${STATS_WRAP}')
+        .clientWidth,
+    canvasHeight: document.querySelector('${STATS_WRAP}')
+        .clientHeight,
+})`;
+
+Deno.test(
+    'the stats canvas measures what the designer canvas measures',
+    async () => {
+        for (const { size, box } of PINNED) {
+            await withAdminPage(
+                browser.get(), async (page, origin) => {
+                    await page.setViewport(
+                        size.width, size.height, false,
+                    );
+                    const flowId = await openFlow(
+                        page, origin, ONBOARDING,
+                    );
+                    const designer = JSON.parse(
+                        await page.evaluate<string>(BOX_OF),
+                    ) as Box;
+                    await openStats(page, origin, flowId);
+                    const stats = JSON.parse(
+                        await page.evaluate<string>(STATS_BOX_OF),
+                    ) as StatsBox;
+                    const at = `${size.width}x${size.height}`;
+                    assertStrictEquals(
+                        stats.canvasWidth, designer.canvasWidth,
+                        `canvas width ${at}`,
+                    );
+                    assertStrictEquals(
+                        stats.canvasHeight, designer.canvasHeight,
+                        `canvas height ${at}`,
+                    );
+                    assertStrictEquals(
+                        stats.header, box.header, `header ${at}`,
+                    );
+                    // The header's height is fixed, so content
+                    // too tall for it would spill, not grow it.
+                    assert(
+                        stats.headerScrollHeight
+                            <= stats.headerClientHeight,
+                        `header content ${stats.headerScrollHeight}`
+                        + ` overflows ${stats.headerClientHeight}`
+                        + ` ${at}`,
                     );
                 },
             );
