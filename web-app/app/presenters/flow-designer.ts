@@ -68,6 +68,7 @@ import {
     applyAutoLayout,
     applyPanToRevealSelected,
     applyPanelTransition,
+    runsAutoLayout,
 } from '../flow-designer-actions.ts';
 import type {
     Waypoint,
@@ -728,10 +729,7 @@ Auto Fit</label>
         snap: FlowSnapshot,
     ): FlowSnapshot {
         let next = snap;
-        if (
-            next.isAutoLayout
-            && !next.isLocked
-        ) {
+        if (runsAutoLayout(next)) {
             next = this.#runAutoLayout(next);
         }
         if (next.isAutoFit) {

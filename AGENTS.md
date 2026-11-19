@@ -346,7 +346,12 @@ when asked.
   `work-order-events.ts` (a work order's history as the
   product reads it), `work-order-histories.json` (a
   captured snapshot of the seeded histories, which the
-  oracle test compares the seed against), and
+  oracle test compares the seed against),
+  `flow-graph-golden-locked.svg` and
+  `flow-graph-golden-unlocked.svg` (the designer's SVG
+  for one flow, locked and unlocked, as it was drawn
+  before its helpers were shared, which the golden test
+  compares the renderer against byte for byte), and
   `css-declaration.ts` (read one declaration from a
   stylesheet, for tests that pin a CSS rule);
   `client-init.ts` (the test composition

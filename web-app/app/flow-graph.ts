@@ -67,9 +67,9 @@ const GLOW_BLUR_MIN = 4;
 const GLOW_BLUR_PEAK = 12;
 const GLOW_ANIMATION_DURATION = '1.5s';
 
-const ARROW_VIEWBOX = 10;
-const ARROW_MIDPOINT = 5;
-const ARROW_MARKER = 8;
+export const ARROW_VIEWBOX = 10;
+export const ARROW_MIDPOINT = 5;
+export const ARROW_MARKER = 8;
 
 
 const STROKE_NORMAL = 2;
@@ -78,7 +78,7 @@ const STROKE_COMPLETE = 3;
 
 export const NODE_RADIUS = 10;
 
-const PORT_RADIUS = 5;
+export const PORT_RADIUS = 5;
 const PORT_STROKE = 2;
 
 // Node text geometry. Coordinates are
@@ -90,10 +90,10 @@ const PORT_STROKE = 2;
 // for vertical centering). NODE_META_Y
 // is the optional second line (status
 // text) below the label.
-const NODE_LABEL_Y = 26;
-const NODE_LABEL_Y_CENTERED = 38;
+export const NODE_LABEL_Y = 26;
+export const NODE_LABEL_Y_CENTERED = 38;
 const NODE_LABEL_FONT = 13;
-const NODE_META_Y = 45;
+export const NODE_META_Y = 45;
 const NODE_META_FONT = 11;
 const NODE_MAX_CHARS = 18;
 const LABEL_MAX_WIDTH = 140;
@@ -118,7 +118,7 @@ export const LABEL_CHAR_WIDTH = 7;
 export const LABEL_PADDING = 12;
 const LABEL_MIN_WIDTH = 36;
 export const LABEL_HEIGHT = 20;
-const LABEL_RADIUS = 4;
+export const LABEL_RADIUS = 4;
 const LABEL_BG_OPACITY = 0.9;
 export const LABEL_TEXT_OFFSET_Y = 4;
 const LABEL_FONT = 11;
@@ -218,8 +218,8 @@ function xyToPerim(
 
 function computePortPos(
     node: GraphNode,
-    edges: GraphEdge[],
-    nodeMap: Map<string, GraphNode>,
+    edges: readonly GraphEdge[],
+    nodeMap: ReadonlyMap<string, GraphNode>,
 ): { x: number; y: number } {
     const w = NODE_WIDTH;
     const h = NODE_HEIGHT;
@@ -266,6 +266,33 @@ function computePortPos(
         }
     }
     return perimToXy(bestMid);
+}
+
+// The centre of the connection port the designer draws on
+// a node, relative to the node's origin. Null where it
+// draws none: on a locked flow, and on a Create or Archive
+// node that already has an edge.
+export function connectionPortOf(
+    node: GraphNode,
+    edges: readonly GraphEdge[],
+    nodeMap: ReadonlyMap<string, GraphNode>,
+    isLocked: boolean,
+): { readonly x: number; readonly y: number } | null {
+    const isSpecial =
+        node.isCreate
+        || node.isArchive;
+    const hasEdges = isSpecial
+        && nodeHasConnections(
+            node.id, edges,
+        );
+    const showPort = canShowPort(
+        isLocked, isSpecial, hasEdges,
+    );
+    return showPort
+        ? computePortPos(
+            node, edges, nodeMap,
+        )
+        : null;
 }
 
 export function whichEdge(
@@ -414,7 +441,13 @@ function truncateLabel(
         : text;
 }
 
-function truncateEdgeLabel(
+export function truncateNodeName(
+    name: string,
+): string {
+    return truncateLabel(name, NODE_MAX_CHARS);
+}
+
+export function truncateEdgeLabel(
     name: string,
 ): string {
     const maxChars = Math.floor(
@@ -502,9 +535,7 @@ function buildNode(
 
     const displayName = node.name;
     const nameEsc = escapeForHtml(
-        truncateLabel(
-            displayName, NODE_MAX_CHARS,
-        ),
+        truncateNodeName(displayName),
     );
     inner += '<text'
         + ` x="${halfW}"`
@@ -1328,21 +1359,9 @@ export function buildGraphSvg(
     for (const node of nodes) {
         const isSelected =
             selectedNodeIds.has(node.id);
-        const isSpecial =
-            node.isCreate
-            || node.isArchive;
-        const hasEdges = isSpecial
-            && nodeHasConnections(
-                node.id, edges,
-            );
-        const showPort = canShowPort(
-            isLocked, isSpecial, hasEdges,
+        const portPos = connectionPortOf(
+            node, edges, nodeMap, isLocked,
         );
-        const portPos = showPort
-            ? computePortPos(
-                node, edges, nodeMap,
-            )
-            : null;
         nodeMarkup +=
             buildNode(
                 node, edges, isSelected,
