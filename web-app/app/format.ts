@@ -114,14 +114,6 @@ function trimStrings<
     return copy;
 }
 
-function workOrderLabel(workOrderId: string): string {
-    return 'Work order ' + workOrderId;
-}
-
-function instanceLabel(instanceId: string): string {
-    return 'Instance ' + instanceId;
-}
-
 export {
     DISPLAY_ABSENT,
     displayText,
@@ -136,6 +128,4 @@ export {
     trimStrings,
     formatCompactCurrency,
     SECONDS_PER_DAY,
-    workOrderLabel,
-    instanceLabel,
 };

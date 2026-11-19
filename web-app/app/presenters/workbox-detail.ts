@@ -2,10 +2,8 @@ import {
     html, trusted, escapeForHtml,
 } from '../safe-html.ts';
 import type { SafeHtml } from '../safe-html.ts';
-import {
-    instanceLabel,
-    workOrderLabel,
-} from '../format.ts';
+import { idLabel } from './id-label.ts';
+import { buildPageUrl } from '../navigation.ts';
 import {
     memberName,
     type WorkOrder,
@@ -359,7 +357,8 @@ export class WorkboxDetailPresenter {
                         <span
                             class="badge
                                 badge-neutral">
-                            ${workOrderLabel(
+                            ${idLabel(
+                                'Work order',
                                 this.idValue(),
                             )}
                         </span>
@@ -419,14 +418,18 @@ export class WorkboxDetailPresenter {
         if (bind === null) {
             return html``;
         }
-        return html`<span
+        return html`<a
+            href="${buildPageUrl('record-detail', {
+                id: bind.recordTypeId,
+                instance: bind.instanceId,
+            })}"
             class="badge badge-success"
             data-binding="bound"
             title="${
                 'type ' + bind.recordTypeId
             }">
-            ${instanceLabel(bind.instanceId)}
-        </span>`;
+            ${idLabel('Instance', bind.instanceId)}
+        </a>`;
     }
 
     #buildAttributesCard(): SafeHtml {

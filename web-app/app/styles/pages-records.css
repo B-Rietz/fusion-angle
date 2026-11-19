@@ -130,10 +130,6 @@
     min-width: 0;
 }
 
-.record-instance-id {
-    font-family: var(--font-mono, monospace);
-}
-
 .record-instance-values {
     display: flex;
     flex-wrap: wrap;

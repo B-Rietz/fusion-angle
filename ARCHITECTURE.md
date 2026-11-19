@@ -552,6 +552,11 @@ KNOWN.
 - a work order's `/history` —
   `tests/api-work-order-history.test.ts` ('a work order's
   /history is a router 404'; history is `versions/`)
+- a work order's `display_id` —
+  `tests/api-work-orders-create.test.ts`,
+  `tests/api-work-order-document.test.ts` (a create or
+  document PUT carrying it answers 400; a GET serves
+  none)
 
 ## How we got here
 

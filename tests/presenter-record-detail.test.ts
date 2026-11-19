@@ -197,6 +197,12 @@ Deno.test(
             'active', ['admin'],
             [workOrderShown('xqcXYHXBJJXcLkRYkRngKA')],
         );
-        assertMatch(html, /Work order xqcXYHXBJJXcLkRYkRngKA/);
+        assertMatch(
+            html,
+            new RegExp(
+                'Work order <code class="displayed-id">'
+                + 'xqcXYHXBJJXcLkRYkRngKA</code>',
+            ),
+        );
     },
 );

@@ -1,5 +1,6 @@
 import {
     assertEquals,
+    assertMatch,
     assertStringIncludes,
 } from '@std/assert';
 import {
@@ -93,7 +94,10 @@ Deno.test(
     () => {
         const out = capture([placed()], 'available', NO_FILTER);
         assertStringIncludes(out, 'Onboarding');
-        assertStringIncludes(out, 'Work order wo-1');
+        assertMatch(
+            out,
+            /Work order <code class="displayed-id">wo-1<\/code>/,
+        );
         assertStringIncludes(out, 'Review');
         assertStringIncludes(
             out, 'data-work-order-card="wo-1"',
@@ -127,8 +131,9 @@ Deno.test(
         }], 'available', NO_FILTER);
         assertStringIncludes(out, 'State unknown');
         assertStringIncludes(out, 'Test flow');
-        assertStringIncludes(
-            out, 'Work order wo-u',
+        assertMatch(
+            out,
+            /Work order <code class="displayed-id">wo-u<\/code>/,
         );
         assertEquals(
             out.includes('data-work-order-card'),

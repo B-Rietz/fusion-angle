@@ -3,8 +3,12 @@ import {
     assertEquals,
     assertMatch,
     assertStrictEquals,
+    assertStringIncludes,
     assertThrows,
 } from '@std/assert';
+import { buildPageUrl } from '../web-app/app/navigation.ts';
+import { escapeForHtml } from '../web-app/app/safe-html.ts';
+import { idLabel } from '../web-app/app/presenters/id-label.ts';
 import {
     nowUtc,
     storedWorkOrderFlowGraph,
@@ -381,10 +385,38 @@ Deno.test(
             .toString();
         assertMatch(out, /value="from-head"/);
         assertMatch(out, /data-binding="bound"/);
-        assertMatch(out, /Instance inst-xyz/);
+        assertMatch(
+            out,
+            /Instance <code class="displayed-id">inst-xyz<\/code>/,
+        );
         assertMatch(out, /title="type rt-cust"/);
     },
 );
+
+Deno.test('the binding badge links to its instance', () => {
+    const out = makePresenter({
+        binding: {
+            instanceId: 'inst-xyz',
+            recordTypeId: 'rt-cust',
+        },
+    }).buildPage().toString();
+    const badge = out.match(
+        /<a\b([^>]*data-binding="bound"[^>]*)>([\s\S]*?)<\/a>/,
+    );
+    assert(badge !== null, 'the bound badge is an <a>');
+    const [, attributes, text] = badge;
+    const href = escapeForHtml(buildPageUrl('record-detail', {
+        id: 'rt-cust',
+        instance: 'inst-xyz',
+    }));
+    assertStringIncludes(attributes!, `href="${href}"`);
+    assertStringIncludes(
+        attributes!, 'class="badge badge-success"',
+    );
+    assertStringIncludes(
+        text!, idLabel('Instance', 'inst-xyz').toString(),
+    );
+});
 
 Deno.test(
     'buildPage claimed-by-me enables fields'
@@ -782,7 +814,10 @@ Deno.test(
             'work-order-transitions',
         ));
         assert(!out.includes('unclaim-btn'));
-        assertMatch(out, /Work order wo-1/);
+        assertMatch(
+            out,
+            /Work order <code class="displayed-id">wo-1<\/code>/,
+        );
         assertMatch(out, /Done/);
     },
 );
@@ -1137,6 +1172,9 @@ Deno.test(
     'the header labels the work order by its id',
     () => {
         const out = makePresenter().buildPage().toString();
-        assertMatch(out, /Work order wo-1/);
+        assertMatch(
+            out,
+            /Work order <code class="displayed-id">wo-1<\/code>/,
+        );
     },
 );

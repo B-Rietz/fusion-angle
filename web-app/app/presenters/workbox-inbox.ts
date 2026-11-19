@@ -2,10 +2,8 @@ import {
     html, setHtml, SafeHtml,
     trusted, escapeForHtml,
 } from '../safe-html.ts';
-import {
-    DISPLAY_ABSENT,
-    workOrderLabel,
-} from '../format.ts';
+import { DISPLAY_ABSENT } from '../format.ts';
+import { idLabel } from './id-label.ts';
 import { buildPageUrl } from '../navigation.ts';
 import {
     type WorkOrder,
@@ -109,9 +107,9 @@ function buildUnplacedRow(
                         item.flowName
                     }</span>
                     <span class="${
-                        'text-xs text-muted truncate'
+                        'text-xs text-muted min-w-0'
                     }">${
-                        workOrderLabel(item.id)
+                        idLabel('Work order', item.id)
                     }</span>
                 </div>
                 <div class="${
@@ -217,9 +215,9 @@ export class WorkboxInboxPresenter {
                             item.flowName
                         }</span>
                         <span class="${
-                            'text-xs text-muted truncate'
+                            'text-xs text-muted min-w-0'
                         }">${
-                            workOrderLabel(item.id)
+                            idLabel('Work order', item.id)
                         }</span>
                     </a>
                     <div class="${

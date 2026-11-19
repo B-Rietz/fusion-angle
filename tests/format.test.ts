@@ -9,8 +9,6 @@ import {
     formatExpiresInDays,
     DISPLAY_ABSENT,
     SECONDS_PER_DAY,
-    workOrderLabel,
-    instanceLabel,
 } from '../web-app/app/format.ts';
 
 Deno.test('initials returns first letter of single name', () => {
@@ -133,17 +131,5 @@ Deno.test('formatExpiresInDays ceils a partial day', () => {
             '2026-01-01T00:00:00.000000Z',
         ),
         'expires in 1 day',
-    );
-});
-
-Deno.test('workOrderLabel names the work order', () => {
-    assertStrictEquals(
-        workOrderLabel('6a7f72c0'), 'Work order 6a7f72c0',
-    );
-});
-
-Deno.test('instanceLabel names the instance', () => {
-    assertStrictEquals(
-        instanceLabel('inst-1'), 'Instance inst-1',
     );
 });

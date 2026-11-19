@@ -1,9 +1,6 @@
 import { html, trusted } from '../safe-html.ts';
 import type { SafeHtml } from '../safe-html.ts';
-import {
-    instanceLabel,
-    workOrderLabel,
-} from '../format.ts';
+import { idLabel } from './id-label.ts';
 import {
     ICON_SIZE,
     iconArchive,
@@ -225,9 +222,9 @@ export class RecordInstancesPresenter {
             class="record-instance-row"
             data-instance-id="${item.id}">
             <div class="record-instance-meta">
-                <code class="${
-                    'record-instance-id text-sm'
-                }">${instanceLabel(item.id)}</code>
+                <span class="text-sm">${
+                    idLabel('Instance', item.id)
+                }</span>
                 <div class="${
                     'record-instance-values'
                 }">${valueBits}</div>
@@ -269,11 +266,9 @@ export class RecordInstancesPresenter {
                 'flex items-center'
                 + ' justify-between gap-4 mb-4'
             }">
-                <code class="${
-                    'record-instance-id text-sm'
-                }">${instanceLabel(
-                    edit.instanceId,
-                )}</code>
+                <span class="text-sm min-w-0">${idLabel(
+                    'Instance', edit.instanceId,
+                )}</span>
                 <div class="flex gap-2">
                     <button type="button"
                         id="${
@@ -630,8 +625,8 @@ export class RecordDetailPresenter {
                         data-work-order-id="${
                             w.id
                         }"
-                            >${workOrderLabel(
-                                w.id,
+                            >${idLabel(
+                                'Work order', w.id,
                             )}</button>
                     </li>`,
                 )}

@@ -101,11 +101,28 @@ export async function init(
     );
 
     await load(root);
+    const instance = params?.instance;
+    if (instance) {
+        scrollToInstance(root, instance);
+    }
     subscribeRecordChanges(() => {
         if (pageState.kind === 'reading') {
             void load(root);
         }
     });
+}
+
+// A linked instance may have been deleted since the link was
+// drawn; with no row to show, the page stays where it opened.
+function scrollToInstance(
+    root: HTMLElement,
+    instanceId: string,
+): void {
+    $(
+        '.record-instance-row[data-instance-id="'
+        + CSS.escape(instanceId) + '"]',
+        root,
+    )?.scrollIntoView({ block: 'center' });
 }
 
 function heldRoles(): readonly string[] {

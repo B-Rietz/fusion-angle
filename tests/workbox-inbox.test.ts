@@ -889,7 +889,8 @@ Deno.test(
         for (const present of [
             'class="badge badge-warning"',
             'State unknown', 'Test flow',
-            'Work order ' + unplaced.id,
+            'Work order <code class="displayed-id">'
+            + unplaced.id + '</code>',
         ]) {
             assertStringIncludes(unplacedRow, present);
         }

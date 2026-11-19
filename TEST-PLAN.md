@@ -4556,10 +4556,17 @@ gesture pans instead of dragging, marquee-ing, or connecting.
   flow that has a record-type join. PASS: there is no
   "Bind instance" button, no bind-instance dialog, and
   no bind-prompt title. A bound instance may still show
-  an Instance badge that identifies the record.
+  an Instance badge that identifies the record; the
+  badge is a link (`?instance=<id>`) to the record
+  type's detail, which opens with that instance's row
+  scrolled into view.
   Pin: tests/presenter-workbox-detail.test.ts
        'buildPage claimed-by-me enables fields and omits
-       bind chrome'
+       bind chrome'; tests/presenter-workbox-detail.test.ts
+       'the binding badge links to its instance' (decides
+       the link); tests/browser/record-instance-link.test.ts
+       'an instance link scrolls its row into view'
+       (decides the scroll)
 - [ ] **WB10b — Unclaimed fields disabled with values.**
   Open an unclaimed (or lapsed) work order that has
   instance values. PASS: attribute inputs are disabled
@@ -5974,7 +5981,11 @@ FSM, unlike `flows/detail`).
   `Parent token —`. A non-canonical `identityId` (any
   value that is not a 22-character identifier) 400s at
   the route gate; an absent one bounces to
-  `identities/`.
+  `identities/`. A `Parent token <jti>` whose parent
+  row is on the page is a link (`#token-<jti>`):
+  clicking it jumps to that token's first row, which
+  lands below the sticky header, not under it; a
+  parent absent from the page stays plain text.
   Source: `GET identities/:id/tokens` via
   `web-app/app/adapters/identity-tokens.ts` (`TokenEvent`),
   `web-app/app/presenters/identity-tokens.ts`.
@@ -5990,10 +6001,21 @@ FSM, unlike `flows/detail`).
        'getTokenChainsFor groups one identity\'s tokens'
        (decides tokens group by chain id and each chain's
        event count — the mechanism behind multiple chains,
-       and not the `parentJti` field either); exploratory —
+       and not the `parentJti` field either);
+       tests/presenter-identity-tokens.test.ts 'a parent
+       token on the page is a link to its row' and 'a
+       parent token absent from the page is not a link'
+       (decide which parents link);
+       tests/presenter-identity-tokens.test.ts 'the first
+       row of each token carries its anchor' (decides the
+       jump target); tests/presenter-identity-tokens.test.ts
+       'an anchored row clears the sticky header' and 'a
+       token row keeps a header-high scroll margin'
+       (decide the landing below the header); exploratory —
        the live page title/subtitle, the local-time stamp,
-       the HEAD-only reversion to `Parent token —`, and the
-       non-canonical/absent identityId route-gate behavior
+       the HEAD-only reversion to `Parent token —`, the
+       live jump, and the non-canonical/absent identityId
+       route-gate behavior
 - [ ] **G26** From the same detail, click its
   "Providers" link (`data-identity-link="providers"`).
   PASS: the page title is "Identity Providers" with
