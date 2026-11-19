@@ -8,14 +8,17 @@ import type {
     FsmInput,
     Action,
 } from './flow-fsm-types.ts';
+import {
+    MIN_ZOOM,
+    MAX_ZOOM,
+    cameraZoomedToward,
+} from './flow-camera.ts';
+import type { ZoomDirection } from './flow-camera.ts';
 
 const AUTOFIT_TOAST_MSG =
     'Disable Auto-Fit to change the view';
 const WHEEL_TOAST_COOLDOWN_MS = 2000;
 const ZOOM_TO_FIT_PADDING_PX = 70;
-const MIN_ZOOM = 0.25;
-const MAX_ZOOM = 2.0;
-const ZOOM_STEP = 0.1;
 
 // Cooldown state: 'never' before the
 // first toast, 'last' with the firing
@@ -921,7 +924,7 @@ export function zoomIn(
     } | null,
 ): InteractionState {
     return applyButtonZoom(
-        state, ZOOM_STEP, focalPt,
+        state, 'in', focalPt,
     );
 }
 
@@ -933,43 +936,27 @@ export function zoomOut(
     } | null,
 ): InteractionState {
     return applyButtonZoom(
-        state, -ZOOM_STEP, focalPt,
+        state, 'out', focalPt,
     );
 }
 
 function applyButtonZoom(
     state: InteractionState,
-    delta: number,
+    direction: ZoomDirection,
     focalPt: {
         x: number;
         y: number;
     } | null | undefined,
 ): InteractionState {
-    const prevCx = state.viewBox.x
-        + state.viewBox.w / 2;
-    const prevCy = state.viewBox.y
-        + state.viewBox.h / 2;
-    const prevZoom = state.zoom;
-    const nextZoom = Math.max(
-        MIN_ZOOM,
-        Math.min(
-            MAX_ZOOM, prevZoom + delta,
-        ),
+    const camera = cameraZoomedToward(
+        { zoom: state.zoom, viewBox: state.viewBox },
+        direction,
+        focalPt ?? null,
     );
-    const ratio = prevZoom / nextZoom;
-    const nextW = state.viewBox.w * ratio;
-    const nextH = state.viewBox.h * ratio;
-    const cx = focalPt?.x ?? prevCx;
-    const cy = focalPt?.y ?? prevCy;
     return {
         ...state,
-        zoom: nextZoom,
-        viewBox: {
-            x: cx - nextW / 2,
-            y: cy - nextH / 2,
-            w: nextW,
-            h: nextH,
-        },
+        zoom: camera.zoom,
+        viewBox: camera.viewBox,
     };
 }
 
@@ -1016,18 +1003,36 @@ export function nodeBoundsBox(
     return { minX, minY, maxX, maxY };
 }
 
-// Fit an arbitrary content box into the canvas,
+// A view vbW by vbH placed on a box: centered on it
+// down the canvas, and across the part of the canvas
+// the panel leaves visible.
+function viewBoxOnBox(
+    box: FitBox,
+    vbW: number,
+    vbH: number,
+    canvasW: number,
+    panelOffsetPx: number,
+): ViewBox {
+    const cx = (box.minX + box.maxX) / 2;
+    const cy = (box.minY + box.maxY) / 2;
+    return {
+        x: cx
+            - vbW * (canvasW + panelOffsetPx)
+                / (2 * canvasW),
+        y: cy - vbH / 2,
+        w: vbW,
+        h: vbH,
+    };
+}
+
+// Frame an arbitrary content box in the canvas,
 // returning the viewBox (canvas-aspect-ratio, so no
-// letterboxing) and zoom that frame it. The box is
-// whatever the content occupies — nodes alone for
-// the provisional, or the measured render for the
-// real fit. Padding absorbs stroke/marker overflow.
-// Zoom stays inside MIN_ZOOM..MAX_ZOOM, the range the
-// zoom buttons clamp to, so a fit can always be zoomed
-// back to; padded content wider than the visible
-// width / MIN_ZOOM, or taller than canvasH / MIN_ZOOM,
-// is cropped about its center.
-export function fitBoxToCanvas(
+// letterboxing) that shows all of it and the zoom that
+// viewBox takes. Padding absorbs stroke/marker overflow.
+// The zoom has no range here: it is whatever the box
+// needs. fitBoxToCanvas holds it to the range a reader
+// can zoom through.
+export function frameBoxInCanvas(
     box: FitBox,
     canvasW: number,
     canvasH: number,
@@ -1039,8 +1044,6 @@ export function fitBoxToCanvas(
     const contentH =
         box.maxY - box.minY
         + ZOOM_TO_FIT_PADDING_PX * 2;
-    const cx = (box.minX + box.maxX) / 2;
-    const cy = (box.minY + box.maxY) / 2;
 
     const effectiveW = canvasW - panelOffsetPx;
     const canvasAR = canvasW / canvasH;
@@ -1057,26 +1060,61 @@ export function fitBoxToCanvas(
         vbW = vbH * canvasAR;
     }
 
-    let zoom = canvasW / vbW;
-    if (zoom > MAX_ZOOM) {
-        zoom = MAX_ZOOM;
-        vbW = canvasW / MAX_ZOOM;
-        vbH = canvasH / MAX_ZOOM;
-    }
-    if (zoom < MIN_ZOOM) {
-        zoom = MIN_ZOOM;
-        vbW = canvasW / MIN_ZOOM;
-        vbH = canvasH / MIN_ZOOM;
-    }
+    return {
+        zoom: canvasW / vbW,
+        viewBox: viewBoxOnBox(
+            box, vbW, vbH, canvasW, panelOffsetPx,
+        ),
+    };
+}
+
+// The view the canvas shows at a zoom, placed on a box.
+function boxViewAtZoom(
+    box: FitBox,
+    canvasW: number,
+    canvasH: number,
+    panelOffsetPx: number,
+    zoom: number,
+): FitResult {
     return {
         zoom,
-        viewBox: {
-            x: cx
-                - vbW * (canvasW + panelOffsetPx)
-                    / (2 * canvasW),
-            y: cy - vbH / 2,
-            w: vbW,
-            h: vbH,
-        },
+        viewBox: viewBoxOnBox(
+            box, canvasW / zoom, canvasH / zoom,
+            canvasW, panelOffsetPx,
+        ),
     };
+}
+
+// Fit an arbitrary content box into the canvas: its
+// frame, with the zoom held to the range. The box is
+// whatever the content occupies — nodes alone for
+// the provisional, or the measured render for the
+// real fit.
+// Zoom stays inside MIN_ZOOM..MAX_ZOOM, the range the
+// zoom buttons clamp to, so a fit can always be zoomed
+// back to; padded content wider than the visible
+// width / MIN_ZOOM, or taller than canvasH / MIN_ZOOM,
+// is cropped about its center.
+export function fitBoxToCanvas(
+    box: FitBox,
+    canvasW: number,
+    canvasH: number,
+    panelOffsetPx: number,
+): FitResult {
+    const frame = frameBoxInCanvas(
+        box, canvasW, canvasH, panelOffsetPx,
+    );
+    if (frame.zoom > MAX_ZOOM) {
+        return boxViewAtZoom(
+            box, canvasW, canvasH, panelOffsetPx,
+            MAX_ZOOM,
+        );
+    }
+    if (frame.zoom < MIN_ZOOM) {
+        return boxViewAtZoom(
+            box, canvasW, canvasH, panelOffsetPx,
+            MIN_ZOOM,
+        );
+    }
+    return frame;
 }

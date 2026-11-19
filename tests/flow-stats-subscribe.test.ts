@@ -41,6 +41,16 @@ function makeHostStub(): {
         innerHTML: '',
         classList: { add: () => {}, remove: () => {} },
     };
+    // The page measures its canvas on every load. Nothing
+    // lays this document out, so the canvas has no size and
+    // the page neither arranges nor frames the flow for it.
+    // A flow with Auto Fit off binds its pan and zoom to
+    // the canvas and its zoom buttons to the gutter.
+    const canvasWrapEl = {
+        clientWidth: 0, clientHeight: 0,
+        addEventListener: () => {},
+    };
+    const gutterEl = { addEventListener: () => {} };
     // Every load writes the host first, before its fetch, so
     // a wake shows here the moment it is delivered.
     let markup = '';
@@ -65,6 +75,12 @@ function makeHostStub(): {
             }
             if (selector === '#flow-stats-card') {
                 return cardEl;
+            }
+            if (selector === '.flow-stats-canvas-wrap') {
+                return canvasWrapEl;
+            }
+            if (selector === '.flow-stats-gutter') {
+                return gutterEl;
             }
             return null;
         },
@@ -98,6 +114,12 @@ Deno.test(
         };
         g['MutationObserver'] = class {
             observe(): void {}
+        };
+        // The page watches its canvas for a resize; this
+        // document never resizes one.
+        g['ResizeObserver'] = class {
+            observe(): void {}
+            disconnect(): void {}
         };
         g['document'] = {
             addEventListener: () => {},
@@ -263,6 +285,7 @@ Deno.test(
             deleteNotificationChannel();
             delete g['window'];
             delete g['MutationObserver'];
+            delete g['ResizeObserver'];
             delete g['document'];
         }
     }),

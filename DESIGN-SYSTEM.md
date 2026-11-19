@@ -25,6 +25,28 @@ roles:
 
 Palette HSL lives in `palette.css`, under one `:root`.
 
+**Flow canvas chrome.** Two size tokens in `tokens.css`, beside
+the `--width-*` group, hold the box the flow designer and the
+flow stats page share, so their canvases measure the same
+wherever the designer's header keeps its natural height:
+
+- `--height-flow-header: calc(7.5rem + 1px)` — 121 px at a
+  16 px root. The designer's header is padding 2 × 1rem, three
+  1.5rem switches, two 0.5rem gaps, and a 1 px rule, in
+  `border-box`: 32 + 72 + 16 + 1. That is the designer's
+  natural height and its `min-height`, not a cap: below about
+  860 px a long flow name wraps and grows the designer's
+  header, so there the two canvases are not promised equal.
+  The stats header takes the token as its fixed `height` from
+  md up, and as its `min-height` on phones.
+- `--width-flow-tools: 3rem` — the designer's tool column: a
+  2.5rem icon button plus 2 × 0.25rem padding. The stats gutter
+  takes the same width.
+
+Pin: tests/browser/flow-canvas-box.test.ts 'the designer header,
+tool column, and canvas keep their size'; same file, 'the stats
+canvas measures what the designer canvas measures'.
+
 ## Variants
 
 `data-tone` / `data-level` on a base class. The TS enum
@@ -109,22 +131,48 @@ yellow → red, making a "bottleneck zone" visually salient:
 | `--heat-stop-peak` | 100%     | `0 65% 60%`    |
 
 **Mechanism.** Each node carries `style="--heat-t:${t}"` (a number in
-`[0, 1]` — the raw share of flow time). The fill is computed in CSS by
+`[0, 1]` — the raw share of flow time). `--heat` is computed in CSS by
 three chained `color-mix(in oklch, ...)` invocations, one per ramp
 segment, with each segment's mix fraction expressed as
 `clamp(0%, calc((var(--heat-t) - <lo>) / <span> * 100%), 100%)` so
 the segment activates over its t-range and saturates outside it.
-Result: the palette stays in design tokens, the per-element data is a
-single number, and there is *no* color math in TypeScript.
+A regular node wears the heat as its border (`stroke: var(--heat)`,
+2 px, the designer's normal stroke), and its fill is the heat at
+22 % in `--background` (`color-mix(in oklch, var(--heat) 22%,
+hsl(var(--background)))`). The name is `--foreground`, 13 px
+semibold; the second line, the average sojourn, is `--gray-300`
+at `--text-2xs` (11 px). Create and Archive hold no time, so they
+wear no heat: the designer's success and error borders on the plain
+canvas, and a name alone. The palette stays in design tokens, the
+per-element data is a single number, and there is *no* color math in
+TypeScript.
 
-**Legend.** A plain CSS `linear-gradient(to right, ...)` referencing
-the same four tokens at the same four positions; end labels read `0%`
-and `100%`. The exact percentage for each node is always available in
-its hover stat card.
+Contrast, measured in Chrome: the worst case is yellow at t 0.75,
+8.70:1 for the name and 6.18:1 for the second line. (`--muted-
+foreground` would give 3.75:1 and fail.)
+
+Pin: tests/browser/flow-stats-paint.test.ts 'node text holds 4.5:1
+across the ramp' (the stroke is 2 px and both texts hold 4.5:1 at
+every eighth of the ramp); tests/presenter-flow-stats.test.ts 'the
+renderer emits no paint' (the markup carries only `--heat-t` and
+class names; every paint property lives in `pages-flow-stats.css`).
+
+**Legend.** The legend sits in the header bar, beside the path
+stepper, between end labels `0%` and `100%`, captioned `share of
+flow time`. The ramp is a plain CSS `linear-gradient(to right, ...)`
+referencing the same four tokens at the same four positions. Below
+`xl` (1280 px) the caption is visually hidden, still heard by
+assistive technology, and the ramp narrows; see FLOW-CANVAS.md
+`## Stats variant`. The exact percentage for each node is always
+available in its hover stat card.
+
+Pin: tests/presenter-flow-stats.test.ts 'the bar's legend: end
+labels, caption, no inline gradient'; tests/browser/flow-stats.test.ts
+'the bar's caption is seen at xl and only heard below it'.
 
 **Accessibility.** Blue / green / yellow / red is a classic
 colorblind-tricky palette, but on this page color is never the sole
-information channel: every node carries its avg-sojourn duration on
+information channel: every regular node carries its avg-sojourn duration on
 its face, and the hover card carries the exact percentage. The
 gradient is decoration over data; the data path is colorblind-safe.
 

@@ -17,6 +17,9 @@ import {
 import { createHttpFacade } from '../client/http-facade.ts';
 import { createAppClient } from '../web-app/app/client.ts';
 import { organizationToken } from './token-fixtures.ts';
+import { arrangeFlow } from '../web-app/app/flow-arrangement.ts';
+import { buildStatsGraphSvg }
+    from '../web-app/app/flow-stats-graph.ts';
 import { adminContext } from './context-fixtures.ts';
 import {
     getFlowStats,
@@ -509,7 +512,8 @@ async () => {
 
 Deno.test(
     'getFlowStats lays out an auto-layout flow so the'
-    + ' returned graph and stat model are not degenerate',
+    + ' returned graph and the stats drawn over it are not'
+    + ' degenerate',
     async () => {
         const db = memoryDbAdapter();
         await seedAdminSchema(db);
@@ -550,11 +554,19 @@ Deno.test(
             n => n.id === autoGraph.doneId,
         )!;
         assert(c.positionX < z.positionX);
-        const modelPos = new Set(
-            model.nodes.map(
-                n => `${n.positionX},${n.positionY}`,
-            ),
+        // Positions leave the stat model; the stats drawn
+        // over the returned graph sit where it lays them.
+        const drawn = buildStatsGraphSvg(
+            model,
+            arrangeFlow(graph, { kind: 'unmeasured' }),
+            { x: 0, y: 0, w: 600, h: 200 },
+            null,
+        ).toString();
+        const drawnPos = new Set(
+            [...drawn.matchAll(
+                /data-node-id="[^"]+"[^>]*transform="([^"]+)"/g,
+            )].map(m => m[1]),
         );
-        assertStrictEquals(modelPos.size, 3);
+        assertStrictEquals(drawnPos.size, 3);
     },
 );

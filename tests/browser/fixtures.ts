@@ -122,10 +122,19 @@ const KEY_CODES: Record<string, [string, number]> = {
     Delete: ['Delete', 46],
     ArrowUp: ['ArrowUp', 38],
     ArrowDown: ['ArrowDown', 40],
+    ArrowLeft: ['ArrowLeft', 37],
+    ArrowRight: ['ArrowRight', 39],
+    '+': ['Equal', 187],
+    '=': ['Equal', 187],
+    '-': ['Minus', 189],
     Shift: ['ShiftLeft', 16],
     ' ': ['Space', 32],
 };
 
+// Input.dispatch*Event's modifier bits.
+export const ALT = 1;
+export const CTRL = 2;
+export const META = 4;
 export const SHIFT = 8;
 
 export class Page {
@@ -254,6 +263,15 @@ export class Page {
                 type: 'mouseReleased', x: pt.x, y: pt.y,
                 button: 'left', clickCount: 1,
                 modifiers,
+            },
+        );
+    }
+
+    wheel(pt: Point, deltaY: number): Promise<unknown> {
+        return this.session.send(
+            'Input.dispatchMouseEvent', {
+                type: 'mouseWheel', x: pt.x, y: pt.y,
+                deltaX: 0, deltaY,
             },
         );
     }

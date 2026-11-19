@@ -5,18 +5,27 @@
 // animate filters, or aria-current).
 import type { SafeHtml } from './safe-html.ts';
 import { trusted, escapeForHtml } from './safe-html.ts';
-import type { GraphEdge } from '../../shared/types.ts';
+import type {
+    GraphEdge, GraphNode,
+} from '../../shared/types.ts';
 import {
     NODE_WIDTH, NODE_HEIGHT,
 } from './flow-layout.ts';
 import {
     NODE_RADIUS, GRID_CELL,
-    perimeterPoint, whichEdge, controlOffset,
+    ARROW_VIEWBOX, ARROW_MIDPOINT, ARROW_MARKER,
+    NODE_LABEL_Y, NODE_LABEL_Y_CENTERED, NODE_META_Y,
+    LABEL_HEIGHT, LABEL_RADIUS, LABEL_TEXT_OFFSET_Y,
+    computeEdgeGeometry, computeEdgeAimOffsets,
+    computeEdgeLabelWidth,
+    truncateNodeName, truncateEdgeLabel,
 } from './flow-graph.ts';
+import type { FlowArrangement } from './flow-arrangement.ts';
 import { findCycleEdgeIds } from './flow-cycle-edges.ts';
 import {
-    iconAlertTriangle,
-    iconNoEntry,
+    ALERT_TRIANGLE_SHAPES,
+    ICON_VIEWBOX,
+    NO_ENTRY_SHAPES,
 } from './icons.ts';
 import { formatMinAscending } from './duration-units.ts';
 import { DISPLAY_ABSENT } from './format.ts';
@@ -26,25 +35,13 @@ import type {
 
 // --- local geometry constants -------------------------
 // Geometry only. Every paint property — edge/arrowhead
-// stroke & dash, node text size/anchor/fill/halo, grid
-// colours — live in pages-flow-stats.css; this renderer
-// emits structure (d, transform, x/y, class, data-*),
-// nothing presentational.
+// stroke & dash, node and label text size/anchor/fill,
+// hazard glyph stroke, grid colours — lives in
+// pages-flow-stats.css; this renderer emits structure
+// (d, transform, x/y, class, data-*), nothing
+// presentational.
 
 const GRID_DOT_RADIUS = 0.7;
-
-// Arrowhead: a fixed size in user units (markerUnits=
-// userSpaceOnUse below) so it doesn't balloon with the
-// edge's stroke-width when a path is highlighted.
-const ARROW_VIEWBOX  = 10;
-const ARROW_MIDPOINT = 5;
-const ARROW_MARKER   = 12;
-
-// Node text layout — y is an SVG unit relative to the
-// top-left of the node rect (NODE_HEIGHT=64); x and
-// text-anchor are set in CSS.
-const NODE_NAME_Y = 28;
-const NODE_FACE_Y = 46;
 
 // Hazard glyph sits in the bottom-left of the node rect.
 const HAZARD_ICON_SIZE = 16;
@@ -71,9 +68,14 @@ interface Highlight {
 
 // --- helpers ------------------------------------------
 
+// pages-flow-stats.css fills the grid with this pattern.
+const GRID_PATTERN_ID = 'stats-grid';
+
 // Stats-canvas defs: dotted grid + one arrowhead marker.
-// No animated glow filter — this canvas is static.
-function buildDefs(patternId: string): string {
+// No animated glow filter — this canvas is static. The
+// marker has the designer's size and, like it, no
+// markerUnits, so the head scales with the CSS stroke.
+function buildDefs(): string {
     const gridCenter = GRID_CELL / 2;
     const halfCell   = GRID_CELL / 2;
     const arrowPath  =
@@ -88,10 +90,9 @@ function buildDefs(patternId: string): string {
         + ' refY="' + String(ARROW_MIDPOINT) + '"'
         + ' markerWidth="' + String(ARROW_MARKER) + '"'
         + ' markerHeight="' + String(ARROW_MARKER) + '"'
-        + ' markerUnits="userSpaceOnUse"'
         + ' orient="auto-start-reverse">';
     return '<defs>'
-        + '<pattern id="' + patternId + '"'
+        + '<pattern id="' + GRID_PATTERN_ID + '"'
         + ' width="' + String(GRID_CELL) + '"'
         + ' height="' + String(GRID_CELL) + '"'
         + ' patternUnits="userSpaceOnUse"'
@@ -111,10 +112,7 @@ function buildDefs(patternId: string): string {
         + '</defs>';
 }
 
-function buildGrid(
-    vb: ViewBox,
-    patternId: string,
-): string {
+function buildGrid(vb: ViewBox): string {
     return '<rect'
         + ' class="flow-stats-grid-bg"'
         + ' x="' + String(vb.x) + '"'
@@ -122,103 +120,107 @@ function buildGrid(
         + ' width="' + String(vb.w) + '"'
         + ' height="' + String(vb.h) + '"/>'
         + '<rect'
+        + ' class="flow-stats-grid-dots"'
         + ' x="' + String(vb.x) + '"'
         + ' y="' + String(vb.y) + '"'
         + ' width="' + String(vb.w) + '"'
-        + ' height="' + String(vb.h) + '"'
-        + ' fill="url(#' + patternId + ')"/>';
+        + ' height="' + String(vb.h) + '"/>';
 }
 
+// dim/on-path are mutually exclusive; with no highlight
+// both are omitted (no-highlight state, not the same as
+// dim).
+function highlightAttrs(
+    highlight: Highlight | null,
+    isOnPath: (h: Highlight) => boolean,
+): string {
+    if (highlight === null) return '';
+    return isOnPath(highlight)
+        ? ' data-on-path="true"'
+        : ' data-dim="true"';
+}
+
+// The edge's path and, unless it leaves Create, its
+// transition's name in a label box: the designer's
+// geometry (computeEdgeGeometry), placed and truncated as
+// the designer places and truncates it.
 function buildEdge(
     edge: GraphEdge,
-    fromStat: NodeStat,
-    toStat:   NodeStat,
+    fromNode: GraphNode,
+    toNode: GraphNode,
+    aimOffset: number,
+    waypoints: readonly { x: number; y: number }[],
     highlight: Highlight | null,
     isCycle: boolean,
 ): string {
-    const fromCx = fromStat.positionX + NODE_WIDTH / 2;
-    const fromCy = fromStat.positionY + NODE_HEIGHT / 2;
-    const toCx   = toStat.positionX + NODE_WIDTH / 2;
-    const toCy   = toStat.positionY + NODE_HEIGHT / 2;
+    const geo = computeEdgeGeometry(
+        fromNode, toNode, aimOffset, waypoints,
+    );
+    const cycleAttr = isCycle ? ' data-cycle="true"' : '';
+    const pathAttrs = highlightAttrs(
+        highlight, h => h.edgeIds.has(edge.id),
+    );
 
-    const startPt = perimeterPoint(
-        fromStat.positionX, fromStat.positionY,
-        NODE_WIDTH, NODE_HEIGHT,
-        toCx, toCy,
-    );
-    const endPt = perimeterPoint(
-        toStat.positionX, toStat.positionY,
-        NODE_WIDTH, NODE_HEIGHT,
-        fromCx, fromCy,
-    );
-    const dist = Math.hypot(
-        endPt.x - startPt.x,
-        endPt.y - startPt.y,
-    );
-    const startEdge = whichEdge(
-        startPt.x, startPt.y,
-        fromStat.positionX, fromStat.positionY,
-        NODE_WIDTH, NODE_HEIGHT,
-    );
-    const endEdge = whichEdge(
-        endPt.x, endPt.y,
-        toStat.positionX, toStat.positionY,
-        NODE_WIDTH, NODE_HEIGHT,
-    );
-    const cp1 = controlOffset(startEdge, dist);
-    const cp2 = controlOffset(endEdge, dist);
-    const pathD = 'M '
-        + String(startPt.x) + ' '
-        + String(startPt.y)
-        + ' C '
-        + String(startPt.x + cp1.dx) + ' '
-        + String(startPt.y + cp1.dy) + ', '
-        + String(endPt.x + cp2.dx) + ' '
-        + String(endPt.y + cp2.dy) + ', '
-        + String(endPt.x) + ' '
-        + String(endPt.y);
+    let label = '';
+    if (!fromNode.isCreate) {
+        const labelW = computeEdgeLabelWidth(edge.name);
+        label = '<rect'
+            + ' class="flow-stats-edge-label-bg"'
+            + ' x="' + String(geo.labelX - labelW / 2) + '"'
+            + ' y="' + String(geo.labelY - LABEL_HEIGHT / 2) + '"'
+            + ' width="' + String(labelW) + '"'
+            + ' height="' + String(LABEL_HEIGHT) + '"'
+            + ' rx="' + String(LABEL_RADIUS) + '"/>'
+            + '<text'
+            + ' class="flow-stats-edge-label"'
+            + ' x="' + String(geo.labelX) + '"'
+            + ' y="'
+            + String(geo.labelY + LABEL_TEXT_OFFSET_Y) + '">'
+            + escapeForHtml(truncateEdgeLabel(edge.name))
+            + '</text>';
+    }
 
-    // Compute highlight attributes: dim/on-path are
-    // mutually exclusive; when highlight is null, omit
-    // both (no-highlight state, not the same as dim).
-    const dim =
-        highlight !== null
-        && !highlight.edgeIds.has(edge.id);
-    const onPath =
-        highlight !== null
-        && highlight.edgeIds.has(edge.id);
-    const dimAttr    = dim    ? ' data-dim="true"'     : '';
-    const onPathAttr = onPath ? ' data-on-path="true"' : '';
-    const cycleAttr  = isCycle ? ' data-cycle="true"'  : '';
-
-    const idEsc = escapeForHtml(edge.id);
     return '<g'
         + ' class="flow-stats-edge"'
-        + ' data-edge-id="' + idEsc + '"'
+        + ' data-edge-id="' + escapeForHtml(edge.id) + '"'
         + cycleAttr
-        + dimAttr + onPathAttr + '>'
+        + pathAttrs + '>'
         + '<path'
         + ' class="flow-stats-edge-path"'
-        + ' d="' + pathD + '"/>'
+        + ' d="' + geo.pathD + '"/>'
+        + label
+        + '</g>';
+}
+
+// A hazard glyph with no paint of its own: its stroke
+// comes from the glyph's class in pages-flow-stats.css.
+function buildHazard(
+    cssClass: string,
+    title: string,
+    shapes: string,
+): string {
+    return '<g'
+        + ' class="' + cssClass + '"'
+        + ' transform="translate('
+        + String(HAZARD_X) + ', '
+        + String(HAZARD_Y) + ')">'
+        + '<title>' + title + '</title>'
+        + '<svg xmlns="http://www.w3.org/2000/svg"'
+        + ' width="' + String(HAZARD_ICON_SIZE) + '"'
+        + ' height="' + String(HAZARD_ICON_SIZE) + '"'
+        + ' viewBox="' + ICON_VIEWBOX + '"'
+        + ' aria-hidden="true">'
+        + shapes
+        + '</svg>'
         + '</g>';
 }
 
 function buildNode(
     n: NodeStat,
+    at: GraphNode,
     highlight: Highlight | null,
 ): string {
     const halfW = NODE_WIDTH / 2;
-
-    const displayName = n.displayName;
-    const nameEsc = escapeForHtml(displayName);
-
-    // Face stat: avg sojourn for regular nodes with
-    // data; em-dash for start/complete/no-data.
-    const isSpecial = n.isCreate || n.isArchive;
-    const face = (!isSpecial && n.avgSeconds !== null)
-        ? formatMinAscending(n.avgSeconds)
-        : DISPLAY_ABSENT;
-    const faceEsc = escapeForHtml(face);
 
     let inner = '';
 
@@ -229,63 +231,56 @@ function buildNode(
         + ' rx="' + String(NODE_RADIUS) + '"'
         + ' ry="' + String(NODE_RADIUS) + '"/>';
 
+    // Create and Archive hold no time: the name alone,
+    // centred, as in the designer. A regular node's second
+    // line is its average sojourn, or the absent marker
+    // when it has no time in the window.
+    const isSpecial = n.isCreate || n.isArchive;
     inner += '<text'
         + ' class="flow-stats-node-name"'
         + ' x="' + String(halfW) + '"'
-        + ' y="' + String(NODE_NAME_Y) + '">'
-        + nameEsc + '</text>';
+        + ' y="' + String(
+            isSpecial ? NODE_LABEL_Y_CENTERED : NODE_LABEL_Y,
+        ) + '">'
+        + escapeForHtml(truncateNodeName(n.displayName))
+        + '</text>';
 
-    inner += '<text'
-        + ' class="flow-stats-node-face"'
-        + ' x="' + String(halfW) + '"'
-        + ' y="' + String(NODE_FACE_Y) + '">'
-        + faceEsc + '</text>';
+    if (!isSpecial) {
+        const sojourn = n.avgSeconds === null
+            ? DISPLAY_ABSENT
+            : formatMinAscending(n.avgSeconds);
+        inner += '<text'
+            + ' class="flow-stats-node-face"'
+            + ' x="' + String(halfW) + '"'
+            + ' y="' + String(NODE_META_Y) + '">'
+            + escapeForHtml(sojourn) + '</text>';
+    }
 
     if (n.memberHazard === 'warning') {
-        inner += '<g'
-            + ' class="flow-stats-node-warning"'
-            + ' transform="translate('
-            + String(HAZARD_X) + ', '
-            + String(HAZARD_Y) + ')">'
-            + '<title>'
-            + 'Single member assigned (no backup)'
-            + '</title>'
-            + iconAlertTriangle(HAZARD_ICON_SIZE, '')
-                .toString()
-            + '</g>';
+        inner += buildHazard(
+            'flow-stats-node-warning',
+            'Single member assigned (no backup)',
+            ALERT_TRIANGLE_SHAPES,
+        );
     } else if (n.memberHazard === 'danger') {
         // Dead-end is the only danger variant the
         // stats canvas can self-disambiguate
         // (NodeStat carries outgoingEdgeIds but
         // not memberIds); zero-members falls
         // through to the same generic title.
-        const dangerTitle =
+        inner += buildHazard(
+            'flow-stats-node-danger',
             n.outgoingEdgeIds.length === 0
                 ? 'Dead end (no outgoing edges)'
-                : 'Members required';
-        inner += '<g'
-            + ' class="flow-stats-node-danger"'
-            + ' transform="translate('
-            + String(HAZARD_X) + ', '
-            + String(HAZARD_Y) + ')">'
-            + '<title>'
-            + dangerTitle
-            + '</title>'
-            + iconNoEntry(HAZARD_ICON_SIZE, '')
-                .toString()
-            + '</g>';
+                : 'Members required',
+            NO_ENTRY_SHAPES,
+        );
     }
 
-    // Highlight attributes: same semantics as edges —
-    // omit both when highlight is null.
-    const dim =
-        highlight !== null
-        && !highlight.nodeIds.has(n.id);
-    const onPath =
-        highlight !== null
-        && highlight.nodeIds.has(n.id);
-    const dimAttr    = dim    ? ' data-dim="true"'     : '';
-    const onPathAttr = onPath ? ' data-on-path="true"' : '';
+    // Same highlight semantics as edges.
+    const pathAttrs = highlightAttrs(
+        highlight, h => h.nodeIds.has(n.id),
+    );
 
     // data-special only on start/complete nodes.
     const specialAttr = n.isCreate
@@ -294,56 +289,66 @@ function buildNode(
         ? ' data-special="archive"'
         : '';
 
-    const idEsc = escapeForHtml(n.id);
     // Attribute order keeps test regexes happy:
     // class → data-node-id → style → transform →
     // data-special? → data-dim? → data-on-path?
     return '<g'
         + ' class="flow-stats-node"'
-        + ' data-node-id="' + idEsc + '"'
+        + ' data-node-id="' + escapeForHtml(n.id) + '"'
         + ' style="--heat-t: '
         + n.heatT.toFixed(2) + '"'
         + ' transform="translate('
-        + String(n.positionX) + ', '
-        + String(n.positionY) + ')"'
+        + String(at.positionX) + ', '
+        + String(at.positionY) + ')"'
         + specialAttr
-        + dimAttr + onPathAttr + '>'
+        + pathAttrs + '>'
         + inner
         + '</g>';
 }
 
 // --- public API ---------------------------------------
 
+// Draw the statistics over the arrangement: each state
+// where the arrangement places it, each edge by the
+// designer's geometry through the arrangement's
+// waypoints.
 export function buildStatsGraphSvg(
     model: FlowStatsModel,
+    arrangement: FlowArrangement,
     viewBox: ViewBox,
     highlight: Highlight | null,
 ): SafeHtml {
-    // Deduplicate the grid pattern id so multiple
-    // instances on the same page don't collide.
-    const patternId = 'stats-grid';
-
-    const nodeById = new Map(
-        model.nodes.map(n => [n.id, n]),
+    const placed = new Map(
+        arrangement.nodes.map(n => [n.id, n]),
     );
     const cycleEdgeIds = findCycleEdgeIds(
-        model.nodes, model.edges,
+        arrangement.nodes, model.edges,
     );
+    const aimOffsets = computeEdgeAimOffsets(model.edges);
 
     let edgeMarkup = '';
     for (const edge of model.edges) {
-        const from = nodeById.get(edge.fromNodeId);
-        const to   = nodeById.get(edge.toNodeId);
+        const from = placed.get(edge.fromNodeId);
+        const to   = placed.get(edge.toNodeId);
         if (!from || !to) continue;
         edgeMarkup += buildEdge(
-            edge, from, to, highlight,
+            edge, from, to,
+            aimOffsets.get(edge.id)!,
+            arrangement.edgeWaypoints.get(edge.id) ?? [],
+            highlight,
             cycleEdgeIds.has(edge.id),
         );
     }
 
     let nodeMarkup = '';
     for (const n of model.nodes) {
-        nodeMarkup += buildNode(n, highlight);
+        const at = placed.get(n.id);
+        if (at === undefined) {
+            throw new Error(
+                `state ${n.id} has no place in the arrangement`,
+            );
+        }
+        nodeMarkup += buildNode(n, at, highlight);
     }
 
     const vbStr = String(viewBox.x)
@@ -371,10 +376,12 @@ export function buildStatsGraphSvg(
         + ' preserveAspectRatio="xMidYMid meet"'
         + ' width="100%"'
         + ' height="100%">'
-        + buildDefs(patternId)
-        + buildGrid(viewBox, patternId)
+        + buildDefs()
+        + buildGrid(viewBox)
+        + '<g class="flow-stats-content">'
         + edgeMarkup
         + nodeMarkup
+        + '</g>'
         + '</svg>',
     );
 }

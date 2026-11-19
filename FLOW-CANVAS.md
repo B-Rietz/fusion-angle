@@ -90,6 +90,21 @@ Viewport scale/translate operations (zoom, pan, Auto
 Fit, panel toggle, selection centering) MUST NOT invoke
 Auto Layout.
 
+The camera arithmetic is one pure module,
+`web-app/app/flow-camera.ts`: `MIN_ZOOM` 0.25, `MAX_ZOOM`
+2.0, `ZOOM_STEP` 0.1, the button zoom
+(`cameraZoomedToward`), the wheel zoom (`cameraZoomedAt`),
+the pan (`viewBoxPannedBy`), and the keep-centre resize
+(`viewBoxResized`). The designer's FSM, `zoomIn`/`zoomOut`,
+and `withCanvasSize` delegate to it, and the stats page
+calls it without the FSM, so both canvases agree on step,
+range, and focal point.
+
+Pin: tests/flow-camera.test.ts 'button zoom equals the
+designer's zoomIn and zoomOut'; 'wheel zoom equals the FSM's
+wheel'; 'pan equals the FSM's pan'; 'resize keeps centre and
+zoom like withCanvasSize'.
+
 Explicit auto-layout fires only via
 `withAutoLayoutToggled`, `withLayoutReconciled`, and
 the `withNodesMoved` chain — never via `withFitToBox`
@@ -223,61 +238,173 @@ client boundary.
 
 ## Stats variant
 
-The read-only stats variant (`flow-stats`) uses its own
-renderer `flow-stats-graph.ts` and presenter
-`FlowStatsPresenter`, deliberately not a parametrization
-of `flow-graph.ts`/`FlowDesignerPresenter`. It shares
-only the pure pieces: geometry constants (`NODE_WIDTH`/
-`NODE_HEIGHT` from `flow-layout.ts`, `NODE_RADIUS` /
-`GRID_CELL` exported from `flow-graph.ts`), the
-already-exported edge-path helpers (`perimeterPoint`,
-`whichEdge`, `controlOffset`), `findCycleEdgeIds` from
-the pure `flow-cycle-edges.ts` (the designer's back-edge
-DFS, extracted so both renderers mark loop-backs
-identically), `iconAlertTriangle` and `iconNoEntry` (the
-two hazard icons). Node positions, though, do not come
-from the renderer: `getFlowGraph` runs
-`flow-graph-layout.ts`'s `withRenderableLayout`, which
-lays a flow out (`computeLayout`) whenever domain
-`isAutoLayout` is set (wire `is_auto_layout` on
-FlowWithGraph) or its stored positions are degenerate —
-so the stats renderer and the designer both start from
-real coordinates, not the persisted (0,0) placeholders.
-`runFlowLayout` / `runLayoutFromInputs` is the one
-`computeLayout` wrapper, shared by `getFlowGraph` and the
-designer's `applyAutoLayout`.
+The read-only stats variant (`flow-stats`) is the designer's
+twin: the same canvas, grid, geometry, and framing, drawn by
+its own renderer `flow-stats-graph.ts` and presenter
+`FlowStatsPresenter`, deliberately not a parametrization of
+`flow-graph.ts`/`FlowDesignerPresenter`. It shares the pure
+pieces, so the two cannot drift:
 
-Its emitted SVG carries none of the editor's
+- **Arrangement.** `arrangeFlow` (`flow-arrangement.ts`) lays
+  the flow out by the designer's rule `runsAutoLayout(flow)`
+  (`isAutoLayout && !isLocked`, in `flow-designer-actions.ts`),
+  through `applyAutoLayout` for the measured canvas. Any other
+  flow keeps the positions `getRenderableFlowGraph` gives it
+  (Auto Layout off, or locked; no waypoints), and so does a flow with no
+  Create node. A canvas that has not measured lays nothing
+  out. The arrangement is computed once per load; a resize
+  never lays out and never fetches.
+- **Edges and labels.** `computeEdgeGeometry` and
+  `computeEdgeAimOffsets` give each edge its path, with
+  waypoints; `computeEdgeLabelWidth`, `truncateEdgeLabel`, and
+  `truncateNodeName` size and clip the labels; `NODE_WIDTH`/
+  `NODE_HEIGHT` (`flow-layout.ts`) and `NODE_RADIUS`,
+  `GRID_CELL`, and the label and arrow constants
+  (`flow-graph.ts`) fix the geometry; `findCycleEdgeIds`
+  (`flow-cycle-edges.ts`) marks loop-backs as the designer
+  does; the alert-triangle and no-entry shapes of `icons.ts`
+  draw the hazards.
+- **Camera.** `flow-camera.ts` (see `## Camera rules`) owns
+  zoom, pan, and resize. `statsFitCamera`
+  (`flow-stats-camera.ts`) is the designer's `fitBoxToCanvas`
+  with no panel, except where the designer's `MIN_ZOOM` would
+  crop: there stats takes the unclamped `frameBoxInCanvas`, so
+  the reader, who cannot turn Auto Fit off and pan to the
+  rest, sees the whole flow, smaller. With Auto Fit on the
+  designer re-fits to the bounding box of its drawn content,
+  which on an unlocked flow includes the radius-5 port circles
+  it draws on regular nodes and on a Create or Archive node
+  with no edges. Stats draws no ports, so `connectionPortBox`
+  adds the box of the circles the designer would draw to the
+  drawn box, and the two cameras agree.
+- **Page state.** The camera and the arrangement live in the
+  page, never stored. Auto Layout and Auto Fit are not
+  controls here: the page reads them from the flow's own
+  settings and draws no switch for either.
+
+Pin: tests/flow-arrangement.test.ts 'matches the designer's
+boot layout'; 'a locked flow keeps its renderable positions';
+tests/flow-stats-parity.test.ts 'every edge path matches the
+designer'; 'every node transform matches the designer';
+'every transition label matches the designer';
+tests/flow-stats-camera.test.ts 'statsFitCamera equals
+fitBoxToCanvas with no panel'; 'statsFitCamera shows the whole
+flow where the designer would crop'; 'it spans each port's
+circle'; tests/browser/flow-stats.test.ts 'stats lays the flow
+out as the designer does'; 'with Auto Fit on, stats frames
+the flow as the designer does'; tests/presenter-flow-stats.test.ts
+'the page carries no Auto Layout or Auto Fit control'.
+
+Pan and zoom exist only with Auto Fit off
+(`flow-stats-pan-zoom.ts`, `bindStatsPanZoom`). A drag pans
+once the pointer moves `PAN_SLOP_PX` (4) and swallows the click
+that follows, so a pan neither pins nor unpins a card; the
+wheel zooms about the pointer; the document-level keys, with no
+Ctrl, Cmd, or Alt held and focus outside a text field, pan by
+`KEYBOARD_PAN_STEP_PX` (48 px) on the arrows and zoom about the
+centre on `+`, `=`, and `-`. The zoom buttons stand in the
+gutter, where the designer's tool column stands, at the
+height its toolbar keeps them: below the room its undo and
+redo take. The arrow keys' pan is told to assistive technology by a
+`.sr-only` hint, "Arrow keys pan the canvas", that both zoom
+buttons name with `aria-describedby`. With
+Auto Fit on, nothing is bound, the gutter is blank, and a
+resize re-fits; with it off, a resize keeps the centre and the
+zoom. A pinned card re-anchors after each camera change, and a
+hover card hides while a pan runs.
+
+Pin: tests/browser/flow-stats-pan-zoom.test.ts 'a drag pans
+and does not pin'; 'the wheel zooms about the pointer within
+0.25..2'; 'the buttons zoom by the designer's step'; 'the zoom
+buttons stand where the designer keeps them'; 'arrow and
+plus/minus keys pan and zoom'; 'a pinned card follows its
+node'; 'with Auto Fit on, nothing moves the camera and there
+are no zoom buttons'; tests/presenter-flow-stats.test.ts
+'Auto Fit off puts the designer's zoom buttons in the gutter';
+'Auto Fit on leaves the gutter blank'.
+
+**The header bar.** The path stepper and the heat legend share
+one bar in the header, after the back button, the title, and
+the window badge. The header is `--height-flow-header` high
+(DESIGN-SYSTEM.md `## Tokens`), and the gutter is
+`--width-flow-tools` wide, so the canvas measures what the
+designer's measures. That parity is promised where the
+designer's header and page fit: the parity tests run at
+900x700 and up, and at 800x700 the designer itself overflows
+its page sideways. The bar changes with width:
+
+- at `xl` (1280 px) and above, one row, with the legend
+  caption `share of flow time` seen;
+- below `xl`, the caption is visually hidden (heard, not seen)
+  and the ramp narrows, so the whole bar fits beside the back
+  button;
+- below `lg` (1024 px), the bar takes its own row under the
+  back button, title, and badge, with 32 px arrows, inside the
+  same 121 px header from `md` (768 px) up, whose block padding
+  narrows to `--space-2` so the two rows fit with the
+  dropped-nodes footnote under the title;
+- below `md`, the bar compacts (tighter padding and gaps, a
+  shorter ramp), and the header grows from the token as a
+  minimum height; the gutter becomes a row above the canvas,
+  as the designer's toolbar does.
+
+The title ellipsizes at every width. The bar's `title`
+attribute carries the selected path's detail (its share of
+the completed work orders and the in-flight count), and the
+same text sits in an `.sr-only` span that the stepper group
+(`role="group"`, `aria-label="Most-traveled paths"`) names in
+`aria-describedby`; with no detail there is no title, span, or
+`aria-describedby`.
+
+Pin: tests/presenter-flow-stats.test.ts 'buildBar on the first
+path: label, hover text, prev disabled'; 'the stepper group
+carries the accessible name'; tests/browser/flow-stats.test.ts
+'the bar's hover text follows the selected path'; 'at 1024x768
+the header keeps its back button and its whole bar'; 'below xl
+the whole bar fits in the header'; 'the bar's caption is seen
+at xl and only heard below it'; tests/browser/flow-canvas-box.test.ts
+'below lg the stats header holds two rows in the designer's
+height'; 'below lg the stats header holds the dropped-nodes
+footnote'.
+
+**Paint.** The emitted SVG carries none of the editor's
 interactivity tells (no `<animate>`, `role="button"`,
 `tabindex`, connection ports, `data-connect-port`,
-`aria-current`) and no paint either — edge/node strokes,
-the arrowhead, the loop-back dash all live in
-`pages-flow-stats.css`; the renderer emits structure
-(`d`, `transform`, `x/y`, `class`, `data-*`) only. The
-one presentational inline attribute is the per-node
-`style="--heat-t:${t}"`; CSS computes the fill via the
-4-stop ramp in DESIGN-SYSTEM.md `## Heat ramp`. Loop-back
-edges carry `data-cycle="true"` → CSS dashes +
-warning-colours them, mirroring the designer; the single
-`#stats-arrow` marker's head tracks each line's own
-stroke via `fill: context-stroke`, so default / on-path /
-cycle arrows match for free. Path selection highlights
-via `data-on-path` / `data-dim` (off-path fades and
-desaturates, leaving the lit path the only colour on the
-canvas), never an animated filter — the editor uses a
-glow; the stats canvas does not. A path is lit by default
-(the most-travelled one), so
-`.flow-stats-body:has([data-on-path])` accent-flags the
-stepper bar — itself an eyebrow-labelled widget
-("Most-traveled paths") — tying control to canvas. The
-aggregate logic lives in the pure module
-`flow-stats-aggregate.ts` (`buildFlowStats(input) →
-model`); it consumes the universal `TransitionEvent[]`
-shape exported from `client/work-orders-queries.ts` —
-derived from each joined work order's `versions/` in chain
-order (`getWorkOrderVersions`, `workOrderEventsOf`). The I/O
-wrapper is `web-app/app/flow-stats.ts`'s
-`getFlowStats(ctx, flowId, nowMs)`.
+`aria-current`) and no paint either: edge and node strokes,
+fills, the arrowhead, the loop-back dash, and the hazard
+glyphs' stroke all live in `pages-flow-stats.css`. The
+renderer emits structure (`d`, `transform`, `x/y`, `class`,
+`data-*`) and, per node, the one presentational inline
+attribute `style="--heat-t:${t}"`; a hazard glyph is bare
+markup that the stylesheet strokes. A regular node wears its
+heat as its border and a tint of it as its fill (DESIGN-SYSTEM.md
+`## Heat ramp`), and shows its average sojourn on a second
+line, or the absent marker when it has no time in the window;
+Create and Archive show a name alone, centred, and no second
+line. Loop-back edges carry `data-cycle="true"` and CSS
+dashes and warning-colours them, mirroring the designer; the
+single `#stats-arrow` marker's head tracks each line's own
+stroke via `fill: context-stroke`. Path selection highlights
+via `data-on-path` / `data-dim`: off-path elements fade and
+desaturate, and the lit path keeps its normal paint, so it is
+the only colour on the canvas. No animated filter: the editor
+uses a glow; the stats canvas does not. A path is lit by
+default (the most-travelled one).
+
+Pin: tests/presenter-flow-stats.test.ts 'the renderer emits no
+paint'; 'regular nodes show avg sojourn; special nodes show no
+second line'; 'highlight set marks on-path and dims off-path
+nodes/edges'; 'a hazard glyph keeps its place and size'.
+
+The aggregate logic lives in the pure module
+`flow-stats-aggregate.ts` (`buildFlowStats(input) → model`); it
+consumes the universal `TransitionEvent[]` shape exported from
+`client/work-orders-queries.ts` — derived from each joined work
+order's `versions/` in chain order (`getWorkOrderVersions`,
+`workOrderEventsOf`). The I/O wrapper is
+`web-app/app/flow-stats.ts`'s `getFlowStats(ctx, flowId,
+nowMs)`. `NodeStat` carries no position: positions come from
+the arrangement.
 
 ## How we got here
 

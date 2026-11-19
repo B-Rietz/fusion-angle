@@ -10,10 +10,14 @@ import {
     type SafeHtml,
 } from '../safe-html.ts';
 import { $, $required } from '../dom.ts';
-import { ICON_SIZE, iconArrowLeft } from '../icons.ts';
+import {
+    ICON_SIZE, iconArrowLeft, iconMinus, iconPlus,
+} from '../icons.ts';
 import {
     buildStatsGraphSvg,
 } from '../flow-stats-graph.ts';
+import type { FlowArrangement } from '../flow-arrangement.ts';
+import type { Camera } from '../flow-camera.ts';
 import {
     DISPLAY_ABSENT,
 } from '../format.ts';
@@ -36,34 +40,29 @@ function fmtThroughput(n: number): string {
         : `~${Math.round(n)}/wk`;
 }
 
-// ViewBox mirrors the parameter shape expected
-// by buildStatsGraphSvg; kept local so this
-// module has no runtime dep on flow-layout.ts.
-interface ViewBox {
-    x: number;
-    y: number;
-    w: number;
-    h: number;
-}
-
 // One absence encoding: null means no pin / no hover. The
 // fields are required, so no undefined shadow-absence exists.
+// The camera is where the canvas looks; the page moves it.
 export interface FlowStatsUi {
     selectedPathIndex: number;
     pinnedNodeId: string | null;
     hoveredNodeId: string | null;
+    camera: Camera;
 }
 
 export class FlowStatsPresenter {
     readonly #model: FlowStatsModel;
-    readonly #viewBox: ViewBox;
+    readonly #arrangement: FlowArrangement;
+    readonly #isAutoFit: boolean;
 
     constructor(
         model: FlowStatsModel,
-        viewBox: ViewBox,
+        arrangement: FlowArrangement,
+        isAutoFit: boolean,
     ) {
         this.#model = model;
-        this.#viewBox = viewBox;
+        this.#arrangement = arrangement;
+        this.#isAutoFit = isAutoFit;
     }
 
     buildShell(): SafeHtml {
@@ -79,6 +78,8 @@ export class FlowStatsPresenter {
                     === 1 ? '' : 's'
             } reference nodes omitted from this view.</div>`
             : trusted('');
+        // The page opens on the most-travelled path;
+        // renderUpdate redraws the bar for each selection.
         return html`<div class="flow-stats">
 <div class="flow-stats-header">
     <button
@@ -92,108 +93,150 @@ export class FlowStatsPresenter {
             'page-title'
             + ' flow-stats-flow-name'
         }"></h1>
+        ${footnote}
     </div>
     <div class="flow-stats-window-badge"
     >Trailing 90 days</div>
+    ${this.buildBar({ selectedPathIndex: 0 })}
 </div>
 <div class="flow-stats-body">
+    ${this.#buildGutter()}
     <div class="flow-stats-canvas-area">
         <div class="${
-            'flow-stats-canvas-host'
-        }"></div>
+            this.#isAutoFit
+                ? 'flow-stats-canvas-wrap'
+                : 'flow-stats-canvas-wrap flow-stats-pannable'
+        }">
+            <div class="${
+                'flow-stats-canvas-host'
+            }"></div>
+        </div>
         <div
             id="flow-stats-card"
             class="flow-stats-card hidden"
         ></div>
     </div>
-    <div class="${
-        'flow-stats-stepper-bar'
-    }"></div>
 </div>
-${this.buildLegend()}${footnote}</div>`;
+</div>`;
     }
 
-    buildStepperBar(
+    // Blank with Auto Fit on. With it off, the designer's
+    // zoom buttons stand where its toolbar keeps them,
+    // below the first spacer that stands in for its undo
+    // and redo, each described by the keyboard's pan for
+    // assistive technology.
+    #buildGutter(): SafeHtml {
+        if (this.#isAutoFit) {
+            return html`<div class="flow-stats-gutter"></div>`;
+        }
+        return html`<div class="flow-stats-gutter">
+<div class="flow-stats-gutter-spacer"></div>
+<div class="flow-stats-gutter-group">
+<button
+    class="btn btn-ghost btn-icon"
+    data-action="zoom-out"
+    title="Zoom out"
+    aria-label="Zoom out"
+    aria-describedby="flow-stats-pan-hint"
+    >${iconMinus(ICON_SIZE.lg, '')}</button>
+<button
+    class="btn btn-ghost btn-icon"
+    data-action="zoom-in"
+    title="Zoom in"
+    aria-label="Zoom in"
+    aria-describedby="flow-stats-pan-hint"
+    >${iconPlus(ICON_SIZE.lg, '')}</button>
+<span id="flow-stats-pan-hint" class="sr-only"
+    >Arrow keys pan the canvas</span>
+</div>
+<div class="flow-stats-gutter-spacer"></div>
+</div>`;
+    }
+
+    // The detail (counts and in-flight work) leaves the
+    // visible label for the bar's title and an sr-only
+    // span the stepper group names; with no detail there
+    // is neither.
+    buildBar(
         ui: { selectedPathIndex: number },
     ): SafeHtml {
         const entries =
             this.#model.pathEntries;
         const total = entries.length;
-        const raw = ui.selectedPathIndex;
         const idx = total === 0
             ? 0
             : Math.max(
                 0,
-                Math.min(raw, total - 1),
+                Math.min(
+                    ui.selectedPathIndex, total - 1,
+                ),
             );
-        const entry =
-            total === 0
-                ? undefined
-                : entries[idx];
+        const entry = entries[idx];
 
         const inFlight =
-            this.#model
-                .incompleteWorkOrderCount;
-        const inflightFrag =
-            inFlight > 0
-            ? trusted(
-                ` · ${inFlight}`
-                + ' in flight',
-            )
-            : trusted('');
+            this.#model.incompleteWorkOrderCount;
+        const inFlightClause = inFlight > 0
+            ? ` · ${inFlight} in flight`
+            : '';
+        const completed =
+            this.#model.completedWorkOrderCount;
+        const workOrders = `${completed} completed work order${
+            completed === 1 ? '' : 's'
+        }`;
 
-        let label: SafeHtml;
-        if (!entry) {
-            label = html`No completed work orders yet${inflightFrag}`;
-        } else if (entry.kind === 'path') {
-            const pct = entry.path.sharePct;
-            const tot =
-                this.#model
-                    .completedWorkOrderCount;
-            label = html`Path ${
-                idx + 1
-            } of ${total} · ${
-                pct
-            }% of ${tot} work orders${
-                inflightFrag
-            }`;
+        let steps: SafeHtml;
+        let detail: string | null;
+        if (entry === undefined) {
+            steps = html`<span class="${
+                'flow-stats-stepper-label'
+            }">No completed work orders yet</span>`;
+            detail = inFlight > 0
+                ? `${inFlight} in flight`
+                : null;
+        } else if (total === 1) {
+            steps = trusted('');
+            detail = `1 path · ${workOrders}${inFlightClause}`;
         } else {
-            label = html`+ ${
-                entry.count
-            } rarer paths, combined ${
-                entry.combinedSharePct
-            }%${inflightFrag}`;
+            const pct = entry.kind === 'path'
+                ? entry.path.sharePct
+                : entry.combinedSharePct;
+            const label = entry.kind === 'path'
+                ? `Path ${idx + 1} of ${total} · ${pct}%`
+                : `+ ${entry.pathCount} rarer path${
+                    entry.pathCount === 1 ? '' : 's'
+                } · ${pct}%`;
+            const prevDis = trusted(
+                idx <= 0 ? ' disabled' : '',
+            );
+            const nextDis = trusted(
+                idx >= total - 1 ? ' disabled' : '',
+            );
+            steps = html`<button data-stepper="prev"${prevDis} class="${
+                'btn btn-ghost btn-icon'
+            }" aria-label="Previous path">&#9664;</button><span class="${
+                'flow-stats-stepper-label'
+            }">${label}</span><button data-stepper="next"${nextDis} class="${
+                'btn btn-ghost btn-icon'
+            }" aria-label="Next path">&#9654;</button>`;
+            detail = `${pct}% of ${workOrders}${inFlightClause}`;
         }
 
-        const prevDis = trusted(
-            idx <= 0 ? ' disabled' : '',
-        );
-        const nextDis = trusted(
-            idx >= total - 1
-                ? ' disabled' : '',
-        );
-
-        // Eyebrow names the control so a first-time
-        // reader knows the stepper walks the flow's
-        // paths from most- to least-travelled; styling
-        // is in pages-flow-stats.css.
-        return html`<span class="${
-            'flow-stats-stepper-eyebrow'
-        }">Most-traveled paths</span><div class="${
-            'flow-stats-stepper'
-        }"><button data-stepper="prev"${prevDis} class="${
-            'btn btn-ghost btn-icon'
-        }" aria-label="Previous path">&#9664;</button><span class="${
-            'flow-stats-stepper-label'
-        }">${label}</span><button data-stepper="next"${nextDis} class="${
-            'btn btn-ghost btn-icon'
-        }" aria-label="Next path">&#9654;</button></div>`;
-    }
-
-    buildLegend(): SafeHtml {
+        const titleAttr = detail === null
+            ? trusted('')
+            : html` title="${detail}"`;
+        const describedBy = detail === null
+            ? trusted('')
+            : trusted(
+                ' aria-describedby="flow-stats-path-detail"',
+            );
+        const detailSpan = detail === null
+            ? trusted('')
+            : html`<span id="flow-stats-path-detail" class="${
+                'sr-only'
+            }">${detail}</span>`;
         // Gradient is applied via CSS class;
         // no inline style needed here.
-        return html`<div class="${
+        const legend = html`<div class="${
             'flow-stats-legend'
         }"><span class="${
             'flow-stats-legend-end'
@@ -203,7 +246,12 @@ ${this.buildLegend()}${footnote}</div>`;
             'flow-stats-legend-end'
         }">100%</span><span class="${
             'flow-stats-legend-caption'
-        }">share of flow time, trailing 90 days</span></div>`;
+        }">share of flow time</span></div>`;
+        return html`<div class="flow-stats-bar"${titleAttr}><div class="${
+            'flow-stats-stepper'
+        }" role="group" aria-label="${
+            'Most-traveled paths'
+        }"${describedBy}>${steps}${detailSpan}</div>${legend}</div>`;
     }
 
     renderShell(container: HTMLElement): void {
@@ -237,25 +285,57 @@ ${this.buildLegend()}${footnote}</div>`;
                 canvasHost,
                 buildStatsGraphSvg(
                     this.#model,
-                    this.#viewBox,
+                    this.#arrangement,
+                    ui.camera.viewBox,
                     highlight,
                 ),
             );
         }
-        const stepperBar = $(
-            '.flow-stats-stepper-bar', container,
-        );
-        if (stepperBar) {
+        // The bar's title changes with the selection, so
+        // the whole bar is replaced, not just its children.
+        const bar = $('.flow-stats-bar', container);
+        if (bar) {
+            const fresh =
+                document.createElement('template');
             setHtml(
-                stepperBar,
-                this.buildStepperBar({
+                fresh,
+                this.buildBar({
                     selectedPathIndex:
                         ui.selectedPathIndex,
                 }),
             );
+            bar.replaceWith(fresh.content);
         }
         this.renderCard(container, ui.pinnedNodeId
             ?? ui.hoveredNodeId);
+    }
+
+    // A camera move redraws nothing: the svg takes the new
+    // view, and the grid's two rects stretch to cover it.
+    renderCamera(
+        container: HTMLElement,
+        viewBox: Camera['viewBox'],
+    ): void {
+        const svg = $required(
+            'svg.flow-stats-canvas', container,
+        );
+        svg.setAttribute(
+            'viewBox',
+            String(viewBox.x)
+            + ' ' + String(viewBox.y)
+            + ' ' + String(viewBox.w)
+            + ' ' + String(viewBox.h),
+        );
+        const rects = [
+            $required('.flow-stats-grid-bg', svg),
+            $required('.flow-stats-grid-dots', svg),
+        ];
+        for (const rect of rects) {
+            rect.setAttribute('x', String(viewBox.x));
+            rect.setAttribute('y', String(viewBox.y));
+            rect.setAttribute('width', String(viewBox.w));
+            rect.setAttribute('height', String(viewBox.h));
+        }
     }
 
     buildCard(s: NodeStat): SafeHtml {

@@ -6,6 +6,7 @@ import {
     buildSkeleton,
     loadInto,
 } from '../app/loading-states.ts';
+import { subscribeResize } from '../app/adapters/index.ts';
 import { getFlowStats } from '../app/flow-stats.ts';
 import {
     subscribeFlowChanges,
@@ -15,49 +16,58 @@ import {
     FlowStatsPresenter,
     type FlowStatsUi,
 } from '../app/presenters/index.ts';
+import { arrangeFlow } from '../app/flow-arrangement.ts';
 import {
-    NODE_WIDTH, NODE_HEIGHT,
-} from '../app/flow-layout.ts';
-import type { GraphNode } from '../../shared/types.ts';
+    cameraZoomedToward,
+    viewBoxResized,
+    type Camera,
+} from '../app/flow-camera.ts';
+import { bindStatsPanZoom } from '../app/flow-stats-pan-zoom.ts';
+import {
+    nodeBoundsBox,
+    type FitBox,
+} from '../app/flow-interactions.ts';
+import {
+    connectionPortBox,
+    statsFitCamera,
+    statsOpeningCamera,
+    unionFitBox,
+} from '../app/flow-stats-camera.ts';
 
-// Empty canvas fallback when no nodes exist.
-const EMPTY_W = 200;
-const EMPTY_H = 200;
+// The canvas's size in CSS pixels: what the designer
+// reads from its own wrap to lay out and to frame.
+interface CanvasSize {
+    readonly w: number;
+    readonly h: number;
+}
 
-// Uniform whitespace around the stats canvas.
-const STATS_VIEW_PADDING_PX = 40;
+function canvasSizeOf(wrap: HTMLElement): CanvasSize {
+    return { w: wrap.clientWidth, h: wrap.clientHeight };
+}
 
-// Smallest enclosing box for all node rects
-// plus uniform padding on all sides.
-function boundingViewBox(
-    nodes: GraphNode[],
-    padding: number,
-): { x: number; y: number; w: number; h: number } {
-    if (nodes.length === 0) {
-        return {
-            x: 0, y: 0,
-            w: EMPTY_W, h: EMPTY_H,
-        };
-    }
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
-    for (const n of nodes) {
-        minX = Math.min(minX, n.positionX);
-        minY = Math.min(minY, n.positionY);
-        maxX = Math.max(
-            maxX, n.positionX + NODE_WIDTH,
+// A canvas with no width or no height has not measured:
+// there is no size to lay a flow out for, or to fit it to.
+function isMeasured(canvas: CanvasSize): boolean {
+    return canvas.w > 0 && canvas.h > 0;
+}
+
+// The extent of the flow as drawn, in content coordinates:
+// curves, waypoints, and labels, not the node rectangles
+// alone. Null when what is drawn measures nothing.
+function drawnBox(host: HTMLElement): FitBox | null {
+    const content = host.querySelector('.flow-stats-content');
+    if (!(content instanceof SVGGraphicsElement)) {
+        throw new Error(
+            'the stats canvas holds no content group',
         );
-        maxY = Math.max(
-            maxY, n.positionY + NODE_HEIGHT,
-        );
     }
+    const bbox = content.getBBox();
+    if (bbox.width <= 0 || bbox.height <= 0) return null;
     return {
-        x: minX - padding,
-        y: minY - padding,
-        w: maxX - minX + padding * 2,
-        h: maxY - minY + padding * 2,
+        minX: bbox.x,
+        minY: bbox.y,
+        maxX: bbox.x + bbox.width,
+        maxY: bbox.y + bbox.height,
     };
 }
 
@@ -96,9 +106,10 @@ function anchorCardTo(
 let flowId = '';
 let projectId: string | undefined;
 
-// The hover/click listeners of the CURRENT render; each load
-// aborts the last so a re-render never doubles them.
-let cardListeners: AbortController | null = null;
+// The listeners of the CURRENT render — hover, click, the
+// canvas's resize, and its pan and zoom; each load aborts
+// the last so a re-render never doubles them.
+let renderListeners: AbortController | null = null;
 
 export async function init(
     params?: Record<string, string>,
@@ -133,15 +144,19 @@ async function load(host: HTMLElement): Promise<void> {
             sessionContext(), flowId, Date.now(),
         ),
         onData: ({ model, graph }) => {
-            const viewBox = boundingViewBox(
-                graph.nodes,
-                STATS_VIEW_PADDING_PX,
-            );
-            const presenter =
-                new FlowStatsPresenter(
-                    model, viewBox,
-                );
-            presenter.renderShell(host);
+            renderListeners?.abort();
+            renderListeners = new AbortController();
+            const { signal } = renderListeners;
+
+            // The shell draws no state, so it renders —
+            // and its canvas measures — before the flow
+            // is arranged for that canvas, as the
+            // designer's shell does.
+            new FlowStatsPresenter(
+                model,
+                arrangeFlow(graph, { kind: 'unmeasured' }),
+                graph.isAutoFit,
+            ).renderShell(host);
 
             // Presenter is deliberately name-agnostic;
             // page module writes the graph's own values
@@ -153,16 +168,137 @@ async function load(host: HTMLElement): Promise<void> {
                 nameEl.textContent = graph.name;
             }
 
+            const wrap = $required(
+                '.flow-stats-canvas-wrap', host,
+            );
+            const canvas = canvasSizeOf(wrap);
+            // Laid out once per load: a resize moves the
+            // camera and leaves every state where it is.
+            const arrangement = arrangeFlow(
+                graph,
+                isMeasured(canvas)
+                    ? { kind: 'measured', ...canvas }
+                    : { kind: 'unmeasured' },
+            );
+            const presenter = new FlowStatsPresenter(
+                model, arrangement, graph.isAutoFit,
+            );
+
+            const nodeBox = nodeBoundsBox(
+                arrangement.nodes.map(n => ({
+                    x: n.positionX,
+                    y: n.positionY,
+                })),
+            );
+            const portBox = connectionPortBox(
+                arrangement, graph.edges, graph.isLocked,
+            );
+            // The designer's first fit, over the node
+            // bounds: all there is to fit before the flow
+            // is drawn. An empty flow has nothing to fit.
+            const fitToNodes = (
+                size: CanvasSize,
+            ): Camera => nodeBox === null
+                ? statsOpeningCamera(size)
+                : statsFitCamera(nodeBox, size);
+            // The designer's second fit, over the flow as
+            // drawn, with the ports it draws there and
+            // stats does not. A flow that measures nothing
+            // keeps the first fit.
+            const fitToDrawn = (
+                size: CanvasSize,
+            ): Camera => {
+                const drawn = drawnBox(host);
+                return drawn === null
+                    ? fitToNodes(size)
+                    : statsFitCamera(
+                        unionFitBox(drawn, portBox), size,
+                    );
+            };
+            const fitsAtLoad =
+                graph.isAutoFit && isMeasured(canvas);
+
             const ui: FlowStatsUi = {
                 selectedPathIndex: 0,
                 pinnedNodeId: null,
                 hoveredNodeId: null,
+                camera: fitsAtLoad
+                    ? fitToNodes(canvas)
+                    : statsOpeningCamera(canvas),
             };
             presenter.renderUpdate(host, ui);
 
-            cardListeners?.abort();
-            cardListeners = new AbortController();
-            const { signal } = cardListeners;
+            // The one place the camera moves: the svg takes
+            // the view, and a pinned card stays beside its
+            // state.
+            const showCamera = (camera: Camera): void => {
+                ui.camera = camera;
+                presenter.renderCamera(host, camera.viewBox);
+                if (ui.pinnedNodeId !== null) {
+                    anchorCardTo(host, $required(
+                        `[data-node-id="${ui.pinnedNodeId}"]`,
+                        wrap,
+                    ));
+                }
+            };
+            if (fitsAtLoad) showCamera(fitToDrawn(canvas));
+
+            // With Auto Fit off the reader moves the camera:
+            // a drag, the wheel, the keys, and the gutter's
+            // zoom buttons. With it on, nothing is bound.
+            if (!graph.isAutoFit) {
+                bindStatsPanZoom(
+                    wrap, () => ui.camera, showCamera, signal,
+                );
+                $required('.flow-stats-gutter', host)
+                    .addEventListener(
+                        'click',
+                        (e) => {
+                            if (
+                                !(e.target instanceof Element)
+                            ) return;
+                            const button = e.target.closest(
+                                '[data-action="zoom-in"],'
+                                + ' [data-action="zoom-out"]',
+                            );
+                            if (!button) return;
+                            showCamera(cameraZoomedToward(
+                                ui.camera,
+                                getRequiredAttribute(
+                                    button, 'data-action',
+                                ) === 'zoom-in'
+                                    ? 'in'
+                                    : 'out',
+                                null,
+                            ));
+                        },
+                        { signal },
+                    );
+            }
+
+            // A resize never lays out and never fetches:
+            // with Auto Fit on the camera fits again; with
+            // it off it keeps its centre and its zoom.
+            const unsubscribeResize = subscribeResize(
+                wrap,
+                () => {
+                    const size = canvasSizeOf(wrap);
+                    if (!isMeasured(size)) return;
+                    showCamera(graph.isAutoFit
+                        ? fitToDrawn(size)
+                        : {
+                            zoom: ui.camera.zoom,
+                            viewBox: viewBoxResized(
+                                ui.camera.viewBox,
+                                ui.camera.zoom,
+                                size.w, size.h,
+                            ),
+                        });
+                },
+            );
+            signal.addEventListener(
+                'abort', unsubscribeResize,
+            );
 
             host.addEventListener(
                 'mouseover',

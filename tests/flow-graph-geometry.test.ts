@@ -1,5 +1,6 @@
 import {
     assert,
+    assertEquals,
     assertNotStrictEquals,
     assertStrictEquals,
 } from '@std/assert';
@@ -7,7 +8,13 @@ import {
     buildGraphSvg,
     computeEdgeGeometry,
     computeEdgeAimOffsets,
+    connectionPortOf,
+    truncateEdgeLabel,
+    truncateNodeName,
 } from '../web-app/app/flow-graph.ts';
+import {
+    runsAutoLayout,
+} from '../web-app/app/flow-designer-actions.ts';
 import type {
     GraphEdge,
     GraphNode,
@@ -160,5 +167,141 @@ Deno.test(
             out.includes(`d="${geo.pathD}"`),
         );
         assert(geo.pathD.includes(' Q '));
+    },
+);
+
+Deno.test(
+    'truncateNodeName keeps 18 characters and cuts 19 to'
+    + ' 17 plus an ellipsis',
+    () => {
+        assertStrictEquals(
+            truncateNodeName('abcdefghijklmnopqr'),
+            'abcdefghijklmnopqr',
+        );
+        assertStrictEquals(
+            truncateNodeName('abcdefghijklmnopqrs'),
+            'abcdefghijklmnopq…',
+        );
+    },
+);
+
+// floor((140 - 12) / 7) = 18: the label's width cap less
+// its padding, in characters.
+Deno.test(
+    'truncateEdgeLabel keeps 18 characters and cuts 19 to'
+    + ' 17 plus an ellipsis',
+    () => {
+        assertStrictEquals(
+            truncateEdgeLabel('abcdefghijklmnopqr'),
+            'abcdefghijklmnopqr',
+        );
+        assertStrictEquals(
+            truncateEdgeLabel('abcdefghijklmnopqrs'),
+            'abcdefghijklmnopq…',
+        );
+    },
+);
+
+Deno.test(
+    'connectionPortOf is null on a locked flow',
+    () => {
+        const a = node('a', 0, 0);
+        assertStrictEquals(
+            connectionPortOf(
+                a, [], new Map([['a', a]]), true,
+            ),
+            null,
+        );
+    },
+);
+
+Deno.test(
+    'connectionPortOf is null for a Create node with an'
+    + ' edge',
+    () => {
+        const create = {
+            ...node('c', 0, 0), isCreate: true,
+        };
+        const a = node('a', 300, 0);
+        assertStrictEquals(
+            connectionPortOf(
+                create,
+                [edge('ca', 'c', 'a')],
+                new Map([['c', create], ['a', a]]),
+                false,
+            ),
+            null,
+        );
+    },
+);
+
+Deno.test(
+    'connectionPortOf gives a Create node with no edge a'
+    + ' port',
+    () => {
+        const create = {
+            ...node('c', 0, 0), isCreate: true,
+        };
+        assertEquals(
+            connectionPortOf(
+                create, [], new Map([['c', create]]), false,
+            ),
+            { x: 160, y: 32 },
+        );
+    },
+);
+
+Deno.test(
+    'connectionPortOf gives a regular node a port, with'
+    + ' or without edges',
+    () => {
+        const a = node('a', 0, 0);
+        const b = node('b', 300, 0);
+        assertNotStrictEquals(
+            connectionPortOf(
+                a,
+                [edge('ab', 'a', 'b')],
+                new Map([['a', a], ['b', b]]),
+                false,
+            ),
+            null,
+        );
+        assertEquals(
+            connectionPortOf(
+                a, [], new Map([['a', a]]), false,
+            ),
+            { x: 160, y: 32 },
+        );
+    },
+);
+
+Deno.test(
+    'runsAutoLayout holds only with Auto Layout on and'
+    + ' the flow unlocked',
+    () => {
+        assertStrictEquals(
+            runsAutoLayout({
+                isAutoLayout: true, isLocked: false,
+            }),
+            true,
+        );
+        assertStrictEquals(
+            runsAutoLayout({
+                isAutoLayout: true, isLocked: true,
+            }),
+            false,
+        );
+        assertStrictEquals(
+            runsAutoLayout({
+                isAutoLayout: false, isLocked: false,
+            }),
+            false,
+        );
+        assertStrictEquals(
+            runsAutoLayout({
+                isAutoLayout: false, isLocked: true,
+            }),
+            false,
+        );
     },
 );

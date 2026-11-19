@@ -820,6 +820,58 @@ Deno.test('collapses long tail into a rest bucket', () => {
     assertStrictEquals(rest.combinedSharePct, 20);
 });
 
+Deno.test('the rest bucket counts its paths apart from its work orders',
+    () => {
+        const f = makeFixture();
+        const t = (msAgo: number) => tBefore(f, msAgo);
+        const H = 3600 * 1000;
+        const transitions: TransitionEvent[] = [];
+        // Eight paths hold four work orders each; the three rarer
+        // paths hold 3 + 2 + 2 = 7 between them.
+        const copiesByPath = [4, 4, 4, 4, 4, 4, 4, 4, 3, 2, 2];
+        copiesByPath.forEach((copies, loops) => {
+            for (let c = 0; c < copies; c++) {
+                const woId = `w${loops}-${c}`;
+                let step = 0;
+                let nowAgoH = 50;
+                const push = (
+                    from: string | null, to: string,
+                ) => {
+                    const base = {
+                        id: woId + '-' + (step++),
+                        workOrderId: woId,
+                        toNodeId: to,
+                        memberId: 'pnXmXrxOWayANgDLdCjuBw',
+                        at: t(nowAgoH-- * H),
+                    };
+                    transitions.push(from === null
+                        ? { kind: 'creation', ...base }
+                        : {
+                            kind: 'step',
+                            fromNodeId: from,
+                            ...base,
+                        });
+                };
+                push(null, 'c');
+                push('c', 'a');
+                for (let k = 0; k < loops; k++) {
+                    push('a', 'b');
+                    push('b', 'a');
+                }
+                push('a', 'b');
+                push('b', 'z');
+            }
+        });
+        const m = buildFlowStats({ ...f, transitions });
+        assertStrictEquals(m.pathEntries.length, 9);
+        const rest = m.pathEntries[8]!;
+        assert(rest.kind === 'rest');
+        assertStrictEquals(rest.pathCount, 3);
+        assertStrictEquals(rest.count, 7);
+        assertStrictEquals(rest.combinedSharePct, 18);
+    },
+);
+
 Deno.test(
     'an out-of-order Archive is here-now at the later node',
     () => {

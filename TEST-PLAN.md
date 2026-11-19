@@ -4903,20 +4903,28 @@ FSM, unlike `flows/detail`).
 
 - [ ] **FS1** From `flows/index`, click a flow card's chart
   icon → lands on `flows/stats.html?flowId=<id>`. The page
-  renders the heat-tinted SVG canvas, a path stepper, and a
-  legend gradient bar. No left toolbar, no slide-in props
-  panel, no connection ports, no marquee. The cursor over a
-  node is `pointer` (clicking is allowed); no port-drag
-  affordance appears.
+  renders the heat-tinted SVG canvas, and in the header, after
+  the back button, title, and window badge, one bar holding a
+  path stepper and a legend gradient captioned `share of flow
+  time`. A blank gutter stands where the designer's tool
+  column stands (the zoom buttons appear in it only with Auto
+  Fit off). No left toolbar, no slide-in props panel, no
+  connection ports, no marquee. The cursor over a node is
+  `pointer` (clicking is allowed); no port-drag affordance
+  appears.
   Pin: tests/navigation.test.ts 'buildPageUrl appends
        flowId param for flow-stats';
        tests/presenter-flow-stats.test.ts 'emits an
        svg with role=img and no editor affordances';
-       tests/presenter-flow-stats.test.ts 'buildLegend:
-       structure, end labels, no linear-gradient';
-       tests/presenter-flow-stats.test.ts
-       'buildStepperBar idx 0: path label, 75%, prev
-       disabled'; exploratory — the left toolbar,
+       tests/presenter-flow-stats.test.ts 'the bar's
+       legend: end labels, caption, no inline gradient';
+       tests/presenter-flow-stats.test.ts 'buildBar on
+       the first path: label, hover text, prev disabled';
+       tests/presenter-flow-stats.test.ts 'Auto Fit on
+       leaves the gutter blank';
+       tests/browser/flow-canvas-box.test.ts 'the stats
+       canvas measures what the designer canvas
+       measures'; exploratory — the left toolbar,
        props panel, and marquee absent from the page
        shell, and the pointer cursor over a node
 - [ ] **FS2** From `flows/detail`, click the Stats button in
@@ -4925,20 +4933,29 @@ FSM, unlike `flows/detail`).
   `projectId` if set).
   Pin: exploratory — the live Stats/back navigation
        and the preserved `projectId`
-- [ ] **FS3** Node tints span the ramp on the flagship flow
-  ("Customer Onboarding"): Data Capture is yellow/red (hot),
-  Review (heat 0.24) is cool teal — `pages-flow-stats.css`
-  mixes `--heat-stop-low` toward `--heat-stop-mid` across
-  heat-t 0..0.5, and 0.24 is 48% of that segment —
-  Create/Archive at heat 0 carry the cool (or no-data)
-  tint. Node faces show the em-dash on Create and Archive and
-  a value like `8.5m` / `2.1d` on regular nodes.
+- [ ] **FS3** Node borders and tints span the ramp on the flagship
+  flow ("Customer Onboarding"): a regular node wears its heat
+  as its border and a 22% tint of it as its fill. Data
+  Capture is yellow/red (hot), Review (heat 0.24) is cool
+  teal — `pages-flow-stats.css` mixes `--heat-stop-low`
+  toward `--heat-stop-mid` across heat-t 0..0.5, and 0.24 is
+  48% of that segment. Create and Archive hold no time and
+  wear no heat: the designer's green and red borders on the
+  plain canvas. The name is light (`--foreground`) on the tint, and a regular
+  node's second line reads a value like `8.5m` / `2.1d`.
+  Create and Archive show their name alone, with no `—`
+  second line.
   Pin: tests/presenter-flow-stats.test.ts 'each node
        carries style="--heat-t:..." and no data-heat';
        tests/presenter-flow-stats.test.ts 'regular
-       nodes show avg-sojourn face; special nodes show
-       —'; exploratory — the painted color ramp
-       (yellow/red hot, cool teal, cool/no-data)
+       nodes show avg sojourn; special nodes show no
+       second line'; tests/presenter-flow-stats.test.ts
+       'the renderer emits no paint';
+       tests/browser/flow-stats-paint.test.ts 'node text
+       holds 4.5:1 across the ramp'; exploratory — the
+       painted border and tint ramp (yellow/red hot,
+       cool teal) and the plain Create and Archive
+       borders
 - [ ] **FS4** Hover a node → a read-only stat card pops near
   it with: % of flow time, avg/median/p90 durations, visits /
   distinct WOs / Here now, ~N/wk throughput, loop-back rate, clan
@@ -5003,33 +5020,46 @@ FSM, unlike `flows/detail`).
        danger'; exploratory — the absence of any
        triangle glyph on the four painted nodes
 - [ ] **FS7** On the flagship flow ("Customer Onboarding"),
-  the path stepper reads `Path 1 of M · X% of N work
-  orders` with prev/next controls. Clicking next advances;
-  the selected path's nodes + edges get an accent stroke and
-  off-path elements dim to ~30% opacity. The highlight does
-  NOT pulse or animate (deliberately distinct from the
-  editor's selection glow). At the last visible path, next is
-  disabled (or, if there's a rest bucket, advances to
-  "+N rarer paths, combined Z%" which highlights nothing).
-  Pin: tests/presenter-flow-stats.test.ts
-       'buildStepperBar idx 0: path label, 75%, prev
-       disabled'; tests/presenter-flow-stats.test.ts
-       'buildStepperBar idx 1: prev not disabled';
-       tests/presenter-flow-stats.test.ts
-       'buildStepperBar idx 2: rest entry, next
-       disabled'; tests/presenter-flow-stats.test.ts
-       'highlight set marks on-path and dims off-path
-       nodes/edges'; tests/presenter-flow-stats.test.ts
-       'emits an svg with role=img and no editor
-       affordances'; exploratory — the live click
-       advancing the stepper, the accent stroke's
-       painted appearance, and the dimmed opacity's
-       painted value
+  the bar in the header reads `Path 1 of M · X%` with
+  prev/next controls, and hovering the bar shows `X% of N
+  completed work orders` (plus `· K in flight` when any are
+  in flight); the same text is read to assistive technology.
+  Clicking next advances, and the hover text follows. The
+  selected path's nodes and edges keep their normal paint,
+  with no accent stroke; off-path elements dim to ~30%
+  opacity and desaturate, so the lit path is the only colour
+  on the canvas. The highlight does NOT pulse or animate
+  (deliberately distinct from the editor's selection glow).
+  At the last visible path, next is disabled (or, if there's
+  a rest bucket, advances to "+ N rarer paths · Z%" which
+  highlights nothing).
+  Pin: tests/presenter-flow-stats.test.ts 'buildBar on the
+       first path: label, hover text, prev disabled';
+       tests/presenter-flow-stats.test.ts 'buildBar idx 1:
+       prev not disabled';
+       tests/presenter-flow-stats.test.ts 'buildBar on the
+       rest: label, next disabled';
+       tests/presenter-flow-stats.test.ts 'the rest label
+       counts paths, not work orders';
+       tests/presenter-flow-stats.test.ts 'the stepper
+       group carries the accessible name';
+       tests/presenter-flow-stats.test.ts 'highlight set
+       marks on-path and dims off-path nodes/edges';
+       tests/presenter-flow-stats.test.ts 'emits an svg
+       with role=img and no editor affordances';
+       tests/browser/flow-stats.test.ts 'the bar's hover
+       text follows the selected path'; exploratory — the
+       live click advancing the stepper, the lit path's
+       normal paint, and the dimmed opacity's painted
+       value
 - [ ] **FS8** On the stats page the heat tints and the card
   remain legible. The face number text contrasts adequately
   at all heat levels.
-  Pin: exploratory — the painted contrast of tints
-       and card text
+  Pin: tests/browser/flow-stats-paint.test.ts 'node text
+       holds 4.5:1 across the ramp' (the name and second
+       line on a regular node's tint, at every eighth of
+       the ramp); exploratory — the hover card's text
+       contrast
 - [ ] **FS9** Data-shape regression: heat fractions sum to
   ~100% across non-special nodes on the flagship flow. WIP
   counts in the card match the WOs currently sitting in each

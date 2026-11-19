@@ -295,6 +295,16 @@ export function applyUpdateAttributeRequired(
     );
 }
 
+// Whether the designer lays a flow out itself: Auto Layout
+// is on and the flow is unlocked. A locked flow keeps the
+// positions it has.
+export function runsAutoLayout(flow: {
+    readonly isAutoLayout: boolean;
+    readonly isLocked: boolean;
+}): boolean {
+    return flow.isAutoLayout && !flow.isLocked;
+}
+
 export interface AutoLayoutResult {
     readonly nodes: GraphNode[];
     readonly edgeWaypoints:
