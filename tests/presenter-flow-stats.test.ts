@@ -441,7 +441,7 @@ function modelWithPaths(): FlowStatsModel {
 
 function presenterOf(m: FlowStatsModel): FlowStatsPresenter {
     return new FlowStatsPresenter(
-        m, arrangement(),
+        m, arrangement(), true,
     );
 }
 
@@ -465,7 +465,7 @@ function stepperLabel(bar: string): string | null {
 Deno.test('buildShell contains required structural elements', () => {
     const p = new FlowStatsPresenter(
         modelWithPaths(),
-        arrangement(),
+        arrangement(), true,
     );
     const s = p.buildShell().toString();
     assertMatch(s, /id="flow-stats-back"/);
@@ -508,7 +508,7 @@ Deno.test('buildShell includes footnote when droppedNodeIds non-empty',
         pathsWithDroppedStepsCount: 2,
     };
     const p = new FlowStatsPresenter(
-        m, arrangement(),
+        m, arrangement(), true,
     );
     assertMatch(
         p.buildShell().toString(),
@@ -540,6 +540,69 @@ Deno.test('the page carries no Auto Layout or Auto Fit control',
     assertNotMatch(s, /Auto Layout|Auto Fit/i);
 });
 
+// The gutter as the shell writes it, from its opening tag
+// up to the canvas area beside it.
+function gutterOf(isAutoFit: boolean): string {
+    return between(
+        new FlowStatsPresenter(
+            modelWithPaths(), arrangement(), isAutoFit,
+        ).buildShell().toString(),
+        '<div class="flow-stats-gutter">',
+        '<div class="flow-stats-canvas-area">',
+    );
+}
+
+Deno.test("Auto Fit off puts the designer's zoom buttons in the"
+    + ' gutter', () => {
+    const gutter = gutterOf(false);
+    const spacer = '<div class="flow-stats-gutter-spacer"></div>';
+    const zoomOut = gutter.indexOf('data-action="zoom-out"');
+    const zoomIn = gutter.indexOf('data-action="zoom-in"');
+    const first = gutter.indexOf(spacer);
+    const second = gutter.lastIndexOf(spacer);
+    assert(zoomOut >= 0, 'no zoom-out button');
+    assert(zoomIn > zoomOut, 'zoom-in does not follow zoom-out');
+    assert(first >= 0 && first < zoomOut, 'no spacer before');
+    assert(second > zoomIn, 'no spacer after');
+    assertMatch(gutter, new RegExp(
+        '<button\\s+class="btn btn-ghost btn-icon"'
+        + '\\s+data-action="zoom-out"\\s+title="Zoom out"'
+        + '\\s+aria-label="Zoom out"'
+        + '\\s+aria-describedby="flow-stats-pan-hint"\\s*><svg',
+    ));
+    assertMatch(gutter, new RegExp(
+        '<button\\s+class="btn btn-ghost btn-icon"'
+        + '\\s+data-action="zoom-in"\\s+title="Zoom in"'
+        + '\\s+aria-label="Zoom in"'
+        + '\\s+aria-describedby="flow-stats-pan-hint"\\s*><svg',
+    ));
+    assertMatch(gutter, new RegExp(
+        '<span id="flow-stats-pan-hint" class="sr-only"\\s*>'
+        + 'Arrow keys pan the canvas</span>',
+    ));
+});
+
+Deno.test('each zoom button is described by the pan hint', () => {
+    const gutter = gutterOf(false);
+    const hint = /<span id="([^"]+)" class="sr-only"\s*>Arrow keys/
+        .exec(gutter);
+    assert(hint !== null, 'the pan hint has no id');
+    const described = [...gutter.matchAll(
+        /data-action="zoom-(?:out|in)"[^>]*aria-describedby="([^"]+)"/g,
+    )].map((m) => m[1]);
+    assertEquals(described, [hint[1], hint[1]]);
+});
+
+Deno.test('Auto Fit on leaves the gutter blank', () => {
+    assertEquals(
+        gutterOf(true).trim(),
+        '<div class="flow-stats-gutter"></div>',
+    );
+    const s = presenterOf(modelWithPaths()).buildShell().toString();
+    assertNotMatch(s, /data-action=/);
+    assertNotMatch(s, /Arrow keys pan the canvas/);
+});
+
 Deno.test(
     'buildBar on the first path: label, hover text, prev disabled',
     () => {
@@ -566,7 +629,7 @@ Deno.test(
 Deno.test('buildBar idx 1: prev not disabled', () => {
     const p = new FlowStatsPresenter(
         modelWithPaths(),
-        arrangement(),
+        arrangement(), true,
     );
     const s = p.buildBar(
         { selectedPathIndex: 1 },
@@ -742,7 +805,7 @@ Deno.test('rich card renders all stat blocks for a regular node',
     () => {
     const p = new FlowStatsPresenter(
         modelWithPaths(),
-        arrangement(),
+        arrangement(), true,
     );
     const s = nodeStat({
         id: 'a', displayName: 'Review',
@@ -799,7 +862,7 @@ Deno.test('rich card renders all stat blocks for a regular node',
 Deno.test('sub-1/wk throughput reads <1/wk', () => {
     const p = new FlowStatsPresenter(
         modelWithPaths(),
-        arrangement(),
+        arrangement(), true,
     );
     const html = p.buildCard(nodeStat({
         id: 'a', displayName: 'Review',
@@ -811,7 +874,7 @@ Deno.test('sub-1/wk throughput reads <1/wk', () => {
 Deno.test('top producer not in clan is flagged', () => {
     const p = new FlowStatsPresenter(
         modelWithPaths(),
-        arrangement(),
+        arrangement(), true,
     );
     const s = nodeStat({
         id: 'a',
@@ -829,7 +892,7 @@ Deno.test('special-node card is lean (no clan/producer/branch)',
     () => {
     const p = new FlowStatsPresenter(
         modelWithPaths(),
-        arrangement(),
+        arrangement(), true,
     );
     const s = nodeStat({
         id: 'c', isCreate: true,
@@ -845,7 +908,7 @@ Deno.test('special-node card is lean (no clan/producer/branch)',
 Deno.test('renderCard hides the slot when nodeId is null', () => {
     const p = new FlowStatsPresenter(
         modelWithPaths(),
-        arrangement(),
+        arrangement(), true,
     );
     const classes = new Set<string>();
     const cardEl = {

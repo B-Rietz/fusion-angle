@@ -44,7 +44,13 @@ function makeHostStub(): {
     // The page measures its canvas on every load. Nothing
     // lays this document out, so the canvas has no size and
     // the page neither arranges nor frames the flow for it.
-    const canvasWrapEl = { clientWidth: 0, clientHeight: 0 };
+    // A flow with Auto Fit off binds its pan and zoom to
+    // the canvas and its zoom buttons to the gutter.
+    const canvasWrapEl = {
+        clientWidth: 0, clientHeight: 0,
+        addEventListener: () => {},
+    };
+    const gutterEl = { addEventListener: () => {} };
     // Every load writes the host first, before its fetch, so
     // a wake shows here the moment it is delivered.
     let markup = '';
@@ -72,6 +78,9 @@ function makeHostStub(): {
             }
             if (selector === '.flow-stats-canvas-wrap') {
                 return canvasWrapEl;
+            }
+            if (selector === '.flow-stats-gutter') {
+                return gutterEl;
             }
             return null;
         },

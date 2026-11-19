@@ -18,9 +18,11 @@ import {
 } from '../app/presenters/index.ts';
 import { arrangeFlow } from '../app/flow-arrangement.ts';
 import {
+    cameraZoomedToward,
     viewBoxResized,
     type Camera,
 } from '../app/flow-camera.ts';
+import { bindStatsPanZoom } from '../app/flow-stats-pan-zoom.ts';
 import {
     nodeBoundsBox,
     type FitBox,
@@ -104,9 +106,9 @@ function anchorCardTo(
 let flowId = '';
 let projectId: string | undefined;
 
-// The listeners of the CURRENT render — hover, click, and
-// the canvas's resize; each load aborts the last so a
-// re-render never doubles them.
+// The listeners of the CURRENT render — hover, click, the
+// canvas's resize, and its pan and zoom; each load aborts
+// the last so a re-render never doubles them.
 let renderListeners: AbortController | null = null;
 
 export async function init(
@@ -153,6 +155,7 @@ async function load(host: HTMLElement): Promise<void> {
             new FlowStatsPresenter(
                 model,
                 arrangeFlow(graph, { kind: 'unmeasured' }),
+                graph.isAutoFit,
             ).renderShell(host);
 
             // Presenter is deliberately name-agnostic;
@@ -178,7 +181,7 @@ async function load(host: HTMLElement): Promise<void> {
                     : { kind: 'unmeasured' },
             );
             const presenter = new FlowStatsPresenter(
-                model, arrangement,
+                model, arrangement, graph.isAutoFit,
             );
 
             const nodeBox = nodeBoundsBox(
@@ -239,6 +242,39 @@ async function load(host: HTMLElement): Promise<void> {
                 }
             };
             if (fitsAtLoad) showCamera(fitToDrawn(canvas));
+
+            // With Auto Fit off the reader moves the camera:
+            // a drag, the wheel, the keys, and the gutter's
+            // zoom buttons. With it on, nothing is bound.
+            if (!graph.isAutoFit) {
+                bindStatsPanZoom(
+                    wrap, () => ui.camera, showCamera, signal,
+                );
+                $required('.flow-stats-gutter', host)
+                    .addEventListener(
+                        'click',
+                        (e) => {
+                            if (
+                                !(e.target instanceof Element)
+                            ) return;
+                            const button = e.target.closest(
+                                '[data-action="zoom-in"],'
+                                + ' [data-action="zoom-out"]',
+                            );
+                            if (!button) return;
+                            showCamera(cameraZoomedToward(
+                                ui.camera,
+                                getRequiredAttribute(
+                                    button, 'data-action',
+                                ) === 'zoom-in'
+                                    ? 'in'
+                                    : 'out',
+                                null,
+                            ));
+                        },
+                        { signal },
+                    );
+            }
 
             // A resize never lays out and never fetches:
             // with Auto Fit on the camera fits again; with

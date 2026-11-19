@@ -10,7 +10,9 @@ import {
     type SafeHtml,
 } from '../safe-html.ts';
 import { $, $required } from '../dom.ts';
-import { ICON_SIZE, iconArrowLeft } from '../icons.ts';
+import {
+    ICON_SIZE, iconArrowLeft, iconMinus, iconPlus,
+} from '../icons.ts';
 import {
     buildStatsGraphSvg,
 } from '../flow-stats-graph.ts';
@@ -51,13 +53,16 @@ export interface FlowStatsUi {
 export class FlowStatsPresenter {
     readonly #model: FlowStatsModel;
     readonly #arrangement: FlowArrangement;
+    readonly #isAutoFit: boolean;
 
     constructor(
         model: FlowStatsModel,
         arrangement: FlowArrangement,
+        isAutoFit: boolean,
     ) {
         this.#model = model;
         this.#arrangement = arrangement;
+        this.#isAutoFit = isAutoFit;
     }
 
     buildShell(): SafeHtml {
@@ -95,9 +100,13 @@ export class FlowStatsPresenter {
     ${this.buildBar({ selectedPathIndex: 0 })}
 </div>
 <div class="flow-stats-body">
-    <div class="flow-stats-gutter"></div>
+    ${this.#buildGutter()}
     <div class="flow-stats-canvas-area">
-        <div class="flow-stats-canvas-wrap">
+        <div class="${
+            this.#isAutoFit
+                ? 'flow-stats-canvas-wrap'
+                : 'flow-stats-canvas-wrap flow-stats-pannable'
+        }">
             <div class="${
                 'flow-stats-canvas-host'
             }"></div>
@@ -108,6 +117,39 @@ export class FlowStatsPresenter {
         ></div>
     </div>
 </div>
+</div>`;
+    }
+
+    // Blank with Auto Fit on. With it off, the designer's
+    // zoom buttons stand where its toolbar keeps them,
+    // below the first spacer that stands in for its undo
+    // and redo, each described by the keyboard's pan for
+    // assistive technology.
+    #buildGutter(): SafeHtml {
+        if (this.#isAutoFit) {
+            return html`<div class="flow-stats-gutter"></div>`;
+        }
+        return html`<div class="flow-stats-gutter">
+<div class="flow-stats-gutter-spacer"></div>
+<div class="flow-stats-gutter-group">
+<button
+    class="btn btn-ghost btn-icon"
+    data-action="zoom-out"
+    title="Zoom out"
+    aria-label="Zoom out"
+    aria-describedby="flow-stats-pan-hint"
+    >${iconMinus(ICON_SIZE.lg, '')}</button>
+<button
+    class="btn btn-ghost btn-icon"
+    data-action="zoom-in"
+    title="Zoom in"
+    aria-label="Zoom in"
+    aria-describedby="flow-stats-pan-hint"
+    >${iconPlus(ICON_SIZE.lg, '')}</button>
+<span id="flow-stats-pan-hint" class="sr-only"
+    >Arrow keys pan the canvas</span>
+</div>
+<div class="flow-stats-gutter-spacer"></div>
 </div>`;
     }
 

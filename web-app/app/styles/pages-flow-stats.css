@@ -116,8 +116,42 @@ html[data-page="flow-stats"] #flow-stats {
     min-height: 0;
 }
 .flow-stats-gutter {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-1);
     width: var(--width-flow-tools);
     flex-shrink: 0;
+}
+/* With Auto Fit off the gutter holds the designer's zoom */
+/* buttons where its toolbar keeps them, below its undo   */
+/* and redo, dressed as its toolbar dresses them.         */
+.flow-stats-gutter-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+}
+.flow-stats-gutter-spacer {
+    flex: 1;
+}
+/* The first spacer stands in for the designer's undo and */
+/* redo: two icon buttons, the gap between them, and the  */
+/* gap after them. An icon button is the tool column's    */
+/* width less its side padding.                           */
+.flow-stats-gutter-spacer:first-child {
+    flex: none;
+    height: calc(
+        2 * (var(--width-flow-tools) - 2 * var(--space-1))
+        + 2 * var(--space-2)
+    );
+}
+.flow-stats-gutter .btn {
+    border: 1px solid hsl(var(--border));
+}
+.flow-stats-gutter .btn:hover {
+    border-color: transparent;
 }
 .flow-stats-canvas-area {
     position: relative;
@@ -138,6 +172,21 @@ html[data-page="flow-stats"] #flow-stats {
 .flow-stats-canvas-host {
     width: 100%;
     height: 100%;
+}
+/* With Auto Fit off a drag pans the canvas. A state keeps */
+/* its pointer: a click on it still pins its card.         */
+.flow-stats-pannable {
+    cursor: grab;
+    user-select: none;
+}
+.flow-stats-panning,
+.flow-stats-panning * {
+    cursor: grabbing;
+}
+/* While a pan runs no state is a hover target: the hover */
+/* card hides, and none opens under the moving pointer.    */
+.flow-stats-panning .flow-stats-node {
+    pointer-events: none;
 }
 svg.flow-stats-canvas {
     width: 100%;
@@ -433,5 +482,25 @@ svg.flow-stats-canvas
     }
     .flow-stats-bar {
         flex-basis: 100%;
+    }
+    /* The gutter is a row above the canvas, as the        */
+    /* designer's toolbar is; blank, it takes no room.     */
+    .flow-stats-body {
+        flex-direction: column;
+    }
+    .flow-stats-gutter {
+        flex-direction: row;
+        flex-wrap: wrap;
+        width: auto;
+        padding: var(--space-2) var(--space-3);
+    }
+    .flow-stats-gutter:empty {
+        padding: 0;
+    }
+    .flow-stats-gutter-group {
+        flex-direction: row;
+    }
+    .flow-stats-gutter-spacer {
+        display: none;
     }
 }
