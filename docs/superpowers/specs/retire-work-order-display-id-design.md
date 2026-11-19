@@ -83,6 +83,50 @@ derivable from the other.
   mock-data`); any stored version still carrying
   `display_id` fails its read validator until then.
 
+## Part two: one look for every displayed id
+
+The operator's rule: call a thing a thing, in both its
+id and how it is shown. Today the eight places that show
+an id use five looks. Work order and Instance labels come
+from helpers, while Token, Account, and Chain are typed
+inline.
+
+### Decided
+
+- **The id text looks the same everywhere (A, chosen by
+  the operator).** One presenter helper renders
+  `<Thing> <id>`. The id sits in one monospace element
+  with one class, and the whole id is always in the
+  markup. When space runs short, CSS clips it with an
+  ellipsis, so copy, search, and screen readers still get
+  the whole id. Each site keeps its surroundings (header
+  badge, row, link, heading), because those say what the
+  element does. B, one badge everywhere, was rejected
+  because it hides which ids are clickable.
+- **Clickable wherever it makes sense (operator).** The
+  calls:
+
+| Id | Site | Clickable |
+|---|---|---|
+| Work order | inbox rows | already: the row opens it |
+| Work order | record detail | already a link |
+| Work order | its own header | no: current page |
+| Instance | work order binding badge | new: record detail of its record type, scrolled to that instance's row |
+| Instance | record detail rows | no: current page |
+| Parent token | identity tokens | new: in-page jump to the parent's row, only when that row is on the page |
+| Token, Chain | identity tokens | no: current page |
+| Account | identity providers | no: the provider's account has no page here |
+
+### Left to the builder (part two)
+
+- The helper's name and module. It returns `SafeHtml`
+  and replaces `workOrderLabel` and `instanceLabel`.
+- The class name and its stylesheet home, per
+  DESIGN-SYSTEM.md; no inline style.
+- How record detail receives the instance to scroll to
+  (fragment or query), and the anchor id each token row
+  carries.
+
 ## Left to the builder
 
 - Order of the commits, red test first at each layer.
