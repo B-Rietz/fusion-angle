@@ -16,7 +16,10 @@ writes pass through (`validateWorkOrderDocumentBody`),
 the stored-version validator, search, the client, the
 seed, and every test fixture in one commit, because the
 validators' only-keys gate rejects any fixture still
-carrying it. Task 3 brings the docs in line.
+carrying it. Task 3 brings the docs in line. Tasks 4
+and 5 are spec part two: one `idLabel` helper and one
+`.displayed-id` class for all eight id sites, then links
+from the Instance badge and the Parent token label.
 
 **Tech Stack:** Deno 2.9.8, TypeScript, `@std/assert`.
 
@@ -305,10 +308,199 @@ git commit -m "Drop the display id from the docs"
 
 ---
 
+### Task 4: One look for every displayed id
+
+Spec part two, "Decided" first bullet.
+
+**Files:**
+- Create: `web-app/app/presenters/id-label.ts`
+- Modify: `web-app/app/format.ts` (delete
+  `workOrderLabel`, `instanceLabel`)
+- Modify: `web-app/app/styles/components-badges.css`
+  (the `.displayed-id` rule)
+- Modify: `web-app/app/styles/pages-records.css:133`
+  (delete `.record-instance-id`'s font rule; the class
+  stays as a hook if a test or script queries it)
+- Modify: `workbox-detail.ts`, `workbox-inbox.ts`,
+  `record-detail.ts`, `identity-tokens.ts`,
+  `identity-providers.ts` under
+  `web-app/app/presenters/`
+- Test: `tests/presenter-id-label.test.ts` (new); the
+  label assertions in `tests/format.test.ts` move there;
+  the presenter tests Task 1 touched, plus
+  `tests/presenter-identity-tokens.test.ts` and
+  `tests/presenter-identity-providers.test.ts`
+
+**Interfaces:**
+- Consumes: Task 1's sites passing the work order id.
+- Produces:
+  `idLabel(thing: string, id: string): SafeHtml` renders
+  `${thing} <code class="displayed-id">${id}</code>`. The
+  id is escaped by `html`, and the whole id is always in
+  the markup.
+
+- [ ] **Step 1: Write the failing tests**
+
+`tests/presenter-id-label.test.ts`:
+- `'idLabel renders the thing and the whole id'`:
+  `idLabel('Work order', 'wrVS6q_Zsd8ILhGFyG1-zg')`
+  `.toString()` equals
+  `'Work order <code class="displayed-id">wrVS6q_Zsd8ILhGFyG1-zg</code>'`.
+- `'idLabel escapes the id'`: `idLabel('Token', '<x>')`
+  contains `&lt;x&gt;` and not `<x>`.
+
+In each presenter test that pins a label, assert the
+`displayed-id` element wraps the id. Use these regexes:
+- work order header:
+  `/Work order <code class="displayed-id">wo-1<\/code>/`
+- inbox rows (placed and unplaced), record detail work
+  order links: the same, with that test's id
+- instance rows, instance edit header, binding badge:
+  `/Instance <code class="displayed-id">…<\/code>/`
+- identity tokens:
+  `/Token <code class="displayed-id">…<\/code>/`,
+  `/Parent token <code class="displayed-id">…<\/code>/`,
+  `/Chain <code class="displayed-id">…<\/code>/`
+- identity providers:
+  `/Account <code class="displayed-id">…<\/code>/`
+
+`Parent token` with no parent stays `Parent token —`,
+with no `<code>`; pin that too.
+
+- [ ] **Step 2: Run to verify they fail**
+
+Run: `deno test --frozen --no-check tests/presenter-id-label.test.ts tests/presenter-workbox-detail.test.ts tests/presenter-workbox-inbox.test.ts tests/presenter-record-detail.test.ts tests/workbox-inbox.test.ts tests/presenter-identity-tokens.test.ts tests/presenter-identity-providers.test.ts`
+Expected: FAIL. The module does not exist yet, and each
+site still renders plain text.
+
+- [ ] **Step 3: Implement `idLabel` and the class**
+
+`.displayed-id` sets `font-family: var(--font-mono)`
+and takes the `.truncate` utility's three properties.
+It also sets `display: inline-block`,
+`max-width: 100%`, and `vertical-align: bottom`, so the
+ellipsis can apply inside a line of text. Every site
+calls `idLabel`. Delete `workOrderLabel` and
+`instanceLabel`, and the inline `Token `, `Parent
+token `, `Account `, and `Chain ` text. Each site keeps
+its container classes (badge, link, row, heading).
+Record detail's `<code class="record-instance-id …">`
+becomes a `<span class="record-instance-id text-sm">`
+wrapping `idLabel('Instance', …)`, so no `<code>` is
+nested in another `<code>`.
+
+- [ ] **Step 4: Run to verify they pass**
+
+Run: the Step 2 command, then
+`./test validate --syntax && ./test`.
+Expected: PASS, and
+`grep -rn "workOrderLabel\|instanceLabel" web-app tests`
+prints nothing.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add web-app tests
+git commit -m "Show every displayed id one way"
+```
+
+---
+
+### Task 5: Link the instance and parent token ids
+
+Spec part two, the clickable table: two new links.
+
+**Files:**
+- Modify: `web-app/app/presenters/workbox-detail.ts`
+  (`#bindingBadge`)
+- Modify: `web-app/records/detail.ts` (read the
+  `instance` query parameter, scroll its row into view)
+- Modify: `web-app/app/presenters/identity-tokens.ts`
+  (`buildEventRow`, `buildChainCard`)
+- Test: `tests/presenter-workbox-detail.test.ts`,
+  `tests/presenter-identity-tokens.test.ts`; a browser
+  case in `tests/browser/` for the scroll
+
+**Interfaces:**
+- Consumes: `idLabel` (Task 4); `buildPageUrl(page,
+  params)` from `web-app/app/navigation.ts`.
+- Produces: record detail accepts
+  `?id=<recordTypeId>&instance=<instanceId>`. The first
+  row per jti carries `id="token-<jti>"`.
+
+- [ ] **Step 1: Write the failing tests**
+
+`tests/presenter-workbox-detail.test.ts`,
+`'the binding badge links to its instance'`: with a bound
+work order, the badge is an `<a>` whose `href` equals
+`buildPageUrl('record-detail', { id: <recordTypeId>,
+instance: <instanceId> })`. It keeps `badge
+badge-success`, and its text holds `idLabel('Instance',
+<instanceId>)`.
+
+`tests/presenter-identity-tokens.test.ts`:
+- `'the first row of each token carries its anchor'`:
+  for a chain whose jti `t1` has two events, exactly one
+  `id="token-t1"` appears.
+- `'a parent token on the page is a link to its row'`:
+  child event `parentJti: 't1'` with `t1` in the same
+  render: `<a href="#token-t1">` wraps the parent's
+  label.
+- `'a parent token absent from the page is not a
+  link'`: `parentJti: 'gone'` with no `gone` row: no
+  `href="#token-gone"`, and the label is still rendered.
+
+A browser case: open the record detail URL with
+`instance=<the seeded bound instance>`; that row's
+`getBoundingClientRect().top` is within the viewport.
+
+- [ ] **Step 2: Run to verify they fail**
+
+Run: `deno test --frozen --no-check tests/presenter-workbox-detail.test.ts tests/presenter-identity-tokens.test.ts`
+Expected: FAIL on the three link and anchor assertions.
+
+- [ ] **Step 3: Implement the links**
+
+The binding badge becomes
+`<a href="${buildPageUrl(…)}" class="badge
+badge-success" data-binding="bound" title="…">`. Keep the
+`title` and the `data-binding` attribute.
+
+The identity tokens presenter collects the jtis rendered
+across all chains before it builds the rows. It anchors
+the first row per jti, and links the parent label only
+when the parent's jti is in that set.
+
+Record detail reads `instance` the same way it reads
+`id`. After the instance list renders, it calls
+`scrollIntoView({ block: 'center' })` on
+`[data-instance-id="<instance>"]` when that row exists.
+When the row is absent, nothing happens: no error, no
+toast.
+
+- [ ] **Step 4: Run to verify they pass**
+
+Run: the Step 2 command, then
+`./test validate --syntax && ./test`; then the browser
+case under `./test browser` when Chrome is available. If
+it isn't, say so in the report.
+Expected: PASS.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add web-app tests
+git commit -m "Link the instance and parent token ids"
+```
+
+---
+
 ## After the branch
 
-Squash to one commit, run `./test validate` (Layer 1),
-and report the branch. After the operator's merge and
+Squash to two commits, one per feature: Tasks 1–3
+(`Retire the work order display id`) and Tasks 4–5
+(`Show and link every displayed id one way`). Then run
+`./test validate` (Layer 1) and report the branch. After the operator's merge and
 `./test validate browser`, the operator wipes and
 reseeds fusionangle.com with
 `./deploy --render TOKEN --postgres mock-data`.
