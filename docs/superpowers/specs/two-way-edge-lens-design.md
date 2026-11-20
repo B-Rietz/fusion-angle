@@ -203,7 +203,7 @@ The `BIDI_LABEL_T` stagger retires.
 | `LANE` | 8 | attachments 16 apart |
 | `BOW_FRAC` | 0.045 | end angle about 10 degrees |
 | `BOW_MAX` | 16 | at most 48 apart mid-span |
-| `LABEL_GAP` | 6 | label to arc |
+| `LABEL_GAP` | 8 | label to arc |
 
 Measured: a vertical pair 243 apart has a 179 chord, an
 8.1 bow, and 32 between the arcs mid-span. A sweep of
@@ -211,7 +211,8 @@ every half degree at seven distances found no arc
 entering a state.
 
 The operator set these by eye on an interactive mock,
-bringing `BOW_FRAC` down from 0.07, and may tune them
+bringing `BOW_FRAC` down from 0.07 and `LABEL_GAP` up
+from 6, and may tune them
 again on the development server, so each lives in one
 named constant.
 
