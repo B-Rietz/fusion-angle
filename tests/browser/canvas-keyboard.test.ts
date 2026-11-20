@@ -11,6 +11,7 @@ import {
 const browser = useBrowser();
 
 const INSTRUCTIONS = 'prop-node-instructions';
+const FOCUSED_ID = `document.activeElement?.id`;
 // Each node's place on the canvas, in document order.
 const LAYOUT =
     `[...document.querySelectorAll('${NODE}')]`
@@ -126,6 +127,28 @@ Deno.test('a save under an open panel leaves Auto Layout'
         await stays(page, LAYOUT, STAY_MS);
         assertStrictEquals(
             await page.evaluate<string>(LAYOUT), laidOut,
+        );
+    });
+});
+
+// The panel saves a pause after the last keystroke. A
+// second burst reaches the field, at its caret, only if
+// neither that save's repaint nor its echo moved focus.
+Deno.test('typing in a panel field goes on after its save',
+async () => {
+    await withAdminPage(browser.get(), async (page, origin) => {
+        const { flowId, review } =
+            await editReviewInstructions(page, origin);
+        await page.type('Decide ');
+        await instructionsSaved(origin, flowId, review, 'Decide ');
+        await stays(page, FOCUSED_ID, STAY_MS);
+        assertStrictEquals(
+            await page.evaluate<string>(FOCUSED_ID),
+            INSTRUCTIONS,
+        );
+        await page.type('which');
+        await instructionsSaved(
+            origin, flowId, review, 'Decide which',
         );
     });
 });

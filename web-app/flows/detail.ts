@@ -265,7 +265,7 @@ const pageState = new PageState();
 
 function commit(
     next: FlowSnapshot,
-    opts?: { advanceHistory?: boolean },
+    opts?: { advanceHistory?: boolean; keepPanel?: boolean },
 ): void {
     if (opts?.advanceHistory) {
         pageState.setHistory(recordFlowMutation());
@@ -277,7 +277,14 @@ function commit(
         pageState.history(),
     );
     pageState.setPresenter(presenter);
-    update(pageState.container());
+    update(pageState.container(), opts);
+}
+
+// A panel field's own edit. The panel already shows it,
+// so the repaint leaves the panel standing, and the
+// caret in its field.
+function commitPanelEdit(next: FlowSnapshot): void {
+    commit(next, { advanceHistory: true, keepPanel: true });
 }
 
 async function handleAddEdge(
@@ -660,7 +667,10 @@ export function restoreCanvasFocus(
     }
 }
 
-function update(container: HTMLElement): void {
+function update(
+    container: HTMLElement,
+    opts?: { keepPanel?: boolean },
+): void {
     pageState.saveDebouncer().flush();
     const presenter = pageState.presenter();
     const wrap = $(
@@ -671,7 +681,11 @@ function update(container: HTMLElement): void {
         : canvasFocusOf(
             document.activeElement, wrap,
         );
-    presenter.renderUpdate(container);
+    if (opts?.keepPanel) {
+        presenter.renderAroundPanel(container);
+    } else {
+        presenter.renderUpdate(container);
+    }
     if (wrap !== null) {
         withCanvasFocusRestore(wrap, () => {
             restoreCanvasFocus(focus, wrap);
@@ -1340,10 +1354,7 @@ function bindPanelActions(
                             presenter.withNodeNamed(
                                 nodeId, value,
                             ),
-                            next => commit(
-                                next,
-                                { advanceHistory: true },
-                            ),
+                            commitPanelEdit,
                         );
                     },
                 );
@@ -1363,10 +1374,7 @@ function bindPanelActions(
                                 .withNodeTaskInstructions(
                                     nodeId, value,
                                 ),
-                            next => commit(
-                                next,
-                                { advanceHistory: true },
-                            ),
+                            commitPanelEdit,
                         );
                     },
                 );
@@ -1385,10 +1393,7 @@ function bindPanelActions(
                             presenter.withEdgeNamed(
                                 edgeId, value,
                             ),
-                            next => commit(
-                                next,
-                                { advanceHistory: true },
-                            ),
+                            commitPanelEdit,
                         );
                     },
                 );
