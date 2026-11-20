@@ -19,7 +19,10 @@ import {
     HTTP_SERVICE_UNAVAILABLE,
     HTTP_TOO_MANY_REQUESTS,
 } from '../shared/http-errors.ts';
-import { OPERATION_ID_HEADER } from '../shared/message-id-fields.ts';
+import {
+    REQUEST_HEADERS,
+    requestHeaderOf,
+} from '../api/request-header-names.ts';
 import { REQUEST_ID_HEADER } from '../shared/message-id-fields.ts';
 import { msSinceMonotonic } from '../shared/types.ts';
 import { gitShaForStatus } from './git-sha.ts';
@@ -171,7 +174,10 @@ function isDocumentNavigation(
 ): boolean {
     return request.method === 'GET'
         && headerLine(
-            request.headers.get('sec-fetch-mode'),
+            requestHeaderOf(
+                request.headers,
+                REQUEST_HEADERS.secFetchMode,
+            ),
         ) === 'navigate';
 }
 
@@ -239,7 +245,10 @@ async function existingStaticFile(
 function contentLengthOf(
     request: Request,
 ): number | undefined {
-    const raw = request.headers.get('content-length');
+    const raw = requestHeaderOf(
+        request.headers,
+        REQUEST_HEADERS.contentLength,
+    );
     if (raw === null) return undefined;
     const n = Number(raw);
     if (!Number.isFinite(n) || n < 0) return undefined;
@@ -454,7 +463,10 @@ async function serveStatic(
     const sidecar = await sidecarStat(filePath);
     const useGzip = sidecar !== undefined
         && gzipAccepted(
-            request.headers.get('accept-encoding'),
+            requestHeaderOf(
+                request.headers,
+                REQUEST_HEADERS.acceptEncoding,
+            ),
         );
     const servePath = useGzip
         ? filePath + '.gz'
@@ -561,7 +573,10 @@ function levelFor(
 function operationIdOf(
     request: Request,
 ): string | undefined {
-    const raw = request.headers.get(OPERATION_ID_HEADER);
+    const raw = requestHeaderOf(
+        request.headers,
+        REQUEST_HEADERS.operationId,
+    );
     if (raw === null || raw === '') return undefined;
     return raw;
 }
@@ -717,11 +732,15 @@ async function dispatch(
                 && throttle.limited(
                     remoteHostname(info.remoteAddr),
                     headerLine(
-                        request.headers.get('forwarded'),
+                        requestHeaderOf(
+                            request.headers,
+                            REQUEST_HEADERS.forwarded,
+                        ),
                     ),
                     headerLine(
-                        request.headers.get(
-                            'x-forwarded-for',
+                        requestHeaderOf(
+                            request.headers,
+                            REQUEST_HEADERS.xForwardedFor,
                         ),
                     ),
                 )) {

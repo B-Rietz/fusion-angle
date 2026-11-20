@@ -8,7 +8,7 @@ import {
 import type { BodyRegistry } from './media-registry.ts';
 import type { ContentCodingRegistry } from './content-coding.ts';
 
-const CONTENT_TYPE = 'content-type';
+export const CONTENT_TYPE = 'content-type';
 const CONTENT_ENCODING = 'content-encoding';
 const IDENTITY = 'identity';
 

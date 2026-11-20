@@ -4,6 +4,10 @@
 // selects the JSON document.
 
 import { join } from '@std/path';
+import {
+    REQUEST_HEADERS,
+    requestHeaderOf,
+} from '../api/request-header-names.ts';
 
 const JSON_TYPE = 'application/json';
 const HTML_TYPE = 'text/html';
@@ -36,11 +40,17 @@ export function everyComponentUp(
 }
 
 export function jsonRequested(headers: Headers): boolean {
-    if (mediaType(headers.get('content-type'))
+    if (mediaType(requestHeaderOf(
+        headers,
+        REQUEST_HEADERS.statusPageContentType,
+    ))
         === JSON_TYPE) {
         return true;
     }
-    const accept = headers.get('accept');
+    const accept = requestHeaderOf(
+        headers,
+        REQUEST_HEADERS.accept,
+    );
     if (accept === null || accept.trim() === '') {
         return false;
     }

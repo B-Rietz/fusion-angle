@@ -60,7 +60,10 @@ import {
     runLedgerStatement,
 } from './ledger-statement.ts';
 import { DATE_PLACEHOLDER } from './ledger-root.ts';
-import { IF_MATCH_HEADER } from './request-header-names.ts';
+import {
+    REQUEST_HEADERS,
+    requestFieldOf,
+} from './request-header-names.ts';
 export {
     IF_MATCH_HEADER,
     IF_NONE_MATCH_HEADER,
@@ -235,7 +238,10 @@ function headerFieldsWithOperationId(
     fields: readonly FieldLine[],
     operationId: string,
 ): FieldLine[] {
-    if (fields.some((f) => f.name === OPERATION_ID_HEADER)) {
+    if (
+        requestFieldOf(fields, REQUEST_HEADERS.operationId)
+            !== undefined
+    ) {
         return [...fields];
     }
     return [
@@ -573,11 +579,12 @@ export function ifMatchFromMessage(
     message: string,
 ): string | undefined {
     const model = parseWire(message);
-    const field = model.fields.find(
-        (line) => line.name === IF_MATCH_HEADER,
+    const raw = requestFieldOf(
+        model.fields,
+        REQUEST_HEADERS.ifMatch,
     );
-    if (field === undefined) return undefined;
-    return parseIfMatch(field.value);
+    if (raw === undefined) return undefined;
+    return parseIfMatch(raw);
 }
 
 export function ifMatchFromMessagePair(
@@ -595,10 +602,10 @@ export function rawIfMatchFromMessagePair(
     messagePair: MessagePair,
 ): string | undefined {
     const model = parseWire(messagePair.requestMessage);
-    const field = model.fields.find(
-        (line) => line.name === IF_MATCH_HEADER,
+    return requestFieldOf(
+        model.fields,
+        REQUEST_HEADERS.ifMatch,
     );
-    return field?.value;
 }
 
 // Strong wire ETag: quotes the validator token.
