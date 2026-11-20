@@ -1748,11 +1748,10 @@ is edited.
 - 503 gets no page (D17).
 - 422 is gone in its own commit.
 
-## Task 12 (BLOCKED): Print each endpoint's declared headers
+## Task 12: Print each endpoint's declared headers
 
-**BLOCKED on `declared-request-headers`.** This task is
-written to that unit's design. Re-check R1 to R4 before
-dispatch.
+The prerequisite is on master. R1 to R6 were re-checked
+against the real module, and this text follows it.
 
 **Agent:** `planner`.
 
@@ -1761,45 +1760,96 @@ dispatch.
 - Test: `tests/api-documentation-headers.test.ts`
 
 **Interfaces:**
-- Consumes (names per R1, to be confirmed):
-  `REQUEST_HEADER_DECLARATIONS`, each declaration's
-  `name`, `surface` (`'endpoint' | 'transport' |
-  'site'`), and `stateOf(kind: RequestKind)`.
-  `RequestKind` is the route pattern, the method,
-  whether a body is sent, and the grant type (R2).
+- Consumes:
+  - `REQUEST_HEADER_DECLARATIONS`, `RequestKind`,
+    `RequestMethod`, and `RequestHeaderDeclaration`
+    from `api/request-headers.ts`. The list is in
+    `REQUEST_HEADERS` key order. Each declaration has
+    `name` (lower-case), `surface` (`'endpoint' |
+    'transport' | 'site'`, from
+    `api/request-header-names.ts`), `stateOf(kind)`,
+    and `alternatives`.
+  - `RequestKind` is `{ routePattern, method, bodySent,
+    grantType? }`. `method` is upper-case (`'GET' |
+    'QUERY' | 'PUT' | 'POST' | 'PATCH' | 'DELETE'`).
+    `grantType` is set only on `authentication/token`;
+    elsewhere omit it, because
+    `exactOptionalPropertyTypes` applies.
+  - `GRANT_TYPES` from `api/authentication.ts`, in its
+    own order: `authorization_code`, `refresh`,
+    `token-exchange`, `client_credentials`.
+  - `AUTHENTICATION_ROUTES` from `api/request-auth.ts`.
+  - Build each kind as `KINDS` in
+    `tests/request-header-states.test.ts` does:
+    `routePatternOf(row)`, `verb.toUpperCase()`, and a
+    body sent when the method is PUT, POST, PATCH, or
+    QUERY.
 - Produces:
   ```ts
   export function headerSetsOf(
       endpoint: Endpoint): readonly ApiDocHeaderSet[];
-  export const TRANSPORT_HEADERS: readonly ApiDocHeader[];
+  export const TRANSPORT_HEADERS:
+      readonly ApiDocHeaderSet[];
   ```
-  A body is sent when the verb is PUT, POST, PATCH, or
-  QUERY. `authentication/token` gets one set per grant
-  type, with `when` set to `'grant_type=<g>'`. Every
-  other endpoint gets one set, with `when: ''`. Only
-  `endpoint` declarations appear, and `unused` is
-  dropped. `alternative` fills `alternatives` (per R3).
+  `headerSetsOf`:
+  - `authentication/token` gets one set per
+    `GRANT_TYPES` entry, in that order, with `when` set
+    to `'grant_type=<g>'`. The kind with no grant type
+    is not printed: a `grant_type` outside
+    `GRANT_TYPES` is refused with 400.
+  - Every other endpoint gets one set, with `when: ''`.
+  - Only `endpoint` declarations appear, in
+    `REQUEST_HEADER_DECLARATIONS` order. `unused` is
+    dropped. `request-id` is `forbidden` on every kind,
+    so every set lists it.
+  - `alternatives` is the declaration's own list when
+    the state is `'alternative'`, and `[]` otherwise.
+    The declaration carries the set, not the state, and
+    `if-match` and `if-none-match` carry it whatever
+    their state.
+
   `TRANSPORT_HEADERS` holds the `transport`
-  declarations, with the state each declares for a
-  request that carries a body. `site` declarations
-  appear nowhere.
+  declarations, stated once in the guided start. Their
+  states differ by kind: `forwarded` and
+  `x-forwarded-for` are `optional` on
+  `authentication/authorize` and on
+  `authentication/token` for `authorization_code` and
+  `client_credentials`, and `unused` everywhere else.
+  So it is a list of sets, each built with `stateOf`,
+  with `unused` dropped and every kind taken as
+  carrying a body:
+  1. `when: ''`: the states for a request outside
+     `AUTHENTICATION_ROUTES`;
+  2. then one set for each sign-in kind whose list
+     differs from set 1, in route then `GRANT_TYPES`
+     order. Its `when` is `'POST /api/<route>'`, plus
+     `' grant_type=<g>'` on the token route.
+
+  `site` declarations appear nowhere. `content-type` is
+  two declarations with one name: `contentType`
+  (`endpoint`, `required` on QUERY, `unused`
+  otherwise) and `statusPageContentType` (`site`,
+  always `unused`). So `content-type` appears exactly
+  on the QUERY endpoints.
 
 - [ ] **Step 1: Write the failing test.** 'each
   endpoint's headers equal the declarations' states'.
-  For every endpoint, every set, and every `endpoint`
-  declaration, the state listed equals
-  `stateOf(kind)`, and an `unused` one is absent. No
-  `site` name appears in any set or in
-  `TRANSPORT_HEADERS`.
+  - For every endpoint, every set, and every
+    `endpoint` declaration, the state listed equals
+    `stateOf(kind)`, and an `unused` one is absent.
+  - No name that only a `site` declaration carries
+    (`accept-encoding`, `sec-fetch-mode`, `accept`)
+    appears in any set or in `TRANSPORT_HEADERS`. Derive
+    those names from the declarations; do not type them.
+  - `content-type` appears on exactly the QUERY
+    endpoints.
+  - `TRANSPORT_HEADERS`' first set has `when: ''` and
+    lists `content-length` `required` and
+    `transfer-encoding` `forbidden`. Each set's states
+    equal `stateOf` of the kind its `when` names.
 - [ ] **Step 2: Red, implement, green**, with `./test`.
 - [ ] **Step 3: Commit.** Subject: **Print each
   endpoint's declared request headers**.
-
-**Re-check once the module exists:** R1 to R5. Check too
-whether the declarations expose a forbidden
-`request-id` on every endpoint; the spec wants forbidden
-ones printed. And check whether the grant list is
-exported or must be read from `postToken`.
 
 ## Task 13: Related endpoints and the `?state=` parameter
 
@@ -1853,8 +1903,7 @@ the judges.
 
 ## Task 14: Replay the guided start
 
-**Agent:** `planner`. Its transport-header step is
-BLOCKED via Task 12.
+**Agent:** `planner`.
 
 **Files:**
 - Modify: `api/client-assertion.ts` (D21 exports)
@@ -1892,7 +1941,9 @@ BLOCKED via Task 12.
   organization admin. Its prose lists
   `ASSERTION_ALGORITHMS` and `ASSERTION_CLAIMS`. Step 2's
   prose carries:
-  - `TRANSPORT_HEADERS` (BLOCKED via Task 12);
+  - `TRANSPORT_HEADERS` (Task 12), set by set: what
+    every request with a body carries, then what each
+    named sign-in request adds;
   - `CURL_ADDS`;
   - the HTTP layer's framing (D5);
   - `GENERIC_ANSWERS`.
@@ -1928,9 +1979,10 @@ BLOCKED via Task 12.
   claims a client assertion must carry**, then **Replay
   the guided start**.
 
-**Re-check once the module exists:** that
-`TRANSPORT_HEADERS` (Task 12) lists `content-length` and
-`transfer-encoding` with the states the design gives.
+Re-checked against the module: `TRANSPORT_HEADERS`'
+first set lists `content-length` `required` and
+`transfer-encoding` `forbidden`, and Task 12's test holds
+it.
 
 ## Task 15: Write a replayed sample for every endpoint
 
@@ -2011,7 +2063,7 @@ BLOCKED via Task 12.
 - Two generations agree.
 - `--check` is green, and its run time is reported.
 
-## Task 16 (BLOCKED via 12): Emit the catalog and retire the HTML rooms
+## Task 16: Emit the catalog and retire the HTML rooms
 
 **Agent:** `architect`.
 
@@ -2050,8 +2102,8 @@ BLOCKED via Task 12.
   3. 'every answer an endpoint lists has its status
      page', and 'every listed code carries a line'.
   4. 'the catalog's tiers are tierOf's', and 'each
-     room's headers are headerSetsOf's'. The second is
-     BLOCKED via Task 12.
+     room's headers are headerSetsOf's', and
+     `API_DOC_TRANSPORT` equals `TRANSPORT_HEADERS`.
   5. 'each exchange's curl is its request's'. Expect
      `curlOf(request) === curl` for every committed
      exchange.
@@ -2096,7 +2148,9 @@ BLOCKED via Task 12.
       and the sample ref;
     - `API_DOC_STATUSES` (same shape);
     - `API_DOC_STEPS`;
-    - `API_DOC_TRANSPORT`;
+    - `API_DOC_TRANSPORT`, Task 12's
+      `TRANSPORT_HEADERS`: a list of
+      `ApiDocHeaderSet`;
     - `API_DOC_GENERIC_ANSWERS`;
     - `API_DOC_CURL_ADDS`;
   - stops writing HTML.
@@ -2178,9 +2232,6 @@ BLOCKED via Task 12.
 - The existing browser tests pass unedited.
 - `KEPT_ROOT_NAMES` is
   `index.html, index.ts, presenter.ts, shapes.ts`.
-
-**Re-check once the module exists:** item 4's second
-test and the catalog's `headerSets`.
 
 ## Task 17: Regenerate on Return; record the later work
 
