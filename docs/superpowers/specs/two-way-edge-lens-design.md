@@ -44,7 +44,11 @@ two things that depend on the angle:
    partner's label, by the same gap at every angle.
 3. **Gentle curves.** Each edge of a pair is one shallow
    arc bowing away from its partner — a slim lens.
-4. **One truth.** The designer's full rebuild, its
+4. **Forward on top or left.** The forward edge takes the
+   top of a horizontal pair and the left of a vertical
+   one, whichever way it travels. The return edge takes
+   the other side.
+5. **One truth.** The designer's full rebuild, its
    in-gesture mutator, and the stats page keep drawing a
    pair from the same function.
 
@@ -73,8 +77,9 @@ two things that depend on the angle:
   never differ from the designer.
 - A change to any byte `buildGraphSvg` emits outside a
   two-way pair's own edge groups.
-- A pair that swaps sides. Each edge keeps the side it
-  has today (see "Sides").
+- A side chosen by the direction of travel. The pair's
+  orientation and each edge's role fix its side, and
+  nothing else does (see "Sides").
 - An arc that crosses either state's rectangle anywhere
   but at its two ends.
 - `NaN` or `Infinity` in an emitted attribute, whatever
@@ -120,15 +125,36 @@ The operator picked 1.
 
 All lengths are SVG units. `c_from` and `c_to` are the
 two states' centres; `d` is the unit vector from `c_from`
-to `c_to`; `n = (-d.y, d.x)` is the edge's own outward
-normal.
+to `c_to`; `n` is the edge's outward unit normal, fixed
+under "Sides".
 
 ### Sides
 
-`n` is the normal the code uses today, so each edge keeps
-its side: on screen, an edge keeps to the right of its
-direction of travel. The reverse edge has the opposite
-`d`, so the opposite `n`, so the two bow apart.
+A two-way pair is a two-edge cycle, so `findCycleEdgeIds`
+marks exactly one of its edges as a loop-back. That edge
+is the pair's return edge. The other is its forward edge,
+the one a work order follows on its way to Archive.
+
+`u` is the unit normal of the line between the two
+centres that points up and to the left: `u.x + u.y < 0`,
+and on the exact down-right diagonal, where that sum is
+zero, the one pointing up. `u` belongs to the pair, not to
+either edge. The forward edge's `n` is `u`; the return
+edge's is `-u`.
+
+So the forward edge and its label sit on top when the
+pair is horizontal and on the left when it is vertical,
+whether the forward edge runs right or left, down or up.
+
+`u` turns with the pair and flips where the centre line
+crosses the down-right diagonal. There the two edges swap
+sides. No rule can put the forward edge on top of a
+horizontal pair and on the left of a vertical one without
+a swap between the two; this one puts it halfway. The
+other diagonal has no swap.
+
+Today's rule, each edge to the right of its own travel,
+retires.
 
 ### Lanes
 
@@ -192,11 +218,11 @@ named constant.
 ### Routed pairs
 
 Auto Layout gives waypoints to an edge that skips a layer.
-A pair so routed keeps today's route — the same start
-point, end point, and `buildWaypointPath`. Only its label
-changes: anchored at the route's midpoint
-(`pointAlongPolyline` at 0.5) and pushed along `n` by
-`LABEL_GAP + h`.
+A pair so routed keeps `buildWaypointPath` through its
+waypoints, between the same lane points `S` and `E`, so
+its ends sit on the side its role gives it. Its label is
+anchored at the route's midpoint (`pointAlongPolyline` at
+0.5) and pushed along `n` by `LABEL_GAP + h`.
 
 ### Touching or overlapping states
 
@@ -209,9 +235,17 @@ today. Coincident centres already take that path.
 
 The label's place now depends on its width, so
 `computeEdgeGeometry` needs the width (or the name) from
-each caller. All three callers already compute it. The
-function stays the single source of path and label place
-for all three.
+each caller. All three callers already compute it.
+
+The edge's side now depends on its role, so the geometry
+also needs to know forward from return. The designer's
+rebuild and the stats renderer already call
+`findCycleEdgeIds`; the in-gesture mutator does not, and
+holds the nodes and edges it would need. All three must
+resolve the role the same way, from one place.
+
+The function stays the single source of path and label
+place for all three.
 
 ### The golden fixtures
 
@@ -242,6 +276,13 @@ Written red first, at the level of what is drawn
 - The pair's two labels lie on opposite sides of the
   centre line and never overlap, for the shortest and the
   longest label.
+- The forward edge's label is above the centre line when
+  the forward edge runs right and when it runs left, and
+  left of it when the forward edge runs down and when it
+  runs up.
+- The two edges have swapped sides between a pair just
+  either side of the down-right diagonal, and have not
+  between a pair just either side of the other diagonal.
 - With equal label widths, one edge's geometry is the
   other's turned half a turn about the pair's midpoint.
 - Sampled along its length, neither arc enters either
@@ -278,6 +319,8 @@ on the designer and on the stats page, with Auto Fit on.
   equivalent.
 - Whether the caller passes the label's width or the
   edge's name.
+- How the forward-or-return role reaches the geometry,
+  within "Consumers".
 - `aimOffset` stops describing what it carries once edges
   no longer aim off-centre. If the builder renames it,
   the rename is its own commit.
