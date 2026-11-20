@@ -1,6 +1,7 @@
-# Two-way edge lens — design
+# Two-way edge lens and snug labels — design
 
-Branch and worktree `two-way-edge-lens`.
+Branch and worktree `two-way-edge-lens`. Two features, one
+commit each: snug labels first, then the lens.
 
 ## Intent
 
@@ -16,7 +17,12 @@ everywhere between look alike — with each label outside
 the pair so it adds space rather than crowding the gap, and
 with gently curved edges.
 
-## Why the angles differ today
+Looking at labels set apart like that, the operator also
+saw that a long label carries far more padding at its
+sides than a short one. Every edge label's box should be
+snug: the same padding each side, whatever the text.
+
+## What is wrong today
 
 `computeEdgeGeometry` (`web-app/app/flow-graph.ts`) does
 two things that depend on the angle:
@@ -34,6 +40,13 @@ two things that depend on the angle:
   20-tall label when the edge is horizontal and cannot
   clear a 36–140-wide one when it is vertical.
 
+`computeEdgeLabelWidth` sizes a label's box by a guess:
+7 units a character, plus 12. The text is Inter 400 at 11
+units, which runs between 5 and 6 a character, so the
+slack grows with the name: "submit" has about 9 a side,
+"needs revision" about 18. A name of wide glyphs (`W`,
+`M`) goes the other way and outgrows its box.
+
 ## Goals
 
 1. **One look at every angle.** The shape of a two-way
@@ -48,20 +61,25 @@ two things that depend on the angle:
    top of a horizontal pair and the left of a vertical
    one, whichever way it travels. The return edge takes
    the other side.
-5. **One truth.** The designer's full rebuild, its
-   in-gesture mutator, and the stats page keep drawing a
-   pair from the same function.
+5. **Snug labels.** Every edge label's box wraps its text
+   with the same padding each side, on one-way edges too.
+6. **One truth.** The designer's full rebuild, its
+   in-gesture mutator, and the stats page keep drawing an
+   edge from the same function, and everything that sizes
+   a label asks the same function for its width.
 
 ## Non-goals
 
-- One-way edges: path, label position, and label
-  stagger stay exactly as they are.
+- A one-way edge's path and its label's place. Only its
+  label's box changes width.
 - Cycle colour and dash, arrow markers, the selection
-  glow, the hit target width, label text, truncation, and
-  label box size.
-- Auto Layout (`flow-layout.ts`). An outside label on a
-  vertical pair lands in the row gap, which holds no
-  state.
+  glow, the hit target width, and label text.
+- Truncation. An edge label still cuts at 18 characters.
+- State names: their text, truncation, and place.
+- Auto Layout's algorithm (`flow-layout.ts`). It keeps
+  reserving room by label width, so narrower labels give
+  narrower gaps. An outside label on a vertical pair
+  lands in the row gap, which holds no state.
 - The connect-preview path (`buildEdgePreviewPath`,
   `buildConnectPreview`).
 - Label collisions under manual layout, where the
@@ -75,8 +93,8 @@ two things that depend on the angle:
 - A second geometry path for any consumer. A dragged pair
   must never differ from its rebuilt form, and stats must
   never differ from the designer.
-- A change to any byte `buildGraphSvg` emits outside a
-  two-way pair's own edge groups.
+- A change to anything `buildGraphSvg` emits beyond what
+  "The golden fixtures" lists.
 - A side chosen by the direction of travel. The pair's
   orientation and each edge's role fix its side, and
   nothing else does (see "Sides").
@@ -84,6 +102,11 @@ two things that depend on the angle:
   but at its two ends.
 - `NaN` or `Infinity` in an emitted attribute, whatever
   the positions.
+- Text measured in the browser at draw time. Label width
+  stays a pure function that answers the same under Deno
+  and in Chrome.
+- An ASCII label whose text overflows its box.
+- A second copy of the width rule anywhere.
 
 ## Constraints
 
@@ -92,11 +115,22 @@ two things that depend on the angle:
   (`flow-gesture-render.ts`), and the stats renderer
   (`flow-stats-graph.ts`). `tests/flow-stats-parity.test.ts`
   pins stats to the designer, with a two-way fixture.
+- `computeEdgeLabelWidth` is called by those three and by
+  Auto Layout's reservation (`flow-graph-layout.ts`). The
+  design-system showcase (`web-app/design-system/index.ts`)
+  carries its own copy of the 7-and-12 guess.
+- `truncateEdgeLabel` derives its 18 from the 140 cap and
+  the 7-unit guess. `tests/flow-graph-geometry.test.ts`
+  and `tests/presenter-flow-stats.test.ts` pin the 18.
+- The canvas draws label text in the page's sans face,
+  Inter 400, bundled as `web-app/assets/inter-400.woff2`,
+  at `LABEL_FONT` (11).
 - `tests/flow-graph-golden.test.ts` pins `buildGraphSvg`
-  byte for byte, and its flow holds a two-way pair
-  (`ab` / `ba`, a diagonal). Its comment says the fixtures
-  are never regenerated. This design amends that
-  covenant on purpose; see "The golden fixtures".
+  byte for byte. Its flow holds three labelled edges, two
+  of them a two-way pair (`ab` / `ba`, a diagonal). Its
+  comment says the fixtures are never regenerated. This
+  design amends that covenant on purpose; see "The golden
+  fixtures".
 - Auto Fit measures the rendered content with `getBBox`
   (`web-app/flows/detail.ts`, `reconcileFitFromDom`), so
   it frames outside labels with no change.
@@ -107,6 +141,8 @@ two things that depend on the angle:
   `## Stats variant` govern the two other consumers.
 
 ## Approaches
+
+### The lens
 
 1. **A lens of two arcs, labels at the apex, outside**
    (chosen). Lanes fix the attachment; a shallow arc
@@ -121,7 +157,85 @@ two things that depend on the angle:
 
 The operator picked 1.
 
-## Design
+### Snug labels
+
+1. **A table of Inter's advances** (chosen). The width of
+   each character, committed as data and pinned to the
+   bundled font by a browser test. Exact for ASCII to
+   within kerning, and pure.
+2. **A smaller guess per character.** One line, but the
+   boxes stay uneven: narrow names still loose, wide
+   names still overflowing.
+3. **Measure in the browser at draw time.** Exact, kerning
+   included. But Auto Layout sizes its gaps before
+   anything is drawn and runs under Deno in tests, so
+   every width would hang on the DOM and on the font
+   having loaded.
+
+The operator asked for snug labels and left the how. 1 is
+the author's call.
+
+## Design: snug labels
+
+### The rule
+
+A label box is `textWidth + 2 * LABEL_SIDE_PADDING` wide,
+and never narrower than `LABEL_MIN_WIDTH` (36, as today).
+`textWidth` is the width of the text the label draws: the
+name after its 18-character truncation.
+
+| Constant | Value | Reads as |
+|---|---|---|
+| `LABEL_SIDE_PADDING` | 8 | text to box, each side |
+
+The operator chose 8 by eye on the mock. "submit" comes to
+about 51 wide and "needs revision" to about 91, against 54
+and 110 today.
+
+The 140 cap (`LABEL_MAX_WIDTH`) retires. A box always
+wraps its text, and the 18-character truncation bounds how
+wide that can be.
+
+### Text width
+
+`textWidth` is the sum of each character's advance in
+Inter 400, times `LABEL_FONT`. The advances are a table
+committed as data, in em: one entry for each printable
+ASCII character (U+0020 to U+007E), and one for the
+ellipsis (U+2026) that truncation appends. Any other
+character takes one named fallback: the table's widest
+advance.
+
+Kerning and contextual alternates are not modelled. They
+move a label's true width by about a unit, which the
+padding absorbs.
+
+The function is pure: no DOM, no canvas.
+
+### Truncation
+
+Unchanged at 18 characters. With the cap and the guess
+both gone, 18 becomes its own named constant. The two
+tests that pin it pass untouched.
+
+### Consumers
+
+`computeEdgeLabelWidth` stays the one function. The
+designer's rebuild, the in-gesture mutator, the stats
+renderer, and Auto Layout's reservation already call it.
+The design-system showcase starts calling it in place of
+its own copy. `LABEL_CHAR_WIDTH` and `LABEL_PADDING`
+retire.
+
+### What moves
+
+- Every labelled edge's box changes width, one-way edges
+  included. Its centre does not move.
+- Auto Layout reserves a label's width plus
+  `LABEL_SAFETY_MARGIN` between two states in a row.
+  Where a label set that gap, the states now sit closer.
+
+## Design: the lens
 
 All lengths are SVG units. `c_from` and `c_to` are the
 two states' centres; `d` is the unit vector from `c_from`
@@ -145,6 +259,7 @@ edge's is `-u`.
 So the forward edge and its label sit on top when the
 pair is horizontal and on the left when it is vertical,
 whether the forward edge runs right or left, down or up.
+The operator confirmed all four on the mock.
 
 `u` turns with the pair and flips where the centre line
 crosses the down-right diagonal. There the two edges swap
@@ -212,9 +327,8 @@ entering a state.
 
 The operator set these by eye on an interactive mock,
 bringing `BOW_FRAC` down from 0.07 and `LABEL_GAP` up
-from 6, and may tune them
-again on the development server, so each lives in one
-named constant.
+from 6, and may tune them again on the development
+server, so each lives in one named constant.
 
 ### Routed pairs
 
@@ -248,26 +362,61 @@ resolve the role the same way, from one place.
 The function stays the single source of path and label
 place for all three.
 
-### The golden fixtures
+## The golden fixtures
 
 `tests/fixtures/flow-graph-golden-unlocked.svg` and
-`-locked.svg` are re-pinned, because what the designer
-draws for a two-way pair changes by design. The operator
-approves that amendment by approving this document.
+`-locked.svg` are re-pinned twice, once by each feature,
+because what the designer draws changes by design. The
+operator approves that amendment by approving this
+document.
 
-The amendment is narrow. Only the `ab` and `ba` edge
-groups may differ: each group's two path `d` attributes
-and its label's rect `x`/`y` and text `x`/`y`. Every other
-byte of both files must be unchanged, and the commit that
-re-pins them shows exactly that diff. The test's comment
-is reworded to say the fixtures pin the designer's drawing
-and were re-pinned once, here, for this change.
+Each amendment is narrow, and its commit shows exactly
+its diff:
 
-### Tests
+- **Snug labels.** Only the label rect's `x` and `width`
+  in each labelled edge group (`ab`, `ba`, `bz`).
+- **The lens.** Only the `ab` and `ba` edge groups: each
+  group's two path `d` attributes, and its label's rect
+  `x`/`y` and text `x`/`y`.
 
-Written red first, at the level of what is drawn
-(`computeEdgeGeometry` and `buildGraphSvg` output, as
-`tests/flow-graph-geometry.test.ts` does today):
+Every other byte of both files is unchanged. The test's
+comment is reworded to say the fixtures pin the designer's
+drawing and were re-pinned for these two changes.
+
+## Tests
+
+Written red first, at the level of what is drawn.
+
+### Snug labels, Layer 1
+
+- A short name and a long name both leave exactly
+  `2 * LABEL_SIDE_PADDING` between text width and box
+  width.
+- Eighteen `W`s fit their box.
+- A one-character name gets `LABEL_MIN_WIDTH`.
+- A truncated name's box wraps its seventeen characters
+  and the ellipsis.
+- A character outside the table takes the fallback
+  advance.
+- Auto Layout's gap between two states in a row follows
+  the new width.
+- The showcase's label box is `computeEdgeLabelWidth` of
+  its label.
+
+### Snug labels, Layer 2
+
+A browser test, with Inter loaded in the running app:
+
+- For every character in the table, Chrome's advance for
+  it matches the table's.
+- For the labels of a flow drawn in the designer, box
+  width less the text's measured length is
+  `2 * LABEL_SIDE_PADDING`, to within a unit a side.
+
+### The lens, Layer 1
+
+`computeEdgeGeometry` and `buildGraphSvg` output, as
+`tests/flow-graph-geometry.test.ts` does today:
 
 - At 0, 45, 90, 135, 180, 225, 270, and 315 degrees, a
   pair's attachments sit `LANE` either side of the centre
@@ -288,33 +437,40 @@ Written red first, at the level of what is drawn
   other's turned half a turn about the pair's midpoint.
 - Sampled along its length, neither arc enters either
   state's rectangle.
-- A one-way edge's geometry is unchanged.
+- A one-way edge's path and label centre are unchanged.
 - Touching and overlapping states emit finite numbers.
-- A routed pair keeps its path and gains the outside
+- A routed pair keeps its waypoints and gains the outside
   label.
 
 `tests/flow-stats-parity.test.ts` must pass untouched.
 The existing two-way test in
 `tests/flow-graph-geometry.test.ts` keeps its assertions.
 
-### Documents
+## Documents
 
-FLOW-CANVAS.md gains the lens under its edges-and-labels
-passage. AGENTS.md `## Where things live` describes the
-golden fixtures as drawn "before its helpers were shared";
-it is reworded to match the re-pin. The comment in
+FLOW-CANVAS.md gains the lens and the width rule under
+its edges-and-labels passage. AGENTS.md
+`## Where things live` describes the golden fixtures as
+drawn "before its helpers were shared"; it is reworded to
+match the re-pins. The comment in
 `tests/flow-edge-label.test.ts` that names the "two-way
 perpendicular offset" is brought up to date.
 
 ## Verification
 
-Layer 1 (`./test validate`) on the squashed branch. Then
-the operator's eye: the development server, a two-way
-pair dragged through horizontal, diagonal, and vertical,
-on the designer and on the stats page, with Auto Fit on.
+Layer 1 (`./test validate`) and, because this unit adds a
+browser test, Layer 2 (`./test validate browser`), on the
+squashed branch. Then the operator's eye: the development
+server, a two-way pair dragged through horizontal,
+diagonal, and vertical, on the designer and on the stats
+page, with Auto Fit on.
 
 ## Left to the builder
 
+- Where the advance table lives, how its values are read
+  from the bundled font, and to how many places. Chrome's
+  own measurement is the oracle the Layer 2 test repeats.
+- Whether a label's width is rounded.
 - How `S` and `E` are found, and whether the arc is
   emitted as a quadratic or as its exact cubic
   equivalent.
@@ -328,4 +484,5 @@ on the designer and on the stats page, with Auto Fit on.
 - The names of the new constants, and the retirement of
   `BIDI_SPREAD_*`, `BIDI_LABEL_T`, and
   `BIDI_LABEL_OFFSET` where they fall out of use.
-- Task order and commit boundaries.
+- Task order within each feature, and commit boundaries
+  before the squash.
