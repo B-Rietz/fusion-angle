@@ -22,6 +22,8 @@ import { generateIdentifier } from
 import { DEFAULT_LOCK_TIMEOUT } from '../shared/types.ts';
 import { messageStore } from '../api/message-store.ts';
 import { canonicalPath } from '../api/message-pair.ts';
+import { createArchiveGraph } from
+    './fixtures/create-archive-graph.ts';
 
 const STARK = 'AjdvjuECVZEgZoFajaIEkg';
 const AT = '2026-01-01T00:00:00.000000Z';
@@ -143,6 +145,8 @@ function graphNode(memberIds: string[]) {
     };
 }
 
+// The flow's Create and Archive nodes, then the nodes under
+// test.
 function flowDocument(
     name: string,
     stateEventId: string,
@@ -157,7 +161,13 @@ function flowDocument(
         state: 'active',
         state_at: AT,
         state_event_id: stateEventId,
-        graph,
+        graph: {
+            nodes: [
+                ...createArchiveGraph().nodes,
+                ...graph.nodes,
+            ],
+            edges: graph.edges,
+        },
         graphDelta: {
             nodes: [],
             edges: [],

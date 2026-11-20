@@ -47,6 +47,8 @@ import {
     scoreEntityOf,
 } from '../api/derive-project-scores.ts';
 import { nestedAttributeWireOf } from '../api/routes.ts';
+import { createArchiveDelta } from
+    './fixtures/create-archive-graph.ts';
 
 // G6: stored PUT = today's GET derive (*EntityOf). Pin
 // GET == stored PUT body for each nested family.
@@ -90,16 +92,6 @@ function ideaDocument(title: string) {
     };
 }
 
-function emptyDelta() {
-    return {
-        nodes: [],
-        edges: [],
-        deletions: [],
-        memberEvents: [],
-        attributeEvents: [],
-    };
-}
-
 async function createFlow(
     db: MemoryDbAdapter,
     token: string,
@@ -126,7 +118,7 @@ async function createFlow(
             initialState: 'active',
             initialStateEventId: generateIdentifier(),
             initialStateAt: AT,
-            graphDelta: emptyDelta(),
+            graphDelta: createArchiveDelta(flowId, AT),
         },
     ));
     assertStrictEquals(created.status, 201);

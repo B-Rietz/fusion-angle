@@ -33,6 +33,8 @@ import {
     recordTypeEntityOf,
 } from '../api/derive-record-types.ts';
 import { seedSeat } from './root-admin-fixture.ts';
+import { createArchiveDelta } from
+    './fixtures/create-archive-graph.ts';
 
 // Nested record-types WRITE surface (Task 3): admin PUT
 // (blind or conditional, state document), admin DELETE with type
@@ -291,13 +293,9 @@ async () => {
             initialState: 'active',
             initialStateEventId: generateIdentifier(),
             initialStateAt: AT,
-            graphDelta: {
-                nodes: [],
-                edges: [],
-                deletions: [],
-                memberEvents: [],
-                attributeEvents: [],
-            },
+            graphDelta: createArchiveDelta(
+                'bkFJmupdSmbjaPnvwFKnbA', AT,
+            ),
         },
     ));
     assertStrictEquals(flowCreate.status, 201);

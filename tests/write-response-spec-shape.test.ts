@@ -10,6 +10,8 @@ import {
 } from '../api/family-registry.ts';
 import { generateIdentifier } from
     '../shared/identifier.ts';
+import { createArchiveGraph } from
+    './fixtures/create-archive-graph.ts';
 
 function specsOf(
     entry: (typeof WRITE_RESPONSE_SPECS)[string],
@@ -31,7 +33,7 @@ const ID2 = generateIdentifier();
 const ID3 = generateIdentifier();
 const ACTOR = generateIdentifier();
 const ORGANIZATION = generateIdentifier();
-const GRAPH = { nodes: [], edges: [] };
+const GRAPH = createArchiveGraph();
 const GRAPH_DELTA = {
     nodes: [], edges: [], deletions: [],
     memberEvents: [], attributeEvents: [],

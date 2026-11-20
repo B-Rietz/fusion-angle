@@ -38,6 +38,8 @@ import {
     generateIdentifier,
     isIdentifier,
 } from '../shared/identifier.ts';
+import { createArchiveGraph } from
+    './fixtures/create-archive-graph.ts';
 
 // GET <family>/:id/versions/ — Phase A3 of states-URI
 // elimination. Per family (ideas, projects, records,
@@ -895,7 +897,7 @@ function flowDocBody(
         state,
         state_at: stateAt,
         state_event_id: stateEventId,
-        graph: { nodes: [], edges: [] },
+        graph: createArchiveGraph(),
         revivals: [],
         graphDelta: {
             nodes: [],

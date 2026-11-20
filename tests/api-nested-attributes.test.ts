@@ -24,6 +24,8 @@ import {
 import { seedSeat } from './root-admin-fixture.ts';
 import { generateIdentifier } from
     '../shared/identifier.ts';
+import { createArchiveDelta } from
+    './fixtures/create-archive-graph.ts';
 
 // Nested attributes surface under record-types (Task 7):
 // member GET (ACL arrays visible), admin PUT create/replace,
@@ -336,7 +338,7 @@ async () => {
                 generateIdentifier(),
             initialStateAt: AT,
             graphDelta: {
-                nodes: [{
+                nodes: [...createArchiveDelta(flowId, AT).nodes, {
                     id: nodeId,
                     flow_id: flowId,
                     name: 'Step',

@@ -47,6 +47,10 @@ import { generateIdentifier } from
     '../shared/identifier.ts';
 import { membershipNameOf } from
     '../shared/membership-name.ts';
+import {
+    createArchiveDelta,
+    createArchiveGraph,
+} from './fixtures/create-archive-graph.ts';
 
 // Per-family history derives (states-URI elimination C2/C3).
 // A hand-built multi-family fixture drives ONE representative
@@ -260,13 +264,9 @@ function nodeRowBody(id: string, flowId: string) {
     return {
         id, flow_id: flowId, name: 'Node',
         position_x: 0, position_y: 0,
-        is_create: true, is_archive: false,
+        is_create: false, is_archive: false,
         task_instructions: '', at: AT,
     };
-}
-
-function emptyGraph() {
-    return { nodes: [], edges: [] };
 }
 
 async function createFlowWithNodes(
@@ -287,9 +287,12 @@ async function createFlowWithNodes(
             initialStateEventId: generateIdentifier(),
             initialStateAt: AT,
             graphDelta: {
-                nodes: nodeIds.map(
-                    (id) => nodeRowBody(id, flowId),
-                ),
+                nodes: [
+                    ...createArchiveDelta(flowId, AT).nodes,
+                    ...nodeIds.map(
+                        (id) => nodeRowBody(id, flowId),
+                    ),
+                ],
                 edges: [], deletions: [],
                 memberEvents: [], attributeEvents: [],
             },
@@ -331,7 +334,7 @@ async function saveFlowWithSidecars(
             ...flowFields('Flow ' + flowId + ' saved'),
             state: 'active', state_at: stateAt,
             state_event_id: stateEventId,
-            graph: emptyGraph(),
+            graph: createArchiveGraph(),
             graphDelta: {
                 nodes: [], edges: [], deletions,
                 memberEvents: [], attributeEvents: [],

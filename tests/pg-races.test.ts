@@ -35,6 +35,10 @@ import { membershipNameOf } from
     '../shared/membership-name.ts';
 import { DEFAULT_LOCK_TIMEOUT } from '../shared/types.ts';
 import {
+    createArchiveDelta,
+    createArchiveGraph,
+} from './fixtures/create-archive-graph.ts';
+import {
     advisoryKey,
     POOL_MAX,
 } from '../api/advisory-lock.ts';
@@ -180,7 +184,7 @@ function flowCreate(id: string): Record<string, unknown> {
         initialState: 'active',
         initialStateEventId: generateIdentifier(),
         initialStateAt: AT,
-        graphDelta: emptyDelta(),
+        graphDelta: createArchiveDelta(id, AT),
     };
 }
 
@@ -189,7 +193,7 @@ function flowDocument(
     stateEventId: string,
 ): Record<string, unknown> {
     return flowDocumentOf(
-        name, stateEventId, { nodes: [], edges: [] },
+        name, stateEventId, createArchiveGraph(),
     );
 }
 
@@ -209,8 +213,8 @@ function flowDocumentOf(
     };
 }
 
-// A create whose one node seats `memberId`: the graph the
-// law judges is reduced from the delta.
+// A create whose one plain node seats `memberId`: the
+// graph the law judges is reduced from the delta.
 function flowCreateSeating(
     id: string,
     memberId: string,
@@ -220,13 +224,13 @@ function flowCreateSeating(
         ...flowCreate(id),
         graphDelta: {
             ...emptyDelta(),
-            nodes: [{
+            nodes: [...createArchiveDelta(id, AT).nodes, {
                 id: nodeId,
                 flow_id: id,
                 name: 'Step',
                 position_x: 0,
                 position_y: 0,
-                is_create: true,
+                is_create: false,
                 is_archive: false,
                 task_instructions: '',
                 at: AT,
@@ -815,7 +819,10 @@ if (POSTGRES_URL === undefined || POSTGRES_URL === '') {
                     'Raced agent',
                     generateIdentifier(),
                     {
-                        nodes: [graphNode([], [agentId])],
+                        nodes: [
+                            ...createArchiveGraph().nodes,
+                            graphNode([], [agentId]),
+                        ],
                         edges: [],
                     },
                 ),
@@ -922,7 +929,10 @@ if (POSTGRES_URL === undefined || POSTGRES_URL === '') {
                     'Taken agent',
                     generateIdentifier(),
                     {
-                        nodes: [graphNode([], [agentId])],
+                        nodes: [
+                            ...createArchiveGraph().nodes,
+                            graphNode([], [agentId]),
+                        ],
                         edges: [],
                     },
                 ),
@@ -1059,7 +1069,10 @@ if (POSTGRES_URL === undefined || POSTGRES_URL === '') {
                     'Raced member',
                     generateIdentifier(),
                     {
-                        nodes: [graphNode([memberId], [])],
+                        nodes: [
+                            ...createArchiveGraph().nodes,
+                            graphNode([memberId], []),
+                        ],
                         edges: [],
                     },
                 ),
@@ -1112,7 +1125,10 @@ if (POSTGRES_URL === undefined || POSTGRES_URL === '') {
                     'Raced service',
                     generateIdentifier(),
                     {
-                        nodes: [graphNode([memberId], [])],
+                        nodes: [
+                            ...createArchiveGraph().nodes,
+                            graphNode([memberId], []),
+                        ],
                         edges: [],
                     },
                 ),

@@ -44,6 +44,8 @@ import {
 import { seedSeat } from './root-admin-fixture.ts';
 import { seedCreatedWorkOrder } from
     './work-order-fixtures.ts';
+import { createArchiveDelta } from
+    './fixtures/create-archive-graph.ts';
 
 // POST organizations/:id/work-orders/:id/transition — instance-head shape
 // (Task 4 dual-accept; Task 8 gate cut). Value-bearing
@@ -283,13 +285,7 @@ async function seedFlow(
             initialState: 'active',
             initialStateEventId: generateIdentifier(),
             initialStateAt: AT,
-            graphDelta: {
-                nodes: [],
-                edges: [],
-                deletions: [],
-                memberEvents: [],
-                attributeEvents: [],
-            },
+            graphDelta: createArchiveDelta(FLOW_ID, AT),
         },
     ));
     assertStrictEquals(res.status, 201);

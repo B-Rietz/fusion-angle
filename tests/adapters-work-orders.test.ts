@@ -77,8 +77,13 @@ import {
 import {
     nowUtc,
     DEFAULT_LOCK_TIMEOUT,
+    storedGraph,
 } from '../shared/types.ts';
+import type { HttpMessage } from
+    '../shared/http-message/http-message.ts';
+import { responseMessage } from './fixtures/response-message.ts';
 import type {
+    FlowWithGraph,
     WorkOrderEntity,
     GraphNode,
     GraphEdge,
@@ -473,7 +478,7 @@ Deno.test(
     'postWorkOrderCreation throws '
     + 'when flow has no start node',
     async () => {
-        const { db, ctx } = await setupDb();
+        const { ctx } = await setupDb();
         const nodeA = generateIdentifier();
         const nodeB = generateIdentifier();
         const graph: StoredGraph = {
@@ -489,12 +494,32 @@ Deno.test(
                 buildEdge(generateIdentifier(), nodeA, nodeB),
             ],
         };
-        await seedFlow(db, 'ZOousbbnzpqlxJExVAruYQ', graph);
+        // The flow gate refuses this graph, so only a flow
+        // stored before the gate reads this way. The read
+        // stands in for one.
+        const flowId = 'ZOousbbnzpqlxJExVAruYQ';
+        const flowPath = organizationItem(ctx, 'flows', flowId);
+        const stored = responseMessage<FlowWithGraph>({
+            id: flowId,
+            organization_id: 'AjdvjuECVZEgZoFajaIEkg',
+            name: 'Test flow',
+            is_locked: false,
+            is_auto_layout: true,
+            is_auto_fit: true,
+            lock_timeout: DEFAULT_LOCK_TIMEOUT,
+            graph: storedGraph(graph),
+        });
+        const reading: RequestContext = {
+            ...ctx,
+            GET: <T>(path: string): Promise<HttpMessage<T>> =>
+                path === flowPath
+                    ? Promise.resolve(
+                        stored as unknown as HttpMessage<T>,
+                    )
+                    : ctx.GET<T>(path),
+        };
         await assertRejects(
-            () =>
-                createWorkOrder(
-                    ctx, 'ZOousbbnzpqlxJExVAruYQ',
-                ),
+            () => createWorkOrder(reading, flowId),
             Error,
             'no start node',
         );
@@ -522,7 +547,6 @@ Deno.test(
                 }),
                 buildNode(nodeB, 'B', {
                     memberIds: ['XXZruirZyAOoRpNxaDnpSA'],
-                    isArchive: true,
                 }),
             ],
             edges: [
@@ -531,6 +555,9 @@ Deno.test(
                 ),
                 buildEdge(
                     generateIdentifier(), startId, nodeB,
+                ),
+                buildEdge(
+                    generateIdentifier(), nodeB, nodeA,
                 ),
             ],
         };

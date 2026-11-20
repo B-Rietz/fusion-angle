@@ -24,6 +24,8 @@ import {
 } from '../shared/types.ts';
 import { seedCreatedWorkOrder } from
     './work-order-fixtures.ts';
+import { createArchiveDelta } from
+    './fixtures/create-archive-graph.ts';
 
 // Instance DELETE RESTRICT (W5 / Task 5): 409 when any org
 // WO currently binds the instance AND that WO's current
@@ -158,13 +160,7 @@ async function seedFlow(
             initialState: 'active',
             initialStateEventId: generateIdentifier(),
             initialStateAt: AT,
-            graphDelta: {
-                nodes: [],
-                edges: [],
-                deletions: [],
-                memberEvents: [],
-                attributeEvents: [],
-            },
+            graphDelta: createArchiveDelta(FLOW_ID, AT),
         },
     ));
     assertStrictEquals(res.status, 201);

@@ -97,6 +97,8 @@ const NODE_B = generateIdentifier();
 const NODE_C = generateIdentifier();
 const NODE_S = generateIdentifier();
 const NODE_E = generateIdentifier();
+const NODE_CREATE = generateIdentifier();
+const NODE_ARCHIVE = generateIdentifier();
 const MISSING_ID = generateIdentifier();
 const PROJECT_ID = generateIdentifier();
 const LINK_ID = generateIdentifier();
@@ -121,6 +123,11 @@ function buildNode(
         ...overrides,
     };
 }
+
+// The two nodes every saved flow holds. A test that saves a
+// graph names them beside its own.
+const CREATE = buildNode(NODE_CREATE, { isCreate: true });
+const ARCHIVE = buildNode(NODE_ARCHIVE, { isArchive: true });
 
 function buildEdge(
     id: string,
@@ -161,6 +168,15 @@ function buildGraph(
         lock_timeout: DEFAULT_LOCK_TIMEOUT,
         graph: storedGraph({ nodes, edges }),
     }));
+}
+
+// A graph as the designer holds it for a saved flow: the
+// test's nodes beside CREATE and ARCHIVE.
+function buildSavedGraph(
+    nodes: GraphNode[],
+    edges: GraphEdge[] = [],
+): FlowGraph {
+    return buildGraph([CREATE, ARCHIVE, ...nodes], edges);
 }
 
 function buildFlowVersion(
@@ -287,6 +303,7 @@ async function flowVersionCount(
 // reads as either the current head or a resolved target. Undo/
 // redo diff current vs target graphs; that diff only applies
 // correctly when the relations already carry the snap's graph.
+// The save holds CREATE and ARCHIVE beside the test's nodes.
 async function seedCurrentGraph(
     ctx: RequestContext,
     nodes: GraphNode[],
@@ -298,7 +315,7 @@ async function seedCurrentGraph(
         isAutoLayout: true,
         isAutoFit: true,
         lockTimeout: DEFAULT_LOCK_TIMEOUT,
-        nodes,
+        nodes: [CREATE, ARCHIVE, ...nodes],
         edges,
     });
 }
@@ -310,7 +327,7 @@ Deno.test(
     + ' edge and persists it',
     () => withLocalStorageAsync(NULL_STORAGE, async () => {
         const { db } = await setupFlow();
-        const snap = snapFrom(buildGraph([
+        const snap = snapFrom(buildSavedGraph([
             buildNode(NODE_A), buildNode(NODE_B),
         ]));
         const op = await performAddEdge(
@@ -344,6 +361,7 @@ Deno.test(
         const snap = snapFrom(buildGraph([
             buildNode(NODE_S, { isCreate: true }),
             buildNode(NODE_A),
+            ARCHIVE,
         ]));
         const op = await performAddEdge(
             inPageContext(db, DEV_TOKEN), snap, NODE_S, NODE_A,
@@ -513,7 +531,7 @@ Deno.test(
     + ' edge, selectId and centers on the point',
     () => withLocalStorageAsync(NULL_STORAGE, async () => {
         const { db } = await setupFlow();
-        const snap = snapFrom(buildGraph([
+        const snap = snapFrom(buildSavedGraph([
             buildNode(NODE_A),
         ]));
         const op = await performAddNodeAtPosition(
@@ -536,7 +554,7 @@ Deno.test(
             200 - NODE_HEIGHT / 2,
         );
         const g = await persistedGraph(db);
-        assertStrictEquals(g.nodes.length, 2);
+        assertStrictEquals(g.nodes.length, 4);
         assertStrictEquals(g.edges.length, 1);
     }),
 );
@@ -776,7 +794,7 @@ Deno.test(
     + ' selected edge',
     () => withLocalStorageAsync(NULL_STORAGE, async () => {
         const { db } = await setupFlow();
-        const base = snapFrom(buildGraph(
+        const base = snapFrom(buildSavedGraph(
             [buildNode(NODE_A), buildNode(NODE_B)],
             [buildEdge('YiJPbufDpkyrZcZCYbUJpg', NODE_A, NODE_B)],
         ));
@@ -864,7 +882,7 @@ Deno.test(
     + ' single selected node',
     () => withLocalStorageAsync(NULL_STORAGE, async () => {
         const { db } = await setupFlow();
-        const base = snapFrom(buildGraph([
+        const base = snapFrom(buildSavedGraph([
             buildNode(NODE_A),
         ]));
         const op = await performAddAttributeRef(
@@ -972,7 +990,7 @@ Deno.test(
     + ' from the single selected node',
     () => withLocalStorageAsync(NULL_STORAGE, async () => {
         const { db } = await setupFlow();
-        const base = snapFrom(buildGraph([
+        const base = snapFrom(buildSavedGraph([
             buildNode(NODE_A, {
                 attributes: [
                     buildAttributeRef('VPckAwjJsTGCEkKaOOGRGw'),
@@ -1069,7 +1087,7 @@ Deno.test(
     + ' on the matching ref',
     () => withLocalStorageAsync(NULL_STORAGE, async () => {
         const { db } = await setupFlow();
-        const base = snapFrom(buildGraph([
+        const base = snapFrom(buildSavedGraph([
             buildNode(NODE_A, {
                 attributes: [
                     buildAttributeRef('VPckAwjJsTGCEkKaOOGRGw', {
@@ -1139,7 +1157,7 @@ Deno.test(
     + ' isRequired flag on the matching ref',
     () => withLocalStorageAsync(NULL_STORAGE, async () => {
         const { db } = await setupFlow();
-        const base = snapFrom(buildGraph([
+        const base = snapFrom(buildSavedGraph([
             buildNode(NODE_A, {
                 attributes: [
                     buildAttributeRef('VPckAwjJsTGCEkKaOOGRGw', {
@@ -1267,7 +1285,8 @@ Deno.test(
     + ' step back), and stages a redo entry',
     () => withLocalStorageAsync(NULL_STORAGE, async () => {
         const { db, ctx } = await setupFlow();
-        // The 2-node baseline — undo's own target.
+        // The baseline, A and B beside CREATE and ARCHIVE —
+        // undo's own target.
         await seedCurrentGraph(ctx, [
             buildNode(NODE_A),
             buildNode(NODE_B),
@@ -1279,7 +1298,7 @@ Deno.test(
             buildNode(NODE_C),
         ];
         await seedCurrentGraph(ctx, currentNodes);
-        const snap = snapFrom(buildGraph(currentNodes));
+        const snap = snapFrom(buildSavedGraph(currentNodes));
         const op = await performUndo(
             inPageContext(db, DEV_TOKEN), snap,
             buildFlowHistorySnapshot(true),
@@ -1288,7 +1307,7 @@ Deno.test(
         assertStrictEquals(op.kind, 'ok');
         if (op.kind !== 'ok') return;
         assertStrictEquals(
-            op.freshSnap.nodes.length, 2,
+            op.freshSnap.nodes.length, 4,
         );
         // Genesis is a THIRD document message pair still further back —
         // there is more to undo, unlike the old flow_versions
@@ -1302,7 +1321,7 @@ Deno.test(
         assertStrictEquals(
             op.newHistory.redoStack[0]!
                 .nodes.length,
-            3,
+            5,
         );
         // flow_versions is never written OR read by the live
         // undo path any more (Step 0: publish/consume both
@@ -1312,7 +1331,7 @@ Deno.test(
             await flowVersionCount(db), 0,
         );
         const g = await persistedGraph(db);
-        assertStrictEquals(g.nodes.length, 2);
+        assertStrictEquals(g.nodes.length, 4);
     }),
 );
 
@@ -1334,7 +1353,7 @@ Deno.test(
             buildNode(NODE_C),
         ];
         await seedCurrentGraph(ctx, currentNodes);
-        const snap = snapFrom(buildGraph(currentNodes));
+        const snap = snapFrom(buildSavedGraph(currentNodes));
         const { ctx: recorded, sent } = recordedContext(
             db, DEV_TOKEN,
         );
@@ -1374,7 +1393,7 @@ Deno.test(
             buildNode(NODE_C),
         ];
         await seedCurrentGraph(ctx, currentNodes);
-        const snap = snapFrom(buildGraph(currentNodes));
+        const snap = snapFrom(buildSavedGraph(currentNodes));
         const { ctx: recorded, sent } = recordedContext(
             db, DEV_TOKEN,
         );
@@ -1428,7 +1447,7 @@ Deno.test(
         const snap = {
             ...withNodeSelection(
                 snapFrom(
-                    buildGraph(currentNodes),
+                    buildSavedGraph(currentNodes),
                 ),
                 NODE_A,
             ),
@@ -1484,7 +1503,7 @@ Deno.test(
         const snap = {
             ...withNodeSelection(
                 snapFrom(
-                    buildGraph(currentNodes),
+                    buildSavedGraph(currentNodes),
                 ),
                 NODE_C,
             ),
@@ -1579,11 +1598,13 @@ Deno.test(
         // current graph against the popped (a,b) version.
         const currentNodes = [buildNode(NODE_A)];
         await seedCurrentGraph(ctx, currentNodes);
-        const snap = snapFrom(buildGraph(currentNodes));
+        const snap = snapFrom(buildSavedGraph(currentNodes));
         const history = appendToRedoStack(
             buildFlowHistorySnapshot(false),
             buildFlowVersion({
                 nodes: [
+                    CREATE,
+                    ARCHIVE,
                     buildNode(NODE_A),
                     buildNode(NODE_B),
                 ],
@@ -1595,7 +1616,7 @@ Deno.test(
         assertStrictEquals(op.kind, 'ok');
         if (op.kind !== 'ok') return;
         assertStrictEquals(
-            op.freshSnap.nodes.length, 2,
+            op.freshSnap.nodes.length, 4,
         );
         assertStrictEquals(
             op.newHistory.hasUndoHistory, true,
@@ -1612,7 +1633,7 @@ Deno.test(
             await flowVersionCount(db), 0,
         );
         const g = await persistedGraph(db);
-        assertStrictEquals(g.nodes.length, 2);
+        assertStrictEquals(g.nodes.length, 4);
     }),
 );
 

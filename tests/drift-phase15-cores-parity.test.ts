@@ -67,6 +67,11 @@ import {
 // import it directly for the family-wiring registration
 // side effect getCollection below depends on.
 import '../api/routes.ts';
+import {
+    createArchiveDeltaOf,
+    createArchiveGraph,
+    graphWithNodes,
+} from './fixtures/create-archive-graph.ts';
 
 const N_START = generateIdentifier();
 const N_FINISH = generateIdentifier();
@@ -874,6 +879,9 @@ Deno.test('residual pin: flowGraphBindingsFromMessagePairs tracks a'
     const nodeId = generateIdentifier();
     const attrId = generateIdentifier();
     const at1 = '2026-06-15T00:00:00.000000Z';
+    // The flow's Create and Archive nodes, kept through
+    // each save.
+    const born = createArchiveGraph();
     const at2 = '2026-06-15T00:00:01.000000Z';
     // A seeded project the create can join.
     const projectId = 'wqGTTFdYUGnmBxWCppmkOQ';
@@ -914,11 +922,13 @@ Deno.test('residual pin: flowGraphBindingsFromMessagePairs tracks a'
             initialStateEventId: generateIdentifier(),
             initialStateAt: at1,
             graphDelta: {
-                nodes: [{
+                nodes: [...createArchiveDeltaOf(
+                    born, flowId, at1,
+                ).nodes, {
                     id: nodeId, flow_id: flowId,
                     name: 'Bind',
                     position_x: 0, position_y: 0,
-                    is_create: true, is_archive: false,
+                    is_create: false, is_archive: false,
                     task_instructions: '', at: at1,
                 }],
                 edges: [],
@@ -970,23 +980,20 @@ Deno.test('residual pin: flowGraphBindingsFromMessagePairs tracks a'
             state: 'active',
             state_at: at2,
             state_event_id: FLOWID_EV_RM,
-            graph: {
-                nodes: [{
-                    id: nodeId, name: 'Bind',
-                    positionX: 0, positionY: 0,
-                    isCreate: true, isArchive: false,
-                    memberIds: [],
-                    attributes: [],
-                    taskInstructions: '',
-                }],
-                edges: [],
-            },
+            graph: graphWithNodes(born, [{
+                id: nodeId, name: 'Bind',
+                positionX: 0, positionY: 0,
+                isCreate: false, isArchive: false,
+                memberIds: [],
+                attributes: [],
+                taskInstructions: '',
+            }]),
             graphDelta: {
                 nodes: [{
                     id: nodeId, flow_id: flowId,
                     name: 'Bind',
                     position_x: 0, position_y: 0,
-                    is_create: true, is_archive: false,
+                    is_create: false, is_archive: false,
                     task_instructions: '', at: at2,
                 }],
                 edges: [],
@@ -1046,6 +1053,9 @@ Deno.test('residual pin: soft-deleted node drops from'
     const nodeId = generateIdentifier();
     const attrId = generateIdentifier();
     const at1 = '2026-06-17T00:00:00.000000Z';
+    // The flow's Create and Archive nodes, kept through
+    // each save.
+    const born = createArchiveGraph();
     const at2 = '2026-06-17T00:00:01.000000Z';
     const projectId = 'wqGTTFdYUGnmBxWCppmkOQ';
 
@@ -1084,11 +1094,13 @@ Deno.test('residual pin: soft-deleted node drops from'
             initialStateEventId: generateIdentifier(),
             initialStateAt: at1,
             graphDelta: {
-                nodes: [{
+                nodes: [...createArchiveDeltaOf(
+                    born, flowId, at1,
+                ).nodes, {
                     id: nodeId, flow_id: flowId,
                     name: 'Doomed',
                     position_x: 0, position_y: 0,
-                    is_create: true, is_archive: false,
+                    is_create: false, is_archive: false,
                     task_instructions: '', at: at1,
                 }],
                 edges: [],
@@ -1136,10 +1148,7 @@ Deno.test('residual pin: soft-deleted node drops from'
             state: 'active',
             state_at: at2,
             state_event_id: FLOWID_EV_DEL,
-            graph: {
-                nodes: [],
-                edges: [],
-            },
+            graph: born,
             graphDelta: {
                 nodes: [],
                 edges: [],
@@ -1478,6 +1487,7 @@ async () => {
     const attrId = generateIdentifier();
     const woId = generateIdentifier();
     const at = '2026-06-16T00:00:00.000000Z';
+    const born = createArchiveGraph();
     const projectId = 'wqGTTFdYUGnmBxWCppmkOQ';
 
     const attrPut = await handleRequest(db, req(
@@ -1515,11 +1525,13 @@ async () => {
             initialStateEventId: generateIdentifier(),
             initialStateAt: at,
             graphDelta: {
-                nodes: [{
+                nodes: [...createArchiveDeltaOf(
+                    born, flowId, at,
+                ).nodes, {
                     id: nodeId, flow_id: flowId,
                     name: 'Bind',
                     position_x: 0, position_y: 0,
-                    is_create: true, is_archive: false,
+                    is_create: false, is_archive: false,
                     task_instructions: '', at,
                 }],
                 edges: [],

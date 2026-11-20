@@ -23,6 +23,8 @@ import {
 } from '../shared/types.ts';
 import { apiRequest, partBodiesOf } from './http-fixtures.ts';
 import { seedSeat } from './root-admin-fixture.ts';
+import { createArchiveDelta } from
+    './fixtures/create-archive-graph.ts';
 
 // POST organizations/:id/work-orders/ — the create carries
 // the instance. A flow that names a record type requires
@@ -181,13 +183,7 @@ async function seedFlow(
             initialState: 'active',
             initialStateEventId: generateIdentifier(),
             initialStateAt: AT,
-            graphDelta: {
-                nodes: [],
-                edges: [],
-                deletions: [],
-                memberEvents: [],
-                attributeEvents: [],
-            },
+            graphDelta: createArchiveDelta(FLOW_ID, AT),
         },
     ));
     assertStrictEquals(res.status, 201);

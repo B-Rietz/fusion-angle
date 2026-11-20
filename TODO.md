@@ -3304,6 +3304,31 @@ Off the critical path; each with its oracle.
   the status document are gone, or a refusal
   that means 422 emits it and a test asserts
   the status.
+- The flow gate's create-and-archive refusal rests
+  on two orderings no test pins. The refusal is
+  pinned for the creating POST and the genesis PUT
+  only (`tests/api-flow-create-archive.test.ts`,
+  eight tests). The gate is a validator
+  (`api/validators.ts:1334`) that the flow PUT
+  runs while forming its message pair, through
+  `successBody` (`api/document-family.ts:577`,
+  `api/api.ts:1019`), so a PUT whose graph breaks
+  the rule, sent with a stale `If-Match`, should
+  answer 400 and not 412; no test sends that
+  request. `POST …/flows/:id/undo` rebuilds a body
+  from its undo target and passes it to
+  `validateFlowDocumentBody`
+  (`api/routes.ts:1532`, just before
+  `return documentBody;`), so a target whose graph
+  breaks the rule should answer 400 and store
+  nothing; no test undoes onto such a target, and
+  only a flow stored before the gate can hold one,
+  so the test places that stored flow below the
+  HTTP gate. Oracle: one test PUTs a rule-breaking
+  graph under a stale `If-Match` and asserts 400;
+  another undoes onto a stored target whose graph
+  breaks the rule and asserts 400 and an unchanged
+  head.
 - ACL-editing UI for record attributes (`read_roles` /
   `write_roles`) — R21's restricted branches are
   seed-produced today; setting an ACL is

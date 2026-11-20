@@ -89,6 +89,8 @@ import {
     postInstancePatchOp,
     routes,
 } from '../api/routes.ts';
+import { createArchiveGraph } from
+    './fixtures/create-archive-graph.ts';
 
 function ideaDocument(title: string, state: string) {
     return {
@@ -1769,6 +1771,10 @@ Deno.test(
     },
 );
 
+// A flow keeps its Create and Archive nodes through each
+// save.
+const FLOW_GRAPH = createArchiveGraph();
+
 function flowDocument(
     name: string,
     state: string,
@@ -1784,7 +1790,7 @@ function flowDocument(
         state,
         state_at: stateAt,
         state_event_id: stateEventId,
-        graph: { nodes: [], edges: [] },
+        graph: FLOW_GRAPH,
         graphDelta: {
             nodes: [],
             edges: [],

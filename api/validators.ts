@@ -1269,6 +1269,28 @@ export interface FlowDocumentBody {
     readonly revivals: readonly GraphRevival[];
 }
 
+// The designer adds a node only by dragging from an
+// existing one and never deletes Create or Archive, so a
+// flow stored without them could never be repaired there.
+function assertOneCreateAndOneArchive(
+    graph: StoredGraph,
+    label: string,
+): void {
+    const creates = graph.nodes.filter((n) => n.isCreate);
+    const archives = graph.nodes.filter((n) => n.isArchive);
+    if (
+        creates.length !== 1
+        || archives.length !== 1
+        || creates[0] === archives[0]
+    ) {
+        throw new ValidationError(
+            label + ' must hold exactly one Create node and'
+            + ' exactly one Archive node, as two different'
+            + ' nodes',
+        );
+    }
+}
+
 // The HTTP-body gate for PUT /flows/:id (Decision 7, a
 // conditional PUT): the full wire document — the
 // entity's own fields, the lifecycle trio, the client-
@@ -1309,7 +1331,10 @@ export function validateFlowDocumentBody(
     const graph = asObject(
         body['graph'], 'FlowDocumentBody.graph',
     );
-    asStoredGraph(graph, 'FlowDocumentBody.graph');
+    assertOneCreateAndOneArchive(
+        asStoredGraph(graph, 'FlowDocumentBody.graph'),
+        'FlowDocumentBody.graph',
+    );
     const graphDelta = validateFlowGraphDelta(
         asObject(
             body['graphDelta'], 'FlowDocumentBody.graphDelta',

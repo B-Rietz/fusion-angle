@@ -13,6 +13,8 @@ import { DEFAULT_LOCK_TIMEOUT } from '../shared/types.ts';
 import {
     apiRequest,
 } from './http-fixtures.ts';
+import { createArchiveDelta } from
+    './fixtures/create-archive-graph.ts';
 
 // PUT organizations/:id/flows/:id/records/:frid — bind a flow
 // to a record. The record must exist in the caller's
@@ -78,13 +80,7 @@ async function seedFlow(
             initialState: 'active',
             initialStateEventId: generateIdentifier(),
             initialStateAt: AT,
-            graphDelta: {
-                nodes: [],
-                edges: [],
-                deletions: [],
-                memberEvents: [],
-                attributeEvents: [],
-            },
+            graphDelta: createArchiveDelta(FLOW_ID, AT),
         },
     ));
     assertStrictEquals(res.status, 201);

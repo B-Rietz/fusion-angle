@@ -44,6 +44,8 @@ import { generateIdentifier } from
     '../shared/identifier.ts';
 import { operationIdHeader } from
     './operation-id-header.ts';
+import { createArchiveDelta } from
+    './fixtures/create-archive-graph.ts';
 
 
 const NODE_START = generateIdentifier();
@@ -691,13 +693,7 @@ async function claimedBoundWorkOrder(
             initialState: 'active',
             initialStateEventId: generateIdentifier(),
             initialStateAt: at,
-            graphDelta: {
-                nodes: [],
-                edges: [],
-                deletions: [],
-                memberEvents: [],
-                attributeEvents: [],
-            },
+            graphDelta: createArchiveDelta(KEEP_FLOW, at),
         }, {}],
         ['PUT', typePath, {
             name: 'Keep Type',

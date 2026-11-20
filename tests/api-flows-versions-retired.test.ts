@@ -10,6 +10,8 @@ import {
 } from './http-fixtures.ts';
 import { generateIdentifier } from
     '../shared/identifier.ts';
+import { createArchiveGraph } from
+    './fixtures/create-archive-graph.ts';
 
 // Succession pin: pair-chain GET /organizations/:id/flows/:id/versions is
 // 200/404 by document existence. Old table-backed :vid
@@ -39,7 +41,7 @@ function flowBody() {
         state: 'active',
         state_at: '2026-03-01T00:00:00.000000Z',
         state_event_id: generateIdentifier(),
-        graph: { nodes: [], edges: [] },
+        graph: createArchiveGraph(),
         revivals: [],
         graphDelta: {
             nodes: [],

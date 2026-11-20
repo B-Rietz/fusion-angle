@@ -34,6 +34,10 @@ import type {
 } from '../api/db.ts';
 import { MEMBERSHIPS_PATH } from '../api/memberships.ts';
 import { canonicalPath } from '../api/message-pair.ts';
+import {
+    createArchiveDelta,
+    createArchiveGraph,
+} from './fixtures/create-archive-graph.ts';
 
 
 const AT = '2026-01-01T00:00:00.000000Z';
@@ -96,6 +100,8 @@ function graphNode(
     };
 }
 
+// The flow's Create and Archive nodes, then the nodes under
+// test.
 function flowDocument(
     name: string,
     stateEventId: string,
@@ -110,7 +116,13 @@ function flowDocument(
         state: 'active',
         state_at: AT,
         state_event_id: stateEventId,
-        graph,
+        graph: {
+            nodes: [
+                ...createArchiveGraph().nodes,
+                ...graph.nodes,
+            ],
+            edges: graph.edges,
+        },
         graphDelta: emptyDelta(),
         revivals: [],
     };
@@ -409,12 +421,14 @@ Deno.test('a flow write with agentIds naming a live'
     );
     const flow = (await GET<{
         graph: {
-            nodes: { agentIds?: string[] }[];
+            nodes: { name: string; agentIds?: string[] }[];
         };
     }>(db, 'organizations/AjdvjuECVZEgZoFajaIEkg/flows/'
         + 'aJJKPwIzmbFseMhGUrFyFQ', token, operationIdHeader()))
         .body().toValue();
-    const node = flow.graph.nodes[0]!;
+    const node = flow.graph.nodes.find(
+        (n) => n.name === 'Step',
+    )!;
     assertEquals(node.agentIds, ['UxpkDaNMmbWLvCTkyrFfGA']);
 });
 
@@ -730,13 +744,13 @@ function flowCreateBody(flowId: string, memberId: string) {
         initialStateAt: AT,
         graphDelta: {
             ...emptyDelta(),
-            nodes: [{
+            nodes: [...createArchiveDelta(flowId, AT).nodes, {
                 id: nodeId,
                 flow_id: flowId,
                 name: 'Step',
                 position_x: 0,
                 position_y: 0,
-                is_create: true,
+                is_create: false,
                 is_archive: false,
                 task_instructions: '',
                 at: AT,

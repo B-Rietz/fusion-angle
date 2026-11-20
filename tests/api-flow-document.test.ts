@@ -38,6 +38,11 @@ import {
     apiRequest, pairIdOf, storedPutBodyText,
 } from './http-fixtures.ts';
 import { messageStore } from '../api/message-store.ts';
+import {
+    createArchiveDeltaOf,
+    createArchiveGraph,
+    graphWithNodes,
+} from './fixtures/create-archive-graph.ts';
 
 // The flows-specific below-gate op + conditional-PUT e2e
 // coverage for the flow document PUT (the generic required arm
@@ -86,8 +91,23 @@ function emptyDelta() {
     };
 }
 
-function emptyGraph() {
-    return { nodes: [], edges: [] };
+// Every flow in this file is born with these two nodes and
+// keeps them through each save.
+const BORN_GRAPH = createArchiveGraph();
+
+function bornDelta(flowId: string) {
+    return createArchiveDeltaOf(BORN_GRAPH, flowId, AT);
+}
+
+// BORN_GRAPH and one more node.
+function bornGraphWith(id: string) {
+    return graphWithNodes(BORN_GRAPH, [{
+        id, name: 'N',
+        positionX: 0, positionY: 0,
+        isCreate: false, isArchive: false,
+        memberIds: [], attributes: [],
+        taskInstructions: '',
+    }]);
 }
 
 // The full wire document PUT /organizations/:id/flows/:id now takes (Decision
@@ -105,7 +125,7 @@ function documentBody(
         state: 'updated',
         state_at: AT,
         state_event_id: stateEventId,
-        graph: emptyGraph(),
+        graph: BORN_GRAPH,
         graphDelta: emptyDelta(),
         revivals: [],
         ...(overrides ?? {}),
@@ -143,7 +163,7 @@ async function createFlow(
             initialStateEventId: ids?.initialStateEventId
                 ?? generateIdentifier(),
             initialStateAt: AT,
-            graphDelta: emptyDelta(),
+            graphDelta: bornDelta(flowId),
         },
     ));
 }
@@ -202,7 +222,7 @@ Deno.test('postFlowDocumentOp returns the entity, exactly one'
         state: 'active',
         state_at: AT,
         state_event_id: generateIdentifier(),
-        graph: emptyGraph(),
+        graph: BORN_GRAPH,
         graphDelta: emptyDelta(),
         revivals: [],
     };
@@ -258,7 +278,7 @@ Deno.test('postFlowDocumentOp with revivals posts the restored'
         state: 'active',
         state_at: AT,
         state_event_id: generateIdentifier(),
-        graph: emptyGraph(),
+        graph: BORN_GRAPH,
         graphDelta: {
             ...emptyDelta(),
             nodes: [{
@@ -725,8 +745,8 @@ async () => {
         state: 'active',
         state_at: AT,
         state_event_id: initialStateEventId,
-        graph: emptyGraph(),
-        graphDelta: emptyDelta(),
+        graph: BORN_GRAPH,
+        graphDelta: bornDelta(flowId),
         revivals: [],
     };
     // Validates as a genuine FlowDocumentBody — the Phase 3
@@ -797,7 +817,7 @@ Deno.test('e2e: a duplicate POST flows (same id) is 409 and'
             initialState: 'active',
             initialStateEventId: generateIdentifier(),
             initialStateAt: AT,
-            graphDelta: emptyDelta(),
+            graphDelta: bornDelta(flowId),
         },
     ));
     assertStrictEquals(first.status, 201);
@@ -838,7 +858,7 @@ Deno.test('e2e: a duplicate POST flows (same id) is 409 and'
             initialState: 'active',
             initialStateEventId: generateIdentifier(),
             initialStateAt: SECOND_AT,
-            graphDelta: emptyDelta(),
+            graphDelta: bornDelta(flowId),
         },
     ));
     // A POST create declares a genesis; the taken id
@@ -885,20 +905,11 @@ Deno.test('e2e: POST organizations/:id/flows/:id/undo forms a'
     const token = await organizationToken();
     await createFlow(db, token, 'cvdqOxjRwvTEYzWTrFDNFw');
 
-    // A non-trivial undo TARGET (one node) — so the graph
+    // A non-trivial undo TARGET (one more node) — so the graph
     // comparison below actually exercises the mechanism rather
-    // than trivially equating two empty graphs.
+    // than trivially equating two born graphs.
     const nodeId = generateIdentifier();
-    const undoneGraph = {
-        nodes: [{
-            id: nodeId, name: 'N',
-            positionX: 0, positionY: 0,
-            isCreate: false, isArchive: false,
-            memberIds: [], attributes: [],
-            taskInstructions: '',
-        }],
-        edges: [],
-    };
+    const undoneGraph = bornGraphWith(nodeId);
     const firstSave = await handleRequest(db, req(
         'PUT', '/organizations/AjdvjuECVZEgZoFajaIEkg/flows/'
             + 'cvdqOxjRwvTEYzWTrFDNFw', token,
@@ -1338,16 +1349,7 @@ async () => {
     const saveBody = documentBody(
         'Saved Graph', generateIdentifier(),
         {
-            graph: {
-                nodes: [{
-                    id: generateIdentifier(), name: 'N',
-                    positionX: 0, positionY: 0,
-                    isCreate: false, isArchive: false,
-                    memberIds: [], attributes: [],
-                    taskInstructions: '',
-                }],
-                edges: [],
-            },
+            graph: bornGraphWith(generateIdentifier()),
         },
     );
     const saved = await handleRequest(db, req(

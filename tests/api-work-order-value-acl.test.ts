@@ -24,6 +24,8 @@ import { apiRequest } from './http-fixtures.ts';
 import { seedSeat } from './root-admin-fixture.ts';
 import { seedCreatedWorkOrder } from
     './work-order-fixtures.ts';
+import { createArchiveDelta } from
+    './fixtures/create-archive-graph.ts';
 
 // A work order's events record the values each transition
 // set. Every read of a work order serves those values
@@ -149,13 +151,7 @@ async function seededWithHiddenValue(): Promise<{
             initialState: 'active',
             initialStateEventId: generateIdentifier(),
             initialStateAt: AT,
-            graphDelta: {
-                nodes: [],
-                edges: [],
-                deletions: [],
-                memberEvents: [],
-                attributeEvents: [],
-            },
+            graphDelta: createArchiveDelta(FLOW_ID, AT),
         },
     ))).body?.cancel();
     await seedCreatedWorkOrder(db, {
