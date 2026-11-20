@@ -4,6 +4,7 @@ import {
 } from './state.ts';
 import {
     getPageName,
+    buildPageUrl,
 } from './navigation.ts';
 import {
     initSidebarLayout,
@@ -57,6 +58,23 @@ import {
     postSessionRefresh,
 } from '../../client/session-refresh.ts';
 import { initErrorSurfacing } from './error-helpers.ts';
+import { $required } from './dom.ts';
+import { setHtml } from './safe-html.ts';
+import {
+    buildSwitchOfferState,
+    buildNoAccessState,
+} from './loading-states.ts';
+import {
+    ORGANIZATION_PARAM,
+    resolvePageArrival,
+    resolveOrganizationMismatch,
+    stampOrganization,
+} from './organization-address.ts';
+import {
+    switchToOrganization,
+} from './organization-switcher.ts';
+import { getUrlParam } from './adapters/url-params.ts';
+import { getHref, putAddress } from './adapters/location.ts';
 import { replayPendingToast } from './toast.ts';
 import { redirectToLogin } from './auth-redirect.ts';
 import { navigateTo } from './navigation.ts';
@@ -398,6 +416,71 @@ async function installRefreshedSession(
     return false;
 }
 
+// Returns true when the page may init (the address now
+// carries the active organization), false once it has
+// rendered the switch offer or no-access.
+async function bootPageOrganization(
+    bootOrganizations:
+        readonly HttpMessage<OrganizationEntity>[] | null,
+): Promise<boolean> {
+    const active = principalFromToken(
+        getClient().getSessionToken(),
+    ).organization;
+    if (active === undefined) {
+        throw new Error(
+            'boot left an organization-scoped page unscoped',
+        );
+    }
+    const arrival = resolvePageArrival(
+        getUrlParam(ORGANIZATION_PARAM), active,
+    );
+    if (arrival.kind === 'proceed') {
+        putAddress(stampOrganization(getHref(), active));
+        return true;
+    }
+    // The token's organizations claim lags membership by
+    // up to the access TTL, so only fresh rows decide.
+    const rows = bootOrganizations
+        ?? await getOrganizations(sessionContext());
+    const content = $required('.page-content', document);
+    const mismatch = resolveOrganizationMismatch(
+        arrival.organization,
+        rows.map(o => o.body().toValue().id),
+    );
+    if (mismatch === 'no-access') {
+        setHtml(
+            content,
+            buildNoAccessState(buildPageUrl('dashboard')),
+        );
+        return false;
+    }
+    const nameOf = (id: string): string => {
+        const row = rows.find(
+            o => o.body().toValue().id === id,
+        );
+        if (row === undefined) {
+            throw new Error(
+                'switch offer names an unreachable'
+                + ' organization',
+            );
+        }
+        return row.body().toValue().name;
+    };
+    const target = arrival.organization;
+    setHtml(
+        content,
+        buildSwitchOfferState(nameOf(target), nameOf(active)),
+    );
+    $required('[data-switch-organization-btn]', content)
+        .addEventListener(
+            'click',
+            () => switchToOrganization(
+                target, () => location.reload(),
+            ),
+        );
+    return false;
+}
+
 export async function bootApp(): Promise<void> {
     initErrorSurfacing();
     initState();
@@ -435,6 +518,18 @@ export async function bootApp(): Promise<void> {
         bootOrganizations =
             await scopeBootIfCredentialed();
         markEnd(MEASURE_BOOT_ORGANIZATION_SCOPE);
+    }
+
+    let mayInit = true;
+    if (PAGE_REGISTRY[pageName]?.organizationScoped === true) {
+        try {
+            mayInit = await bootPageOrganization(
+                bootOrganizations,
+            );
+        } catch (err) {
+            mayInit = false;
+            handlePageLoadError(pageName, err);
+        }
     }
 
     // Three self-contained branches — sidebar chrome,
@@ -480,14 +575,16 @@ export async function bootApp(): Promise<void> {
         }
     })());
 
-    branches.push((async () => {
-        try {
-            await initPageModule(pageName);
-            pageReady = true;
-        } catch (err) {
-            handlePageLoadError(pageName, err);
-        }
-    })());
+    if (mayInit) {
+        branches.push((async () => {
+            try {
+                await initPageModule(pageName);
+                pageReady = true;
+            } catch (err) {
+                handlePageLoadError(pageName, err);
+            }
+        })());
+    }
 
     await Promise.all(branches);
     if (pageReady) {

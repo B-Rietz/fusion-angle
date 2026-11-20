@@ -1,6 +1,9 @@
 import { assert, assertEquals, assertStrictEquals } from '@std/assert';
-import { loadInto } from
-    '../web-app/app/loading-states.ts';
+import {
+    buildNoAccessState,
+    buildSwitchOfferState,
+    loadInto,
+} from '../web-app/app/loading-states.ts';
 import { html } from '../web-app/app/safe-html.ts';
 
 // A structural stand-in for the container element:
@@ -105,3 +108,38 @@ Deno.test(
         );
     },
 );
+
+Deno.test('the switch offer names both organizations', () => {
+    const out = buildSwitchOfferState(
+        'Wayne Enterprises',
+        'Stark Industries',
+    ).toString();
+    assert(out.includes('This page is in Wayne Enterprises'));
+    assert(out.includes(
+        "You're currently viewing Stark Industries.",
+    ));
+    assert(out.includes('Switch to Wayne Enterprises'));
+    assert(out.includes('data-switch-organization-btn'));
+    assert(out.includes('state-icon-empty'));
+    assert(!out.includes('state-icon-error'));
+});
+
+Deno.test('the switch offer escapes organization names', () => {
+    const out = buildSwitchOfferState(
+        '<b>W</b>',
+        'Stark',
+    ).toString();
+    assert(out.includes('&lt;b&gt;W&lt;/b&gt;'));
+    assert(!out.includes('<b>W</b>'));
+});
+
+Deno.test('no access links to the dashboard', () => {
+    const out = buildNoAccessState(
+        '../dashboard/index.html',
+    ).toString();
+    assert(out.includes("You don't have access to this page"));
+    assert(out.includes('href="../dashboard/index.html"'));
+    assert(out.includes('Go to Dashboard'));
+    assert(out.includes('state-icon-error'));
+    assert(!out.includes('data-switch-organization-btn'));
+});

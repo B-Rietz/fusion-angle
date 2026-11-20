@@ -80,3 +80,30 @@ Deno.test(
         );
     },
 );
+
+const ORGANIZATION_SCOPED = [
+    'billing', 'dashboard', 'flow-detail', 'flow-stats',
+    'flows', 'idea-convert', 'idea-create', 'idea-detail',
+    'ideas', 'identities', 'identity-detail',
+    'member-detail', 'members', 'organization',
+    'project-detail', 'projects', 'record-create',
+    'record-detail', 'records', 'workbox',
+    'workbox-detail',
+];
+
+Deno.test('organization-scoped pages are the fenced ones',
+() => {
+    const scoped = Object.entries(PAGE_REGISTRY)
+        .filter(([, e]) => e.organizationScoped)
+        .map(([k]) => k)
+        .sort();
+    assertEquals(scoped, ORGANIZATION_SCOPED);
+});
+
+Deno.test('every organization-scoped page is gated', () => {
+    for (const [key, entry] of Object.entries(PAGE_REGISTRY)) {
+        if (entry.organizationScoped) {
+            assertStrictEquals(pageAuthMode(key), 'gated', key);
+        }
+    }
+});

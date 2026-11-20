@@ -2233,8 +2233,7 @@ version, whoever saves it — tests/adapters-ideas.test.ts
   to `ideas/convert.html`. That click does
   **not** promote (D24 does). Then select Stark
   Industries in `.org-switcher` before D17–D19 —
-  the switch leaves `ideas/convert.html` for
-  `ideas/index.html`.
+  the switch lands on the Dashboard.
   Pin: tests/presenter-idea.test.ts
        'IdeaPresenter.buildCard exposes a Convert
        affordance only for approved ideas' (decides
@@ -2242,10 +2241,9 @@ version, whoever saves it — tests/adapters-ideas.test.ts
        not for others — `isConvertible()` is a plain
        equality against `approved`, so this
        generalizes); tests/organization-switcher.test.ts
-       'a switch off convert leaves the ideas index
-       (D16)' (decides a switch on `ideas/convert.html`
-       lands on `/ideas/index.html`, dropping the query
-       and hash); exploratory — the live
+       'a confirmed switch persists, then enters from
+       the root' (decides a switch persists the chosen
+       organization, then lands on `/`); exploratory — the live
        org-switcher navigation and the detail-page
        Convert button
 - [ ] **D17** Navigate to
@@ -6097,8 +6095,8 @@ FSM, unlike `flows/detail`).
   only the signed-in person — its org-name line is
   cleared so the org is not named twice. Note the Ideas
   and Members lists for Stark. Select "Wayne
-  Enterprises" → the page does a FULL reload onto
-  Wayne: Ideas shows Wayne's ideas and Members shows
+  Enterprises" → the page lands on Wayne's
+  Dashboard; open Ideas and Members: Ideas shows Wayne's ideas and Members shows
   Wayne's humans and Wayne's AI members — none in the
   mock seed, which seats every AI at Stark; Stark's
   humans, Stark's AIs, and Stark's ideas are gone (AI

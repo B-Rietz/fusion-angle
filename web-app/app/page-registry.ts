@@ -31,6 +31,11 @@ export interface PageEntry {
     // `requiresAuth !== false`, so the 23 app pages that
     // omit it inherit true; only the public surface opts out.
     requiresAuth?: boolean;
+    // True when the server fences the page's reads on the token's
+    // organization, or the page belongs to an organization though
+    // it reads nothing (billing); boot stamps and checks
+    // `organization=` only on these pages.
+    organizationScoped: boolean;
     cssBundles?: string[];
     loader: () => Promise<{
         init: (
@@ -44,6 +49,7 @@ export const PAGE_REGISTRY: Record<
     PageEntry
 > = {
     dashboard: {
+        organizationScoped: true,
         title: 'Dashboard',
         layout: 'sidebar',
         inSidebarNav: true,
@@ -54,6 +60,7 @@ export const PAGE_REGISTRY: Record<
         loader: () => import('../dashboard/index.ts'),
     },
     organization: {
+        organizationScoped: true,
         title: 'Organization',
         layout: 'sidebar',
         inSidebarNav: true,
@@ -66,6 +73,7 @@ export const PAGE_REGISTRY: Record<
         loader: () => import('../organization/index.ts'),
     },
     ideas: {
+        organizationScoped: true,
         title: 'Ideas',
         layout: 'sidebar',
         inSidebarNav: true,
@@ -77,6 +85,7 @@ export const PAGE_REGISTRY: Record<
         loader: () => import('../ideas/index.ts'),
     },
     'idea-detail': {
+        organizationScoped: true,
         title: 'Idea Detail',
         layout: 'sidebar',
         sidebarKey: 'ideas',
@@ -88,6 +97,7 @@ export const PAGE_REGISTRY: Record<
         loader: () => import('../ideas/detail.ts'),
     },
     'idea-create': {
+        organizationScoped: true,
         title: 'Create Idea',
         layout: 'sidebar',
         sidebarKey: 'ideas',
@@ -99,6 +109,7 @@ export const PAGE_REGISTRY: Record<
         loader: () => import('../ideas/create.ts'),
     },
     'idea-convert': {
+        organizationScoped: true,
         title: 'Convert Idea',
         layout: 'sidebar',
         sidebarKey: 'ideas',
@@ -110,6 +121,7 @@ export const PAGE_REGISTRY: Record<
         loader: () => import('../ideas/convert.ts'),
     },
     projects: {
+        organizationScoped: true,
         title: 'Projects',
         layout: 'sidebar',
         inSidebarNav: true,
@@ -122,6 +134,7 @@ export const PAGE_REGISTRY: Record<
         loader: () => import('../projects/index.ts'),
     },
     'project-detail': {
+        organizationScoped: true,
         title: 'Project Detail',
         layout: 'sidebar',
         sidebarKey: 'projects',
@@ -133,6 +146,7 @@ export const PAGE_REGISTRY: Record<
         loader: () => import('../projects/detail.ts'),
     },
     records: {
+        organizationScoped: true,
         title: 'Records',
         layout: 'sidebar',
         inSidebarNav: true,
@@ -145,6 +159,7 @@ export const PAGE_REGISTRY: Record<
         loader: () => import('../records/index.ts'),
     },
     'record-create': {
+        organizationScoped: true,
         title: 'Create Record',
         layout: 'sidebar',
         sidebarKey: 'records',
@@ -156,6 +171,7 @@ export const PAGE_REGISTRY: Record<
         loader: () => import('../records/create.ts'),
     },
     'record-detail': {
+        organizationScoped: true,
         title: 'Record',
         layout: 'sidebar',
         sidebarKey: 'records',
@@ -167,6 +183,7 @@ export const PAGE_REGISTRY: Record<
         loader: () => import('../records/detail.ts'),
     },
     flows: {
+        organizationScoped: true,
         title: 'Flows',
         layout: 'sidebar',
         inSidebarNav: true,
@@ -179,6 +196,7 @@ export const PAGE_REGISTRY: Record<
         loader: () => import('../flows/index.ts'),
     },
     'flow-detail': {
+        organizationScoped: true,
         title: 'Flow Designer',
         layout: 'sidebar',
         sidebarKey: 'flows',
@@ -190,6 +208,7 @@ export const PAGE_REGISTRY: Record<
         loader: () => import('../flows/detail.ts'),
     },
     'flow-stats': {
+        organizationScoped: true,
         title: 'Flow Statistics',
         layout: 'sidebar',
         sidebarKey: 'flows',
@@ -201,6 +220,7 @@ export const PAGE_REGISTRY: Record<
         loader: () => import('../flows/stats.ts'),
     },
     workbox: {
+        organizationScoped: true,
         title: 'Workbox',
         layout: 'sidebar',
         inSidebarNav: true,
@@ -213,6 +233,7 @@ export const PAGE_REGISTRY: Record<
         loader: () => import('../workbox/index.ts'),
     },
     'workbox-detail': {
+        organizationScoped: true,
         title: 'Work Order',
         layout: 'sidebar',
         sidebarKey: 'workbox',
@@ -224,6 +245,7 @@ export const PAGE_REGISTRY: Record<
         loader: () => import('../workbox/detail.ts'),
     },
     members: {
+        organizationScoped: true,
         title: 'Members',
         layout: 'sidebar',
         inSidebarNav: true,
@@ -236,6 +258,7 @@ export const PAGE_REGISTRY: Record<
         loader: () => import('../members/index.ts'),
     },
     'member-detail': {
+        organizationScoped: true,
         title: 'Member',
         layout: 'sidebar',
         sidebarKey: 'members',
@@ -247,6 +270,7 @@ export const PAGE_REGISTRY: Record<
         loader: () => import('../members/detail.ts'),
     },
     invitations: {
+        organizationScoped: false,
         title: 'Invitations',
         layout: 'sidebar',
         sidebarKey: 'members',
@@ -257,6 +281,7 @@ export const PAGE_REGISTRY: Record<
         loader: () => import('../invitations/index.ts'),
     },
     identities: {
+        organizationScoped: true,
         title: 'Identities',
         layout: 'sidebar',
         inSidebarNav: true,
@@ -270,6 +295,7 @@ export const PAGE_REGISTRY: Record<
         loader: () => import('../identities/index.ts'),
     },
     'identity-detail': {
+        organizationScoped: true,
         title: 'Identity',
         layout: 'sidebar',
         sidebarKey: 'identities',
@@ -281,6 +307,7 @@ export const PAGE_REGISTRY: Record<
         loader: () => import('../identities/detail.ts'),
     },
     'identity-providers': {
+        organizationScoped: false,
         title: 'Identity Providers',
         layout: 'sidebar',
         sidebarKey: 'identities',
@@ -293,6 +320,7 @@ export const PAGE_REGISTRY: Record<
             import('../identity-providers/index.ts'),
     },
     'identity-tokens': {
+        organizationScoped: false,
         title: 'Tokens',
         layout: 'sidebar',
         sidebarKey: 'identities',
@@ -305,6 +333,7 @@ export const PAGE_REGISTRY: Record<
             import('../identity-tokens/index.ts'),
     },
     billing: {
+        organizationScoped: true,
         title: 'Billing',
         layout: 'sidebar',
         inSidebarNav: true,
@@ -317,6 +346,7 @@ export const PAGE_REGISTRY: Record<
         loader: () => import('../billing/index.ts'),
     },
     'api-documentation': {
+        organizationScoped: false,
         title: 'API',
         layout: 'sidebar',
         inSidebarNav: true,
@@ -329,6 +359,7 @@ export const PAGE_REGISTRY: Record<
         loader: () => import('../api-documentation/index.ts'),
     },
     'design-system': {
+        organizationScoped: false,
         title: 'Design System',
         layout: 'sidebar',
         inSidebarNav: true,
@@ -342,6 +373,7 @@ export const PAGE_REGISTRY: Record<
         loader: () => import('../design-system/index.ts'),
     },
     auth: {
+        organizationScoped: false,
         title: 'Authentication',
         layout: 'standalone',
         sourceDir: 'auth',
@@ -352,6 +384,7 @@ export const PAGE_REGISTRY: Record<
         loader: () => import('../auth/index.ts'),
     },
     landing: {
+        organizationScoped: false,
         title: 'Landing',
         layout: 'standalone',
         sourceDir: 'landing',
@@ -362,6 +395,7 @@ export const PAGE_REGISTRY: Record<
         loader: () => import('../landing/index.ts'),
     },
     'not-found': {
+        organizationScoped: false,
         title: '404 Not Found',
         layout: 'standalone',
         sourceDir: 'not-found',

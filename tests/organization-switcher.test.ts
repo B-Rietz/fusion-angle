@@ -1,8 +1,28 @@
-import { assertMatch, assertStrictEquals } from '@std/assert';
 import {
+    assert,
+    assertMatch,
+    assertStrictEquals,
+} from '@std/assert';
+import {
+    STORAGE_KEY_PENDING_TOAST,
+} from '../web-app/app/storage-keys.ts';
+import { captureConsole } from './fixtures/console-capture.ts';
+import { withLocalStorage } from './fixtures/local-storage.ts';
+
+// The switcher moves through window.location.href
+// (putLocation) and paints toasts into document and
+// sessionStorage. Stub them before the module loads.
+const fakeLocation = { href: '' };
+// @ts-expect-error — browser global stub
+globalThis.window = { location: fakeLocation };
+
+const {
     organizationSwitcherHtml,
-    urlAfterOrganizationSwitch,
-} from '../web-app/app/organization-switcher.ts';
+    switchToOrganization,
+    chooseOrganization,
+} = await import(
+    '../web-app/app/organization-switcher.ts'
+);
 
 const TWO = [
     { id: 'AjdvjuECVZEgZoFajaIEkg', name: 'Stark' },
@@ -84,42 +104,138 @@ Deno.test('organizationSwitcherHtml is empty below two orgs', () => {
         '');
 });
 
+const WAYNE = 'BBjWJsjYIDkTRKIIPrzWRw';
+const ACTIVE_KEY = 'fusion-angle:active-organization-id';
+
+function installToastDom(): Map<string, string> {
+    const store = new Map<string, string>();
+    const g = globalThis as Record<string, unknown>;
+    g.sessionStorage = {
+        getItem: (k: string) => store.get(k) ?? null,
+        setItem: (k: string, v: string) => {
+            store.set(k, v);
+        },
+        removeItem: (k: string) => { store.delete(k); },
+    };
+    function el(): Record<string, unknown> {
+        const node: Record<string, unknown> = {
+            className: '',
+            children: [] as unknown[],
+            lastElementChild: null,
+            style: {},
+            textContent: '',
+            classList: { add: () => {} },
+            setAttribute: () => {},
+            addEventListener: () => {},
+            prepend: () => {},
+            appendChild: (child: unknown) => child,
+            remove: () => {},
+        };
+        return node;
+    }
+    let container: unknown = null;
+    g.document = {
+        getElementById: () => container,
+        createElement: () => el(),
+        body: {
+            appendChild(child: unknown) {
+                container = child;
+                return child;
+            },
+        },
+    };
+    return store;
+}
+
+function withToastDom(
+    body: (store: Map<string, string>) => void,
+): void {
+    const g = globalThis as Record<string, unknown>;
+    const previousTimeout = g.setTimeout;
+    g.setTimeout = () => 0;
+    const store = installToastDom();
+    fakeLocation.href = '';
+    try {
+        body(store);
+    } finally {
+        g.setTimeout = previousTimeout;
+        delete g.sessionStorage;
+        delete g.document;
+    }
+}
+
 Deno.test(
-    'a switch off convert leaves the ideas'
-    + ' index (D16)',
+    'a confirmed switch persists, then enters from'
+    + ' the root',
     () => {
-        assertStrictEquals(
-            urlAfterOrganizationSwitch(
-                'http://local/ideas/convert.html'
-                + '?ideaId=WurwPqXxGtLhRAoCEcPzfQ'
-                + '#stay',
-            ),
-            '/ideas/index.html',
-        );
+        withToastDom(() => {
+            const recorded = new Map<string, string>();
+            withLocalStorage({
+                setItem: (k: string, v: string) => {
+                    recorded.set(k, v);
+                },
+            }, () => {
+                chooseOrganization(WAYNE);
+            });
+            assertStrictEquals(
+                recorded.get(ACTIVE_KEY),
+                WAYNE,
+            );
+            assertStrictEquals(fakeLocation.href, '/');
+        });
     },
 );
 
 Deno.test(
-    'a switch on the ideas index keeps its query',
-    () => {
-        assertStrictEquals(
-            urlAfterOrganizationSwitch(
-                'http://local/ideas/index.html?x=1',
-            ),
-            '/ideas/index.html?x=1',
-        );
+    'a refused switch toasts and stays',
+    async () => {
+        const { calls } = await captureConsole('warn', () => {
+            withToastDom((session) => {
+                withLocalStorage({
+                    getItem: () => null,
+                    setItem: () => {
+                        throw new DOMException(
+                            'full',
+                            'QuotaExceededError',
+                        );
+                    },
+                }, () => {
+                    chooseOrganization(WAYNE);
+                });
+                assertStrictEquals(fakeLocation.href, '');
+                const raw = session.get(
+                    STORAGE_KEY_PENDING_TOAST,
+                );
+                assert(raw);
+                assertMatch(
+                    raw!,
+                    /Could not switch organization — please try again\./,
+                );
+            });
+        });
+        assertStrictEquals(calls.length, 1);
     },
 );
 
 Deno.test(
-    'a switch on idea detail keeps its ideaId',
+    'switchToOrganization moves only after the persist',
     () => {
-        assertStrictEquals(
-            urlAfterOrganizationSwitch(
-                'http://local/ideas/detail.html'
-                + '?ideaId=999',
-            ),
-            '/ideas/detail.html?ideaId=999',
-        );
+        withToastDom(() => {
+            const recorded = new Map<string, string>();
+            let moves = 0;
+            let seen: string | undefined;
+            withLocalStorage({
+                setItem: (k: string, v: string) => {
+                    recorded.set(k, v);
+                },
+            }, () => {
+                switchToOrganization(WAYNE, () => {
+                    moves += 1;
+                    seen = recorded.get(ACTIVE_KEY);
+                });
+            });
+            assertStrictEquals(seen, WAYNE);
+            assertStrictEquals(moves, 1);
+        });
     },
 );

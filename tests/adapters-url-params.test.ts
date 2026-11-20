@@ -62,6 +62,11 @@ Deno.test('getUrlParam returns null for empty search', () => {
     assertStrictEquals(getUrlParam('id'), null);
 });
 
+Deno.test('getUrlParam returns empty string for an empty value', () => {
+    setSearch('?id=');
+    assertStrictEquals(getUrlParam('id'), '');
+});
+
 Deno.test('getUrlParam decodes percent-encoded values', () => {
     setSearch('?q=a%20b');
     assertStrictEquals(getUrlParam('q'), 'a b');

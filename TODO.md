@@ -1094,8 +1094,8 @@ Off the critical path; each with its oracle.
   through `postSessionRefresh`
   (`client/request-context.ts:355`, called at `:232`;
   `client/session-refresh.ts:15`); boot
-  refreshes three times more (`web-app/app/app-boot.ts:243`,
-  its 403 fallback at `:256`, and `:359`), and an
+  refreshes three times more (`web-app/app/app-boot.ts:261`,
+  its 403 fallback at `:274`, and `:377`), and an
   accepted invitation re-mints its claims
   in two attempts, no loop (`remintSessionClaims`,
   `client/invitations.ts:242`). Unhandled: a
