@@ -151,7 +151,7 @@ The edge is the single quadratic arc from `S` to `E` whose
 apex is `A = midpoint(S, E) + n * bow`.
 
 A proportional bow holds the arc's end angle constant
-(about 16 degrees off the lane), so a short pair and a
+(about 10 degrees off the lane), so a short pair and a
 long pair wear the same curve and the arrow enters the
 state at the same gentle angle. The cap keeps a long pair
 from ballooning.
@@ -175,18 +175,19 @@ The `BIDI_LABEL_T` stagger retires.
 | Constant | Value | Reads as |
 |---|---|---|
 | `LANE` | 8 | attachments 16 apart |
-| `BOW_FRAC` | 0.07 | end angle about 16 degrees |
+| `BOW_FRAC` | 0.045 | end angle about 10 degrees |
 | `BOW_MAX` | 16 | at most 48 apart mid-span |
 | `LABEL_GAP` | 6 | label to arc |
 
-Measured: a vertical pair 243 apart has a 179 chord, a
-12.5 bow, and 41 between the arcs mid-span. A sweep of
+Measured: a vertical pair 243 apart has a 179 chord, an
+8.1 bow, and 32 between the arcs mid-span. A sweep of
 every half degree at seven distances found no arc
 entering a state.
 
-These are starting values. The operator tunes them by eye
-on the development server, so each lives in one named
-constant.
+The operator set these by eye on an interactive mock,
+bringing `BOW_FRAC` down from 0.07, and may tune them
+again on the development server, so each lives in one
+named constant.
 
 ### Routed pairs
 
