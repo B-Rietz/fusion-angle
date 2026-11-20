@@ -1,4 +1,9 @@
-import { ICON_SIZE, iconAlertTriangle } from './icons.ts';
+import {
+    ICON_SIZE,
+    iconAlertTriangle,
+    iconBuilding,
+    iconNoEntry,
+} from './icons.ts';
 import { $ } from './dom.ts';
 import {
     extractErrorMessage,
@@ -178,6 +183,41 @@ export function buildEmptyState(
             class="btn btn-primary">${
             action.label}</a>`
         : html``}
+    </div>`;
+}
+
+export function buildSwitchOfferState(
+    targetName: string,
+    activeName: string,
+): SafeHtml {
+    return html`<div
+    class="state-container">
+    <div class="state-icon
+        state-icon-empty">${
+        iconBuilding(ICON_SIZE['2xl'], '')}</div>
+    <p class="state-title"
+        >This page is in ${targetName}</p>
+    <p class="state-description"
+        >You're currently viewing ${
+        activeName}.</p>
+    <button class="btn btn-primary"
+        data-switch-organization-btn>Switch to ${
+        targetName}</button>
+    </div>`;
+}
+
+export function buildNoAccessState(
+    dashboardHref: string,
+): SafeHtml {
+    return html`<div
+    class="state-container">
+    <div class="state-icon
+        state-icon-error">${
+        iconNoEntry(ICON_SIZE['2xl'], '')}</div>
+    <p class="state-title"
+        >You don't have access to this page</p>
+    <a href="${dashboardHref}"
+        class="btn btn-primary">Go to Dashboard</a>
     </div>`;
 }
 

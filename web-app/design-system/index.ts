@@ -1,4 +1,9 @@
 import { $required } from '../app/dom.ts';
+import { buildPageUrl } from '../app/navigation.ts';
+import {
+    buildNoAccessState,
+    buildSwitchOfferState,
+} from '../app/loading-states.ts';
 import {
     CYCLE_DASH,
     LABEL_CHAR_WIDTH,
@@ -1182,6 +1187,19 @@ export function buildDesignSystemPage(): SafeHtml {
                             }">Contact Support</button>
                     </div>
                 </div>
+            </div>
+            <div class="card text-center p-12">
+                <h3 class="font-semibold mb-3">Switch Offer</h3>
+                ${buildSwitchOfferState(
+                    'Wayne Enterprises',
+                    'Stark Industries',
+                )}
+            </div>
+            <div class="card text-center p-12">
+                <h3 class="font-semibold mb-3">No Access</h3>
+                ${buildNoAccessState(
+                    buildPageUrl('dashboard'),
+                )}
             </div>
         </section>
 

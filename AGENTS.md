@@ -440,7 +440,7 @@ chaining (`runtime.process?.env?.[…]`) — a real reader that
 the narrower `process\.` pattern silently clears, leaving a
 one-line false all-clear. The remaining nine are the English
 word: eight in comments, one in the page keyword string
-`'flow, process,'` at `web-app/app/page-registry.ts:177`.
+`'flow, process,'` at `web-app/app/page-registry.ts:194`.
 
 Dropping the quote anchor adds eight more non-specifier hits:
 `node: GraphNode`, a domain property name, in `flow-graph.ts`

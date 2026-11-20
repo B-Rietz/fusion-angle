@@ -5,6 +5,7 @@ import {
     ACTIVE_ORGANIZATION_ID,
 } from '../../client/organization-session.ts';
 import { putPreference } from './adapters/preferences.ts';
+import { putLocation } from './adapters/location.ts';
 import { showToast } from './toast.ts';
 
 interface OrganizationOption {
@@ -16,7 +17,7 @@ interface OrganizationOption {
 // are two or more reachable organizations. The active
 // organization is selected after render in
 // wireOrganizationSwitcher, so options carry no
-// selected attribute. This menu switches and reloads.
+// selected attribute. This menu switches and enters from the root.
 // It does not set the default organization.
 export function organizationSwitcherHtml(
     organizations: readonly OrganizationOption[],
@@ -38,31 +39,15 @@ export function organizationSwitcherHtml(
     }</select>`;
 }
 
-export function urlAfterOrganizationSwitch(
-    href: string,
-): string {
-    const url = new URL(href, 'http://local');
-    if (url.pathname.endsWith(
-        '/ideas/convert.html',
-    )) {
-        url.pathname = url.pathname.replace(
-            /convert\.html$/,
-            'index.html',
-        );
-        url.search = '';
-        url.hash = '';
-    }
-    return url.pathname + url.search + url.hash;
-}
-
-// Persist the chosen organization and re-scope.
-// Boot re-exchanges a scoped token from the
-// persisted id, so no mixed view survives. A
-// convert URL leaves for the ideas index; every
-// other URL reloads. Move only after a confirmed
-// persist — a false return means the id never
-// landed, so leaving would keep the prior one.
-function switchToOrganization(organization: string): void {
+// Persist the chosen organization, then move. Boot
+// re-exchanges a scoped token from the persisted id,
+// so no mixed view survives. A false return means the
+// id never landed, so the toast fires and the page
+// never moves.
+export function switchToOrganization(
+    organization: string,
+    move: () => void,
+): void {
     if (!putPreference(ACTIVE_ORGANIZATION_ID, organization)) {
         showToast(
             'Could not switch organization —'
@@ -71,22 +56,23 @@ function switchToOrganization(organization: string): void {
         );
         return;
     }
-    const next = urlAfterOrganizationSwitch(
-        location.href,
+    move();
+}
+
+// The switcher's choice: switch, then enter from the
+// top at '/', which lands on the Dashboard.
+export function chooseOrganization(
+    organization: string,
+): void {
+    switchToOrganization(
+        organization,
+        () => putLocation('/'),
     );
-    const here = location.pathname
-        + location.search
-        + location.hash;
-    if (next !== here) {
-        location.assign(next);
-        return;
-    }
-    location.reload();
 }
 
 // Select the active organization and wire every
-// .org-switcher. A change reloads through
-// switchToOrganization.
+// .org-switcher. A change enters through
+// chooseOrganization.
 export function wireOrganizationSwitcher(
     activeOrganizationId: string,
 ): void {
@@ -96,7 +82,7 @@ export function wireOrganizationSwitcher(
         }
         el.value = activeOrganizationId;
         el.addEventListener('change', () => {
-            switchToOrganization(el.value);
+            chooseOrganization(el.value);
         });
     }
 }

@@ -1,4 +1,7 @@
-import { assertStrictEquals } from '@std/assert';
+import {
+    assertStrictEquals,
+    assertStringIncludes,
+} from '@std/assert';
 import { sha256Hex } from '../shared/digest.ts';
 import { buildDesignSystemPage }
     from '../web-app/design-system/index.ts';
@@ -10,10 +13,21 @@ Deno.test('design-system render is byte-stable',
 async () => {
     const rendered = buildDesignSystemPage().toString();
     const digest = await sha256Hex(rendered);
-    assertStrictEquals(rendered.length, 56174);
+    assertStrictEquals(rendered.length, 57850);
     assertStrictEquals(
         digest,
-        'c849925d8f513a21cf67bc5d3b94c664559049e0'
-        + 'bae551fd5daf278de786bf37',
+        '7a1dceeddb192f88b49f168cf32d380b9de40ea5'
+        + '034d8ec1e4b8ca2f3a809ffe',
     );
+});
+
+Deno.test('the showcase shows the organization screens',
+() => {
+    const rendered = buildDesignSystemPage().toString();
+    assertStringIncludes(
+        rendered, 'data-switch-organization-btn');
+    assertStringIncludes(
+        rendered, 'This page is in Wayne Enterprises');
+    assertStringIncludes(
+        rendered, "You don't have access to this page");
 });
