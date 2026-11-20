@@ -1726,6 +1726,20 @@ function onFlowLoaded(
     });
 }
 
+// A graph's nodes as the echo test weighs them. Auto
+// Layout places the nodes afresh on each side — the
+// read for no canvas, the designer for its own — so
+// there a position is no part of what the flow holds.
+function nodesAsHeld(
+    nodes: readonly GraphNode[],
+    isAutoLayout: boolean,
+): string {
+    if (!isAutoLayout) return JSON.stringify(nodes);
+    return JSON.stringify(nodes.map(({
+        positionX: _x, positionY: _y, ...held
+    }) => held));
+}
+
 // True when the server graph + flags already match the
 // live snapshot — own putFlow echo, or a no-op notify.
 function serverGraphMatchesLive(
@@ -1741,8 +1755,8 @@ function serverGraphMatchesLive(
         && graph.isAutoFit === live.isAutoFit
         && graph.lockTimeout
             === live.lockTimeout
-        && JSON.stringify(graph.nodes)
-            === JSON.stringify(live.nodes)
+        && nodesAsHeld(graph.nodes, graph.isAutoLayout)
+            === nodesAsHeld(live.nodes, live.isAutoLayout)
         && JSON.stringify(graph.edges)
             === JSON.stringify(live.edges);
 }
