@@ -108,6 +108,10 @@ import {
     HTTP_FORBIDDEN,
     HTTP_NOT_IMPLEMENTED,
 } from '../shared/http-errors.ts';
+import {
+    REQUEST_HEADERS,
+    requestHeaderOf,
+} from './request-header-names.ts';
 
 // The OAuth 2.1 token + authorize logic, kept out of the route
 // table. Each function returns a RESULT (success | failure) — an
@@ -1090,7 +1094,10 @@ async function grantRefresh(
     request: Request,
 ): Promise<TokenResult> {
     const token = refreshTokenFromCookieHeader(
-        request.headers.get('cookie'),
+        requestHeaderOf(
+            request.headers,
+            REQUEST_HEADERS.cookie,
+        ),
     );
     // An empty cookie is the anonymous probe. It is not
     // a malformed credential.
@@ -1315,7 +1322,10 @@ async function grantClientCredentials(
         ? body.client_id
         : '';
     const assertion = bearerCredential(
-        request.headers.get('authorization'),
+        requestHeaderOf(
+            request.headers,
+            REQUEST_HEADERS.authorization,
+        ),
     );
     // FLIPPED (clients elimination): the registration facet
     // derive replaces the raw clients row read. An absent OR
@@ -1436,7 +1446,10 @@ async function grantAuthorizationCode(
     request: Request,
 ): Promise<TokenResult> {
     const basic = parseBasic(
-        request.headers.get('authorization'),
+        requestHeaderOf(
+            request.headers,
+            REQUEST_HEADERS.authorization,
+        ),
     );
     const code = basic === null ? '' : basic.userId;
     const verifier = basic === null
@@ -1542,6 +1555,18 @@ async function grantAuthorizationCode(
     };
 }
 
+export const GRANT_TYPES = [
+    'authorization_code',
+    'refresh',
+    'token-exchange',
+    'client_credentials',
+] as const;
+export type GrantType = (typeof GRANT_TYPES)[number];
+
+function isGrantType(value: string): value is GrantType {
+    return (GRANT_TYPES as readonly string[]).includes(value);
+}
+
 // Dispatch on grant_type. Single-grant primitives are added one
 // per commit; an unsupported grant is a clean 400 with no side
 // effects. `seed` seeds every grant's own pair — see
@@ -1559,6 +1584,11 @@ export async function postToken(
     const grantType = typeof body.grant_type === 'string'
         ? body.grant_type
         : '';
+    if (!isGrantType(grantType)) {
+        return failure(
+            HTTP_BAD_REQUEST, 'unsupported grant_type: ' + grantType,
+        );
+    }
     switch (grantType) {
         case 'authorization_code':
             return grantAuthorizationCode(
@@ -1571,15 +1601,14 @@ export async function postToken(
         case 'token-exchange':
             return grantTokenExchange(
                 adapter, body, seed,
-                request.headers.get('authorization'),
+                requestHeaderOf(
+                    request.headers,
+                    REQUEST_HEADERS.authorization,
+                ),
             );
         case 'client_credentials':
             return grantClientCredentials(
                 adapter, body, seed, request,
-            );
-        default:
-            return failure(
-                HTTP_BAD_REQUEST, 'unsupported grant_type: ' + grantType,
             );
     }
 }
@@ -1684,7 +1713,10 @@ async function authorizePassword(
         };
     }
     const basic = parseBasic(
-        request.headers.get('authorization'),
+        requestHeaderOf(
+            request.headers,
+            REQUEST_HEADERS.authorization,
+        ),
     );
     const username = basic === null ? '' : basic.userId;
     const password = basic === null ? '' : basic.password;

@@ -8,6 +8,10 @@ import {
     HTTP_BAD_REQUEST,
     HTTP_LENGTH_REQUIRED,
 } from '../shared/http-errors.ts';
+import {
+    REQUEST_HEADERS,
+    requestHeaderOf,
+} from './request-header-names.ts';
 
 // The server half of the request vessel (Office of the
 // Context): one context enters at the gate and rides the
@@ -112,13 +116,21 @@ export function framingRefusal(
     headers: Headers,
     bodyBytes: Uint8Array,
 ): Response | undefined {
-    if (headers.get('transfer-encoding') !== null) {
+    if (
+        requestHeaderOf(
+            headers,
+            REQUEST_HEADERS.transferEncoding,
+        ) !== null
+    ) {
         return errorJson(
             BODY_NEEDS_LENGTH,
             HTTP_LENGTH_REQUIRED,
         );
     }
-    const contentLength = headers.get('content-length');
+    const contentLength = requestHeaderOf(
+        headers,
+        REQUEST_HEADERS.contentLength,
+    );
     if (
         bodyBytes.byteLength > 0
         && contentLength === null

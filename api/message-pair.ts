@@ -60,6 +60,14 @@ import {
     runLedgerStatement,
 } from './ledger-statement.ts';
 import { DATE_PLACEHOLDER } from './ledger-root.ts';
+import {
+    REQUEST_HEADERS,
+    requestFieldOf,
+} from './request-header-names.ts';
+export {
+    IF_MATCH_HEADER,
+    IF_NONE_MATCH_HEADER,
+} from './request-header-names.ts';
 import { notifyPayload } from './advisory-lock.ts';
 import { sortJsonKeys } from
     '../shared/http-message/canonical.ts';
@@ -230,7 +238,10 @@ function headerFieldsWithOperationId(
     fields: readonly FieldLine[],
     operationId: string,
 ): FieldLine[] {
-    if (fields.some((f) => f.name === OPERATION_ID_HEADER)) {
+    if (
+        requestFieldOf(fields, REQUEST_HEADERS.operationId)
+            !== undefined
+    ) {
         return [...fields];
     }
     return [
@@ -463,12 +474,6 @@ export function httpDateOf(at: string): string {
     return new Date(at).toUTCString();
 }
 
-// A conditional PUT or PATCH names its head: If-Match carries
-// the strong ETag. Not a credential — stored verbatim so two
-// writes differing only in If-Match are different messages
-// for replay identity.
-export const IF_MATCH_HEADER = 'if-match';
-
 // Parse a wire If-Match into the unquoted validator.
 // ETag is the message-pair identifier. Anything else —
 // 64-hex, `*`, weak, lists, unquoted — yields undefined;
@@ -489,8 +494,6 @@ export function parseIfMatch(
     }
     return inner;
 }
-
-export const IF_NONE_MATCH_HEADER = 'if-none-match';
 
 // A wire If-Match as its strong validators: one or more
 // quoted identifiers, comma-separated (RFC 9110 §13.1.1).
@@ -576,11 +579,12 @@ export function ifMatchFromMessage(
     message: string,
 ): string | undefined {
     const model = parseWire(message);
-    const field = model.fields.find(
-        (line) => line.name === IF_MATCH_HEADER,
+    const raw = requestFieldOf(
+        model.fields,
+        REQUEST_HEADERS.ifMatch,
     );
-    if (field === undefined) return undefined;
-    return parseIfMatch(field.value);
+    if (raw === undefined) return undefined;
+    return parseIfMatch(raw);
 }
 
 export function ifMatchFromMessagePair(
@@ -598,10 +602,10 @@ export function rawIfMatchFromMessagePair(
     messagePair: MessagePair,
 ): string | undefined {
     const model = parseWire(messagePair.requestMessage);
-    const field = model.fields.find(
-        (line) => line.name === IF_MATCH_HEADER,
+    return requestFieldOf(
+        model.fields,
+        REQUEST_HEADERS.ifMatch,
     );
-    return field?.value;
 }
 
 // Strong wire ETag: quotes the validator token.

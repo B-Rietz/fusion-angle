@@ -31,13 +31,15 @@ import {
     canonicalPath,
     formWriteMessagePair,
     httpDateOf,
-    IF_MATCH_HEADER,
-    IF_NONE_MATCH_HEADER,
     parseEntityTags,
     PII_DOCUMENT_NAME,
     runStateWrite,
     runWrite,
 } from './message-pair.ts';
+import {
+    REQUEST_HEADERS,
+    requestFieldOf,
+} from './request-header-names.ts';
 import type {
     MessagePair,
     ReceivedRequest,
@@ -230,24 +232,21 @@ function storedMembership(
     return stored;
 }
 
-function headerOf(
-    received: ReceivedRequest,
-    name: string,
-): string | undefined {
-    return received.headerFields.find(
-        (field) => field.name === name,
-    )?.value;
-}
-
 function starCreate(received: ReceivedRequest): boolean {
-    const raw = headerOf(received, IF_NONE_MATCH_HEADER);
+    const raw = requestFieldOf(
+        received.headerFields,
+        REQUEST_HEADERS.ifNoneMatch,
+    );
     return raw !== undefined && raw.trim() === '*';
 }
 
 function matchTags(
     received: ReceivedRequest,
 ): readonly string[] | undefined {
-    const raw = headerOf(received, IF_MATCH_HEADER);
+    const raw = requestFieldOf(
+        received.headerFields,
+        REQUEST_HEADERS.ifMatch,
+    );
     if (raw === undefined) return undefined;
     const tags = parseEntityTags(raw);
     if (tags === undefined) {

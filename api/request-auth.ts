@@ -14,6 +14,10 @@ import type {
     RequestContext,
 } from './request-context.ts';
 import {
+    REQUEST_HEADERS,
+    requestHeaderOf,
+} from './request-header-names.ts';
+import {
     HTTP_FORBIDDEN,
     HTTP_UNAUTHORIZED,
 } from '../shared/http-errors.ts';
@@ -46,8 +50,10 @@ export async function authenticateRequest(
     ctx: FramedContext,
     request: Request,
 ): Promise<AuthenticatedContext | string> {
-    const header =
-        request.headers.get('authorization');
+    const header = requestHeaderOf(
+        request.headers,
+        REQUEST_HEADERS.authorization,
+    );
     if (header === null
         || !header.startsWith('Bearer ')) {
         return 'missing bearer token';

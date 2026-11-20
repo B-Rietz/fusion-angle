@@ -27,10 +27,11 @@ import {
     httpDateOf,
     parseEntityTags,
     MESSAGE_PAIR_WIRED_ROUTE_PATTERNS,
-    IF_MATCH_HEADER,
-    IF_NONE_MATCH_HEADER,
 } from './message-pair.ts';
-import { OPERATION_ID_HEADER } from '../shared/message-id-fields.ts';
+import {
+    REQUEST_HEADERS,
+    requestHeaderOf,
+} from './request-header-names.ts';
 import type { ReceivedRequest } from './message-pair.ts';
 import type {
     MessagePair, AuthMessagePairSeed,
@@ -238,7 +239,10 @@ function queryMediaTypeRefusal(
     headers: Headers,
     pathname: string,
 ): Response | undefined {
-    const field = headers.get('content-type');
+    const field = requestHeaderOf(
+        headers,
+        REQUEST_HEADERS.contentType,
+    );
     if (field === null) {
         return errorJson(
             'QUERY ' + pathname + ' requires a Content-Type',
@@ -264,8 +268,14 @@ function preconditionRefusal(
     method: string,
     pathname: string,
 ): Response | undefined {
-    const ifMatch = headers.get(IF_MATCH_HEADER);
-    const ifNoneMatch = headers.get(IF_NONE_MATCH_HEADER);
+    const ifMatch = requestHeaderOf(
+        headers,
+        REQUEST_HEADERS.ifMatch,
+    );
+    const ifNoneMatch = requestHeaderOf(
+        headers,
+        REQUEST_HEADERS.ifNoneMatch,
+    );
     if (conditional === 'none') {
         return ifMatch === null && ifNoneMatch === null
             ? undefined
@@ -484,14 +494,20 @@ async function dispatched(
         request.headers, arrived.bodyBytes,
     );
     if (framing !== undefined) return framing;
-    if (request.headers.has(REQUEST_ID_HEADER)) {
+    if (
+        requestHeaderOf(
+            request.headers,
+            REQUEST_HEADERS.requestId,
+        ) !== null
+    ) {
         return errorJson(
             'Request-ID is minted by the server',
             HTTP_BAD_REQUEST,
         );
     }
-    const operationId = request.headers.get(
-        OPERATION_ID_HEADER,
+    const operationId = requestHeaderOf(
+        request.headers,
+        REQUEST_HEADERS.operationId,
     );
     if (operationId === null || operationId === '') {
         return errorJson(
@@ -994,8 +1010,10 @@ async function dispatched(
                 organization,
                 operationId: ctx.operationId,
                 requestId: ctx.requestId,
-                ...(request.headers.get(IF_NONE_MATCH_HEADER)
-                    !== null
+                ...(requestHeaderOf(
+                    request.headers,
+                    REQUEST_HEADERS.ifNoneMatch,
+                ) !== null
                     ? { genesis: 'client' as const }
                     : {}),
                 responseBody: spec?.successBody?.(
@@ -1114,8 +1132,9 @@ async function dispatched(
                         organization,
                         roles,
                         ctx.requestAt,
-                        request.headers.get(
-                            OPERATION_ID_HEADER,
+                        requestHeaderOf(
+                            request.headers,
+                            REQUEST_HEADERS.operationId,
                         ) ?? '',
                         received,
                     );
@@ -1414,8 +1433,9 @@ async function dispatched(
                     organization,
                     roles,
                     ctx.requestAt,
-                    request.headers.get(
-                        OPERATION_ID_HEADER,
+                    requestHeaderOf(
+                        request.headers,
+                        REQUEST_HEADERS.operationId,
                     ) ?? '',
                     received,
                 );

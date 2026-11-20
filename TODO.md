@@ -1423,6 +1423,24 @@ Off the critical path; each with its oracle.
   lines on two zero-based axes, and a `Deno.test`
   feeding the harvester a log with one 5xx line
   asserts the refusal
+- Eliminate optional request headers, for an
+  unconditioned PUT or DELETE overwrites a head its
+  caller never read. The `endpoint`
+  declarations (`REQUEST_HEADER_DECLARATIONS`,
+  `api/request-headers.ts`) answer `optional` for 30
+  request kinds, each a precondition: 8 DELETEs, 21 PUTs,
+  and `POST organizations/:organization-id/record-types/`
+  (`PRECONDITION_STATES.optional`). That POST's If-Match
+  turns on its body: a create refuses it (400,
+  `api/routes.ts:4646`), and an edit demands it (428,
+  `api/routes.ts:952`). `forwarded` and `x-forwarded-for`
+  stay optional by nature: a proxy sets them, and the
+  server reads them only on the two sign-in paths that
+  `server/throttle.ts:12` names. They and `content-length`
+  are `transport` declarations
+  (`api/request-header-names.ts:44-47`), outside the
+  oracle. Oracle: no `endpoint` declaration answers
+  `optional` for any request kind.
 - XSS can use the refresh cookie from the page. The
   cookie is HttpOnly, SameSite=Strict, Path=
   `/api/authentication`, Secure
@@ -1474,6 +1492,43 @@ Off the critical path; each with its oracle.
   `:184`) live on `lib.webworker` without `document`.
   Oracle: a
   `document` reference in `api/` fails `./test validate`
+- The gate consumes the declared header states. The
+  declarations for the nine headers `handleRequest`
+  reads are held to the gate by
+  `tests/request-header-states.test.ts`, on every route
+  and verb the route table offers and the token route
+  once per grant type: each `required`, `forbidden`,
+  and `alternative` state matches the presence refusal
+  a matched route answers, and each `alternative` set
+  names the members the gate admits. The gate could ask
+  the declarations instead, through one judge at its
+  front, and derivation would have nothing left to
+  prove. It changes behaviour: the sign-in routes have
+  no presence rule today, so a missing credential
+  parses as empty and fails verification; the early
+  refusals (`transfer-encoding` and `content-length` in
+  `framingRefusal`, `api/request-context.ts`;
+  `request-id` and `operation-id` in `dispatched`,
+  `api/api.ts`) fire before the route is matched and
+  would follow the match; and tests pin the order of
+  refusals. The hazard is route existence: the gate
+  authenticates before the 404 so an unauthenticated
+  caller cannot map routes, and a reorder must not open
+  that oracle. The proving test is the prerequisite: it
+  shows a presence refusal that moved on a matched
+  route. It is blind where that hazard lies. It drives
+  no unmatched path, where today a missing Operation-ID
+  answers 400 before authentication, and a present one
+  with no bearer answers 401, before the 404
+  (`api/api.ts:512-517`, `:576-592`). It sends one
+  caller and varies one header at a time, so it cannot
+  see the order between two refusals. It drives neither
+  the proxy rows (`forwarded`, `x-forwarded-for`) nor
+  the `site` rows, and it cannot tell `optional` from
+  `unused`. The route-existence hazard and the order of
+  refusals need pins of their own before this unit
+  moves anything. Oracle: no refusal over a header's
+  presence decides from anything but the declaration.
 - An RFC 7009 revocation endpoint for OAuth clients.
   Revocation today is
   `identities/:id/tokens/:jti/revocation`: the identity
