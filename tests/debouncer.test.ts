@@ -20,8 +20,8 @@ Deno.test(
         using time = new FakeTime();
         const d = new Debouncer(800);
         const ran: string[] = [];
-        d.schedule(() => ran.push('first'));
-        d.schedule(() => ran.push('second'));
+        d.schedule('name', () => ran.push('first'));
+        d.schedule('name', () => ran.push('second'));
         time.tick(799);
         assertEquals(ran, []);
         time.tick(1);
@@ -36,7 +36,7 @@ Deno.test(
         using time = new FakeTime();
         const d = new Debouncer(800);
         let runs = 0;
-        d.schedule(() => { runs += 1; });
+        d.schedule('name', () => { runs += 1; });
         d.flush();
         assertStrictEquals(runs, 1);
         time.tick(800);
@@ -54,7 +54,7 @@ Deno.test(
         // debouncer ready for a later schedule.
         d.flush();
         assertStrictEquals(runs, 0);
-        d.schedule(() => { runs += 1; });
+        d.schedule('name', () => { runs += 1; });
         time.tick(800);
         assertStrictEquals(runs, 1);
     }),
@@ -67,7 +67,7 @@ Deno.test(
         using time = new FakeTime();
         const d = new Debouncer(800);
         let runs = 0;
-        d.schedule(() => { runs += 1; });
+        d.schedule('name', () => { runs += 1; });
         time.tick(800);
         assertStrictEquals(runs, 1);
         d.flush();
@@ -81,9 +81,9 @@ Deno.test(
         using time = new FakeTime();
         const d = new Debouncer(800);
         const ran: string[] = [];
-        d.schedule(() => ran.push('a'));
+        d.schedule('name', () => ran.push('a'));
         time.tick(800);
-        d.schedule(() => ran.push('b'));
+        d.schedule('name', () => ran.push('b'));
         time.tick(800);
         assertEquals(ran, ['a', 'b']);
     }),
@@ -96,13 +96,32 @@ Deno.test(
         using time = new FakeTime();
         const d = new Debouncer(800);
         assertStrictEquals(d.isPending(), false);
-        d.schedule(() => {});
+        d.schedule('name', () => {});
         assertStrictEquals(d.isPending(), true);
         time.tick(800);
         assertStrictEquals(d.isPending(), false);
-        d.schedule(() => {});
+        d.schedule('name', () => {});
         assertStrictEquals(d.isPending(), true);
         d.flush();
         assertStrictEquals(d.isPending(), false);
+    }),
+);
+
+// A burst keeps only its latest save, so a second field
+// sharing the burst would drop the first field's edit.
+Deno.test(
+    'a save for another field first runs the one'
+    + ' pending',
+    () => withLocalStorage(NULL_STORAGE, () => {
+        using time = new FakeTime();
+        const d = new Debouncer(800);
+        const ran: string[] = [];
+        d.schedule('name', () => ran.push('name'));
+        d.schedule(
+            'instructions', () => ran.push('instructions'),
+        );
+        assertEquals(ran, ['name']);
+        time.tick(800);
+        assertEquals(ran, ['name', 'instructions']);
     }),
 );

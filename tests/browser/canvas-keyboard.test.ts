@@ -10,6 +10,7 @@ import {
 
 const browser = useBrowser();
 
+const NAME = 'prop-node-name';
 const INSTRUCTIONS = 'prop-node-instructions';
 const FOCUSED_ID = `document.activeElement?.id`;
 // Each node's place on the canvas, in document order.
@@ -149,6 +150,37 @@ async () => {
         await page.type('which');
         await instructionsSaved(
             origin, flowId, review, 'Decide which',
+        );
+    });
+});
+
+// The name's save still waits out its pause when the
+// next field takes its first keystroke. That keystroke
+// starts a save of its own, and must not take the
+// name's place.
+Deno.test('a panel edit outlives typing in the next field',
+async () => {
+    await withAdminPage(browser.get(), async (page, origin) => {
+        const { flowId, review } =
+            await editReviewInstructions(page, origin);
+        await page.evaluate(`(() => {
+            const name = document.querySelector('#${NAME}');
+            name.focus();
+            name.select();
+        })()`);
+        await page.type('Sign-off');
+        await page.evaluate(
+            `document.querySelector('#${INSTRUCTIONS}').focus()`,
+        );
+        await page.type('note');
+        await pollUntil(
+            'both fields saved', SAVE_TIMEOUT_MS,
+            async () => {
+                const node = (await flowGraph(origin, flowId))
+                    .graph.nodes.find((n) => n.id === review);
+                return node?.name === 'Sign-off'
+                    && node.taskInstructions === 'note';
+            },
         );
     });
 });

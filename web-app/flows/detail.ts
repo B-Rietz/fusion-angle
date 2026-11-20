@@ -1346,7 +1346,7 @@ function bindPanelActions(
                     .presenter().selectedNodeId();
                 if (nodeId === null) return;
                 pageState.saveDebouncer().schedule(
-                    () => {
+                    id, () => {
                         const presenter = pageState
                             .presenter();
                         commitDebouncedEdit(
@@ -1365,7 +1365,7 @@ function bindPanelActions(
                     .presenter().selectedNodeId();
                 if (nodeId === null) return;
                 pageState.saveDebouncer().schedule(
-                    () => {
+                    id, () => {
                         const presenter = pageState
                             .presenter();
                         commitDebouncedEdit(
@@ -1385,7 +1385,7 @@ function bindPanelActions(
                     .presenter().selectedEdgeId();
                 if (edgeId === null) return;
                 pageState.saveDebouncer().schedule(
-                    () => {
+                    id, () => {
                         const presenter = pageState
                             .presenter();
                         commitDebouncedEdit(
