@@ -60,6 +60,11 @@ import {
     runLedgerStatement,
 } from './ledger-statement.ts';
 import { DATE_PLACEHOLDER } from './ledger-root.ts';
+import { IF_MATCH_HEADER } from './request-header-names.ts';
+export {
+    IF_MATCH_HEADER,
+    IF_NONE_MATCH_HEADER,
+} from './request-header-names.ts';
 import { notifyPayload } from './advisory-lock.ts';
 import { sortJsonKeys } from
     '../shared/http-message/canonical.ts';
@@ -463,12 +468,6 @@ export function httpDateOf(at: string): string {
     return new Date(at).toUTCString();
 }
 
-// A conditional PUT or PATCH names its head: If-Match carries
-// the strong ETag. Not a credential — stored verbatim so two
-// writes differing only in If-Match are different messages
-// for replay identity.
-export const IF_MATCH_HEADER = 'if-match';
-
 // Parse a wire If-Match into the unquoted validator.
 // ETag is the message-pair identifier. Anything else —
 // 64-hex, `*`, weak, lists, unquoted — yields undefined;
@@ -489,8 +488,6 @@ export function parseIfMatch(
     }
     return inner;
 }
-
-export const IF_NONE_MATCH_HEADER = 'if-none-match';
 
 // A wire If-Match as its strong validators: one or more
 // quoted identifiers, comma-separated (RFC 9110 §13.1.1).
