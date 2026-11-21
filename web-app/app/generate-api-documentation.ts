@@ -1075,6 +1075,25 @@ const CIRCLE_R = 5;
 const EMPTY = 10;
 const URI_SIZE = 8.5;
 const CHAR_W = 5.2;
+const LEGEND_SIZE = 11;
+const WING_SIZE = 12;
+const WING_WEIGHT = 700;
+const COL_SIZE = 8;
+const SANS_FONT = 'ui-sans-serif, system-ui, sans-serif';
+const MONO_FONT =
+    'ui-monospace, SFMono-Regular, Menlo, monospace';
+// CHAR_W budgets a URI_SIZE glyph in MONO_FONT; the
+// page's inherited font draws each glyph wider.
+const LEGEND_ATTRIBUTES = ' font-family="' + SANS_FONT
+    + '" font-size="' + LEGEND_SIZE + '"';
+const COL_ATTRIBUTES = ' font-family="' + SANS_FONT
+    + '" font-size="' + COL_SIZE + '"'
+    + ' text-anchor="middle"';
+const WING_ATTRIBUTES = ' font-family="' + SANS_FONT
+    + '" font-size="' + WING_SIZE + '"'
+    + ' font-weight="' + WING_WEIGHT + '"';
+const URI_ATTRIBUTES = ' font-family="' + MONO_FONT
+    + '" font-size="' + URI_SIZE + '"';
 
 function verbColumnX(index: number): number {
     return PAD + index * (VERB_W + VERB_GAP);
@@ -1130,8 +1149,8 @@ function viewStorageField(
 
 export function svgOf(rows: readonly Route[]): string {
     // The page CSP drops this <style> block
-    // (style-src 'self'), so each paint is also a
-    // presentation attribute. hsl(var(--token))
+    // (style-src 'self'), so each paint and font is
+    // also a presentation attribute. hsl(var(--token))
     // resolves on the inline SVG, as on the flow
     // canvas. The style block keeps a standalone
     // API.svg on the same tokens.
@@ -1176,7 +1195,8 @@ export function svgOf(rows: readonly Route[]): string {
         + ' operation)';
     parts.push(
         '  <text class="legend" fill="' + muted
-        + '" x="' + PAD + '" y="'
+        + '"' + LEGEND_ATTRIBUTES
+        + ' x="' + PAD + '" y="'
         + y + '">' + escapeXml(legend) + '</text>',
     );
     y += LEGEND_H;
@@ -1184,7 +1204,8 @@ export function svgOf(rows: readonly Route[]): string {
         const cx = verbColumnX(i) + VERB_W / 2;
         parts.push(
             '  <text class="col" fill="' + muted
-            + '" x="' + cx + '" y="'
+            + '"' + COL_ATTRIBUTES
+            + ' x="' + cx + '" y="'
             + y + '">'
             + escapeXml(verb.toUpperCase())
             + '</text>',
@@ -1195,7 +1216,8 @@ export function svgOf(rows: readonly Route[]): string {
         y += 6;
         parts.push(
             '  <text class="wing" fill="' + ink
-            + '" x="' + PAD + '" y="'
+            + '"' + WING_ATTRIBUTES
+            + ' x="' + PAD + '" y="'
             + y + '">' + escapeXml(name) + '</text>',
         );
         y += WING_H - 8;
@@ -1234,7 +1256,8 @@ export function svgOf(rows: readonly Route[]): string {
             });
             parts.push(
                 '  <text class="uri" fill="' + ink
-                + '" x="' + uriX()
+                + '"' + URI_ATTRIBUTES
+                + ' x="' + uriX()
                 + '" y="' + (cy + 3) + '">'
                 + escapeXml(uri) + '</text>',
             );
@@ -1246,7 +1269,8 @@ export function svgOf(rows: readonly Route[]): string {
         y += 6;
         parts.push(
             '  <text class="wing" fill="' + ink
-            + '" x="' + PAD + '" y="'
+            + '"' + WING_ATTRIBUTES
+            + ' x="' + PAD + '" y="'
             + y + '">' + escapeXml('backing')
             + '</text>',
         );
@@ -1274,7 +1298,8 @@ export function svgOf(rows: readonly Route[]): string {
             }
             parts.push(
                 '  <text class="uri" fill="' + ink
-                + '" x="' + uriX()
+                + '"' + URI_ATTRIBUTES
+                + ' x="' + uriX()
                 + '" y="' + (cy + 3) + '">'
                 + escapeXml(label) + '</text>',
             );
@@ -1286,17 +1311,19 @@ export function svgOf(rows: readonly Route[]): string {
     const style = [
         '    <style>',
         '      .legend, .wing, .col { font-family:',
-        '        ui-sans-serif, system-ui, sans-serif;',
+        '        ' + SANS_FONT + ';',
         '      }',
         '      .legend { fill: ' + muted + ';',
-        '        font-size: 11px; }',
+        '        font-size: ' + LEGEND_SIZE + 'px; }',
         '      .wing { fill: ' + ink + ';',
-        '        font-size: 12px; font-weight: 700; }',
+        '        font-size: ' + WING_SIZE + 'px;'
+        + ' font-weight: ' + WING_WEIGHT + '; }',
         '      .col { fill: ' + muted + ';',
-        '        font-size: 8px; text-anchor: middle;',
+        '        font-size: ' + COL_SIZE + 'px;'
+        + ' text-anchor: middle;',
         '      }',
-        '      .uri { font-family: ui-monospace,',
-        "        SFMono-Regular, Menlo, monospace;",
+        '      .uri { font-family:',
+        '        ' + MONO_FONT + ';',
         '        font-size: ' + URI_SIZE + 'px;',
         '        fill: ' + ink + '; }',
         '      .filled { fill: ' + ink + '; }',

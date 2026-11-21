@@ -510,3 +510,16 @@ Deno.test('the memberships QUERY room names the GET\'s storage'
         /\/invitations\/ selects on organization_id/,
     );
 });
+
+// The page CSP (style-src 'self') drops the svg's own
+// <style> block, so a font the width budget assumes
+// must ride on the text itself, as each fill does.
+Deno.test('every elevation text carries its own font',
+() => {
+    const texts = svgOf(routes).match(/<text [^>]*>/g);
+    assert(texts);
+    for (const text of texts) {
+        assertMatch(text, / font-family="[^"]+"/);
+        assertMatch(text, / font-size="[^"]+"/);
+    }
+});
