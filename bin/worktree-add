@@ -10,7 +10,8 @@ usage() {
     cat <<'USAGE'
 Usage: ./bin/worktree-add SLUG
   SLUG   lowercase letters, digits, and inner hyphens
-  Creates .worktrees/SLUG on a new branch SLUG from HEAD.
+  Creates .worktrees/SLUG on a new branch SLUG from the
+  main checkout's HEAD.
 USAGE
 }
 
@@ -33,13 +34,25 @@ if ! [[ "$SLUG" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
     exit 1
 fi
 
-COMMON_DIR=$(git rev-parse --path-format=absolute \
-    --git-common-dir)
+# Every git call runs with a fixed environment, so no
+# inherited GIT_* variable or outside config steers it,
+# and finds the repo from this script, not the caller.
+SCRIPT_ROOT=$(cd "$(dirname "$0")/.." && pwd -P)
+clean_git() {
+    env -i PATH=/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin \
+        HOME="$HOME" GIT_CONFIG_GLOBAL=/dev/null \
+        GIT_CONFIG_NOSYSTEM=1 \
+        git -c core.hooksPath=/dev/null \
+        -c core.fsmonitor=false "$@"
+}
+
+COMMON_DIR=$(clean_git -C "$SCRIPT_ROOT" rev-parse \
+    --path-format=absolute --git-common-dir)
 ROOT=$(dirname "$COMMON_DIR")
 
 # A filter or an included file is code the checkout would
 # run outside the sandbox; refuse rather than run it.
-if git config --file "$COMMON_DIR/config" \
+if clean_git config --file "$COMMON_DIR/config" \
     --get-regexp '^(filter|include|includeif)\.' \
     > /dev/null; then
     echo "Error: .git/config names a filter or an" \
@@ -47,9 +60,5 @@ if git config --file "$COMMON_DIR/config" \
     exit 1
 fi
 
-export GIT_CONFIG_GLOBAL=/dev/null
-export GIT_CONFIG_NOSYSTEM=1
-exec git -c core.hooksPath=/dev/null \
-    -c core.fsmonitor=false \
-    -C "$ROOT" worktree add \
+clean_git -C "$ROOT" worktree add \
     "$ROOT/.worktrees/$SLUG" -b "$SLUG"
