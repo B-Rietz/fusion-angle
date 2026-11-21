@@ -30,6 +30,7 @@ TZ=UTC "${DENO_PG_TEST[@]}" \
     tests/pg-races.test.ts \
     tests/pg-message-plane.test.ts \
     tests/pg-boot.test.ts \
+    tests/pg-probe.test.ts \
     tests/pg-seed.test.ts \
     tests/pg-explain.test.ts \
     tests/pg-identifier-order.test.ts \

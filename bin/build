@@ -49,20 +49,51 @@ if [ -n "$(git status --porcelain)" ]; then
     exit 1
 fi
 
-# A checkout embeds git rev-parse HEAD. Render
-# deletes .git and passes RENDER_GIT_COMMIT as a
-# build arg. Anything else is not a SHA to embed.
+# A checkout embeds git rev-parse HEAD and that
+# commit's subject. Render deletes .git and passes
+# RENDER_GIT_COMMIT and RENDER_GIT_REPO_SLUG as build
+# args: the build fetches that one commit from the
+# public repository and reads both from it instead.
 GIT_SHA="$(git rev-parse HEAD 2>/dev/null || true)"
-if [[ ! "$GIT_SHA" =~ ^[0-9a-f]{40}$ ]]; then
-    GIT_SHA="${RENDER_GIT_COMMIT:-}"
+if [[ "$GIT_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+    GIT_SUBJECT="$(git log -1 --format=%s "$GIT_SHA")"
+else
+    if [[ ! "${RENDER_GIT_COMMIT:-}" =~ ^[0-9a-f]{40}$ ]]
+    then
+        echo "Error: no commit SHA to embed." \
+            "git rev-parse HEAD failed and" \
+            "RENDER_GIT_COMMIT is not 40 lowercase hex." \
+            >&2
+        exit 1
+    fi
+    if [ -z "${RENDER_GIT_REPO_SLUG:-}" ]; then
+        echo "Error: no repository to fetch" \
+            "RENDER_GIT_COMMIT from." \
+            "RENDER_GIT_REPO_SLUG is empty." >&2
+        exit 1
+    fi
+    # Both values come from the two lines fetched_commit
+    # prints, and nothing else: the first must be the sha
+    # asked for. Command substitution strips an empty
+    # subject's line, so the read of it is given one back.
+    if ! FETCHED="$(fetched_commit \
+        "https://github.com/${RENDER_GIT_REPO_SLUG}.git" \
+        "$RENDER_GIT_COMMIT")" \
+        || ! { IFS= read -r GIT_SHA && IFS= read -r GIT_SUBJECT; } \
+            <<< "$FETCHED"$'\n' \
+        || [ "$GIT_SHA" != "$RENDER_GIT_COMMIT" ] \
+        || [ "$FETCHED" != "$(printf '%s\n%s\n' \
+            "$GIT_SHA" "$GIT_SUBJECT")" ]; then
+        echo "Error: commit $RENDER_GIT_COMMIT not fetched" \
+            "from $RENDER_GIT_REPO_SLUG on GitHub." >&2
+        exit 1
+    fi
 fi
-if [[ ! "$GIT_SHA" =~ ^[0-9a-f]{40}$ ]]; then
-    echo "Error: no commit SHA to embed." >&2
-    echo "git rev-parse HEAD failed and" \
-        "RENDER_GIT_COMMIT is not 40 lowercase hex." \
-        >&2
-    exit 1
-fi
+
+# A commit message is arbitrary text: the entry carries
+# it as one line of base64, never as source. GNU base64
+# wraps at 76 columns.
+GIT_SUBJECT_BASE64="$(printf '%s' "$GIT_SUBJECT" | base64 | tr -d '\n')"
 
 echo "Building Fusion Angle..."
 
@@ -101,11 +132,11 @@ SERVER_IMPORT=$(
         - "$ABS_BUILD" "$ROOT/server/main.ts"
 )
 cat > "$BUILD_DIR/main.ts" <<ENTRY
-import { dispatch } from '${SERVER_IMPORT}';
+import { dispatch, embeddedCommit } from '${SERVER_IMPORT}';
 Deno.exit(await dispatch(
     new URL('./site/', import.meta.url),
     Deno.args,
-    '${GIT_SHA}',
+    embeddedCommit('${GIT_SHA}', '${GIT_SUBJECT_BASE64}'),
 ));
 ENTRY
 

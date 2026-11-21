@@ -10,7 +10,6 @@ import { PostgresBackend } from
 import { connectPostgres } from
     '../api/postgres-client.ts';
 import { listenHttp } from './http-server.ts';
-import { probePostgres } from './postgres-probe.ts';
 import {
     STATEMENT_TIMEOUT_MS,
     POOL_ACQUIRE_TIMEOUT_MS,
@@ -30,6 +29,7 @@ import {
     scryptDerive,
 } from './scrypt-hash.ts';
 import { logStampUtc } from './log-stamp.ts';
+import type { RunningCommit } from '../shared/system-status.ts';
 
 const enc = new TextEncoder();
 
@@ -92,7 +92,7 @@ export async function boot(
     read: EnvReader,
     argv: readonly string[],
     staticRoot: string,
-    gitSha?: string,
+    commit?: RunningCommit,
 ): Promise<RunningHttp> {
     if (argv.length > 0) {
         throw new Error(NO_ARGUMENTS);
@@ -122,8 +122,7 @@ export async function boot(
                     listenEnv.trustedProxyHops,
             }
             : {}),
-        ...(gitSha !== undefined ? { gitSha } : {}),
-        postgresProbe: () => probePostgres(sql),
+        ...(commit !== undefined ? { commit } : {}),
     });
     return {
         port: listener.port,
@@ -148,14 +147,14 @@ function installSigterm(
 export async function main(
     siteRoot: URL,
     args: readonly string[],
-    gitSha?: string,
+    commit?: RunningCommit,
 ): Promise<number> {
     try {
         const running = await boot(
             (name) => Deno.env.get(name),
             args,
             fromFileUrl(siteRoot),
-            gitSha,
+            commit,
         );
         Deno.stdout.writeSync(enc.encode(
             JSON.stringify({

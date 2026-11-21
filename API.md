@@ -23,7 +23,23 @@ every request (`incomingContext`), then `dispatched`:
    400 `Request-ID is minted by the server`, with no
    bearer check. That includes an unknown path and
    both doors.
-3. **Operation-ID.** Missing is 400 `Operation-ID is
+3. **Status.** The path `status` is answered here
+   (`systemStatusResponse`, `api/system-status.ts`),
+   after both refusals above, so a carried Request-ID
+   is still 400. The step reads neither `Operation-ID`
+   nor a bearer token, and stores no pair. GET runs
+   the adapter's probe once and answers
+   `{ "git-sha", "git-subject", "up", "components": {
+   "postgres" } }`, where `postgres` is `up`, `down`, or
+   `timeout`: 200 when it is `up`, 503 when it is not.
+   `git-subject` is absent when the commit has no
+   acceptable subject. The commit is
+   the one the handler was built with
+   (`requestHandlerFor`). `handleRequest` is the
+   handler built with none, and its answer is 500
+   `git sha unavailable`, with no probe. Any other
+   verb is 405 with `Allow: GET`.
+4. **Operation-ID.** Missing is 400 `Operation-ID is
    required`. A present value that is not a
    22-character identifier is 400 `Operation-ID must
    be a 22-character identifier`. No bearer check,
@@ -37,7 +53,7 @@ every request (`incomingContext`), then `dispatched`:
    matches, stores nothing, and answers 200. A
    membership PUT whose transition is not in the
    table is 409. No request hash is replayed.
-4. **Match, then the gate.** `matchRoute`, then
+5. **Match, then the gate.** `matchRoute`, then
    `authenticateRequest` unless the matched pattern
    is in `AUTHENTICATION_ROUTES`.
    `authenticateRequest` answers 401
@@ -46,7 +62,7 @@ every request (`incomingContext`), then `dispatched`:
    unmatched 404, identifier params, `fenceRequest`,
    nested org must equal fenced org (mismatch 403,
    fixed body, no auto-exchange), `authorizeRequest`.
-5. **Identity fence.** When the matched route's
+6. **Identity fence.** When the matched route's
    first segment is `identities` and the second is
    `:id`, and the path identity is not the actor,
    `membershipOf` must find an accepted seat in the
@@ -60,18 +76,18 @@ every request (`incomingContext`), then `dispatched`:
    `GET identities/` is the accepted-membership
    roster: it lists co-members of the claim
    organization, AI and service members included.
-6. **Body parse** for PUT/POST/PATCH, then **the
+7. **Body parse** for PUT/POST/PATCH, then **the
    conditional** (`preconditionRefusal`): its
    presence and form, per route and verb, with no
    head read. See Conditional classes.
-7. **Region B.** Self-only token
+8. **Region B.** Self-only token
    routes (`SELF_ONLY_TOKEN_ROUTES`): the
    token-revocations PUT and the jti rotation and
    revocation POSTs. A member acts on its own token
    chain, an admin on a co-member's. The identity
    fence has already refused every other identity.
    Any other caller is 403 by form, before any read.
-8. **Pair plane.** Wired writes form the received
+9. **Pair plane.** Wired writes form the received
    pair before any transaction
    (`formWriteMessagePair`). A DELETE that is not an
    operation meets the DELETE table first:
@@ -80,16 +96,18 @@ every request (`incomingContext`), then `dispatched`:
    row the write forms (Conditional classes says
    how). A stale latch answers 412, even for a
    byte-identical resend.
-9. **Handler.** Matched verb with `ctx.base`. A GET
-   route either selects heads (`select`,
-   `api/head-reads.ts`) and the gate serves them
-   through `servedResponse`
-   (`api/served-response.ts`), or answers 405. A selector
-   runs after the fence and throws a document's miss
-   (403 for a foreign owner, 404 otherwise); the gate
-   then answers a deleted head 410 and serves a live
-   one (`servedSelection`). Auth grants intercept into
-   `postToken` / `postAuthorize`. Missing verb → 405.
+10. **Handler.** Matched verb with `ctx.base`. A GET
+    route either selects heads (`select`,
+    `api/head-reads.ts`) and the gate serves them
+    through `servedResponse`
+    (`api/served-response.ts`), or answers 405. A selector
+    runs after the fence and throws a document's miss
+    (403 for a foreign owner, 404 otherwise); the gate
+    then answers a deleted head 410 and serves a live
+    one (`servedSelection`). Auth grants intercept into
+    `postToken` / `postAuthorize`. Missing verb → 405.
+    The `status` row offers GET for the catalog alone:
+    Status answered it, and its `select` never runs.
 
 ## Bearer-exempt set
 
@@ -97,6 +115,11 @@ Pointer: `AUTHENTICATION_ROUTES` in `api/request-auth.ts`.
 The set is `authentication/token` and
 `authentication/authorize`. Nothing else. An unmatched
 path is never exempt.
+
+`STATUS_ROUTE` (`status`, in the same file) is not a
+member. The gate answers it at Status, before the bearer
+check, so it takes no token. Outside the set, it is not
+throttled and reads no proxy line.
 
 ## Wire contract
 
@@ -248,6 +271,12 @@ Status ladder:
 - **428** — a `required` or `in-order` route with no
   conditional; a tag missing for a document the
   operation derives from
+- **500** — `GET status` on a handler built with no
+  commit (`git sha unavailable`), with no probe; a
+  server fault, redacted to `internal error`
+- **503** — `GET status` when Postgres is not `up`:
+  the status document, with `up: false` and
+  `postgres` as `down` or `timeout`
 
 409 is the home of domain conflict and of what a
 handler declared. 412 refuses what the client

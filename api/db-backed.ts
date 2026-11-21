@@ -17,6 +17,8 @@ import type {
     StatementBind,
 } from '../shared/ledger-statement.ts';
 import type { LatencySimulation } from './latency.ts';
+import type { ComponentState } from
+    '../shared/system-status.ts';
 import type {
     NotificationEvent,
     NotificationPost,
@@ -100,6 +102,10 @@ export class BackedDbAdapter
         return this.#backend.deleteSchema();
     }
 
+    probe(): Promise<ComponentState> {
+        return this.#backend.probe();
+    }
+
     get backend(): StorageBackend {
         return this.#backend;
     }
@@ -138,6 +144,7 @@ export class BackedDbAdapter
                 this.executeLedger(attempt, rows, now, tx),
             postNotification: (e) =>
                 this.postNotification(e),
+            probe: () => this.probe(),
             readTransaction: (fn) => fn(view),
         };
         return view;

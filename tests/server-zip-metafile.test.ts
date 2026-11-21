@@ -1,15 +1,21 @@
 import {
+    assert,
     assertEquals,
     assertMatch,
     assertNotMatch,
     assertStrictEquals,
+    assertStringIncludes,
 } from '@std/assert';
 import { fromFileUrl, relative } from '@std/path';
+import { embeddedCommit } from '../server/git-sha.ts';
 
 const BUILD_SCRIPT = Deno.readTextFileSync('bin/build');
 const BUILD_LIB_SCRIPT = Deno.readTextFileSync(
     'bin/build-lib',
 );
+// The package list of the Dockerfile's apt-get install.
+const DOCKER_INSTALL =
+    /apt-get install -y\s+--no-install-recommends\s+([^\\&\n]+)/;
 
 // Deleted names no longer appear in live source. Hunt
 // the live mint symbols too, or a server-core import of
@@ -146,23 +152,47 @@ Deno.test(
     },
 );
 
-Deno.test('build entry carries the git sha', () => {
+Deno.test('build entry carries the running commit', () => {
     assertMatch(
         BUILD_SCRIPT,
         /GIT_SHA="\$\(git rev-parse HEAD 2>\/dev\/null \|\| true\)"/,
     );
     assertMatch(
         BUILD_SCRIPT,
-        /GIT_SHA="\$\{RENDER_GIT_COMMIT:-\}"/,
+        /GIT_SUBJECT="\$\(git log -1 --format=%s "\$GIT_SHA"\)"/,
     );
+    // Render's build has no repository: it fetches the
+    // one commit Render names and reads both from it.
+    assertStringIncludes(
+        BUILD_SCRIPT,
+        'fetched_commit \\\n'
+        + '        "https://github.com/${RENDER_GIT_REPO_SLUG}.git"'
+        + ' \\\n'
+        + '        "$RENDER_GIT_COMMIT")',
+    );
+    assertNotMatch(BUILD_SCRIPT, /GIT_SHA="\$\{?RENDER_GIT_COMMIT/);
     assertMatch(
         BUILD_SCRIPT,
         /Error: no commit SHA to embed\./,
     );
-    assertMatch(
-        BUILD_SCRIPT,
-        /Deno\.args,\n    '\$\{GIT_SHA\}',/,
+    // A subject is arbitrary text, so the entry carries it
+    // encoded and never spliced into source.
+    const entryAt = BUILD_SCRIPT.indexOf('<<ENTRY\n');
+    const entry = BUILD_SCRIPT.slice(
+        entryAt,
+        BUILD_SCRIPT.indexOf('\nENTRY\n', entryAt),
     );
+    assertStrictEquals(entryAt > 0, true);
+    assertMatch(
+        entry,
+        /import \{ dispatch, embeddedCommit \} from/,
+    );
+    assertStringIncludes(
+        entry,
+        "Deno.args,\n    embeddedCommit('${GIT_SHA}',"
+        + " '${GIT_SUBJECT_BASE64}'),",
+    );
+    assertNotMatch(entry, /\$\{GIT_SUBJECT\}/);
     const compileAt = BUILD_SCRIPT.indexOf(
         'deno compile',
     );
@@ -176,20 +206,58 @@ Deno.test('build entry carries the git sha', () => {
     );
     const builder = docker.slice(0, runtimeAt);
     assertMatch(builder, /\nARG RENDER_GIT_COMMIT\n/);
-    const argAt = builder.indexOf(
+    assertMatch(builder, /\nARG RENDER_GIT_REPO_SLUG\n/);
+    const commitArgAt = builder.indexOf(
         'ARG RENDER_GIT_COMMIT',
+    );
+    const slugArgAt = builder.indexOf(
+        'ARG RENDER_GIT_REPO_SLUG',
     );
     const buildAt = builder.indexOf(
         'RUN ./bin/build --no-zip render-out/',
     );
     assertStrictEquals(
-        argAt > 0 && argAt < buildAt, true,
+        commitArgAt > 0 && commitArgAt < slugArgAt
+            && slugArgAt < buildAt,
+        true,
     );
+    const runtime = docker.slice(runtimeAt);
+    assertEquals(runtime.includes('RENDER_GIT_COMMIT'), false);
     assertEquals(
-        docker.slice(runtimeAt).includes(
-            'RENDER_GIT_COMMIT',
-        ),
-        false,
+        runtime.includes('RENDER_GIT_REPO_SLUG'), false,
+    );
+    // The fetch speaks HTTPS to GitHub, and the base image
+    // trusts no certificate authority of its own.
+    const install = DOCKER_INSTALL.exec(builder);
+    assert(install !== null, 'the builder installs packages');
+    const packages = install[1]!.trim().split(/\s+/);
+    assertEquals(packages.includes('git'), true);
+    assertEquals(packages.includes('ca-certificates'), true);
+    assertNotMatch(runtime, /apt-get|ca-certificates|\bgit\b/);
+});
+
+// GNU base64 wraps at 76 columns, so the subject runs past
+// that and must still arrive as one line, byte for byte.
+Deno.test('build encodes the subject the entry decodes',
+async () => {
+    const line = /^GIT_SUBJECT_BASE64=.*$/m.exec(BUILD_SCRIPT);
+    assert(line !== null, 'the encoding line');
+    const subject = `-n <b>"it's" \\ \${x} $HOME é `.repeat(4);
+    const sha = '0123456789abcdef0123456789abcdef01234567';
+    const output = await new Deno.Command('sh', {
+        args: [
+            '-c',
+            line[0] + '\nprintf %s "$GIT_SUBJECT_BASE64"',
+        ],
+        env: { GIT_SUBJECT: subject },
+        stdout: 'piped',
+    }).output();
+    assertStrictEquals(output.success, true);
+    const encoded = new TextDecoder().decode(output.stdout);
+    assertNotMatch(encoded, /\n/);
+    assertEquals(
+        embeddedCommit(sha, encoded),
+        { sha, subject },
     );
 });
 

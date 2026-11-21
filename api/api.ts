@@ -110,6 +110,12 @@ import {
     membershipNameRefusal,
     type ViewQuery,
 } from './membership-gate.ts';
+import {
+    isSystemStatusPath,
+    systemStatusResponse,
+} from './system-status.ts';
+import type { RunningCommit } from
+    '../shared/system-status.ts';
 
 export {
     ApiError,
@@ -477,18 +483,38 @@ function finish(
     return response;
 }
 
+export type ApiRequestHandler = (
+    adapter: DbAdapter,
+    request: Request,
+) => Promise<Response>;
+
+// The API, handed the commit its status route reports. The
+// listener builds this handler as boot hands it the adapter:
+// api/ reads no commit of its own, and no module holds one.
+export function requestHandlerFor(
+    commit: RunningCommit | undefined,
+): ApiRequestHandler {
+    return async (adapter, request) => {
+        const ctx = await incomingContext(adapter, request);
+        const response = await dispatched(
+            ctx, request, commit,
+        );
+        return finish(ctx, response);
+    };
+}
+
+// The API handed no commit: its status route answers 500.
 export async function handleRequest(
     adapter: DbAdapter,
     request: Request,
 ): Promise<Response> {
-    const ctx = await incomingContext(adapter, request);
-    const response = await dispatched(ctx, request);
-    return finish(ctx, response);
+    return requestHandlerFor(undefined)(adapter, request);
 }
 
 async function dispatched(
     arrived: IncomingContext,
     request: Request,
+    commit: RunningCommit | undefined,
 ): Promise<Response> {
     const framing = framingRefusal(
         request.headers, arrived.bodyBytes,
@@ -503,6 +529,16 @@ async function dispatched(
         return errorJson(
             'Request-ID is minted by the server',
             HTTP_BAD_REQUEST,
+        );
+    }
+    // Answered here, so a status request needs neither an
+    // Operation-ID nor a bearer token, and neither is read.
+    if (isSystemStatusPath(arrived.pathname)) {
+        return systemStatusResponse(
+            arrived.base,
+            arrived.method,
+            arrived.pathname,
+            commit,
         );
     }
     const operationId = requestHeaderOf(

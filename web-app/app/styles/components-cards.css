@@ -129,3 +129,33 @@
     border: 1px solid hsl(var(--border-strong));
     box-shadow: var(--shadow-xs);
 }
+
+/* The status page's verdict card tints like the gauge card:
+   a soft fill and a 0.4-alpha border. The rating is text,
+   so the verdict never rests on colour alone. */
+.status-card[data-tone="success"] {
+    background: hsl(var(--success-soft));
+    border-color: hsl(var(--success) / 0.4);
+}
+
+.status-card[data-tone="error"] {
+    background: hsl(var(--error-soft));
+    border-color: hsl(var(--error) / 0.4);
+}
+
+.status-card[data-tone="success"] .status-rating {
+    color: hsl(var(--success-text));
+}
+
+.status-card[data-tone="error"] .status-rating {
+    color: hsl(var(--error-text));
+}
+
+.status-name {
+    color: inherit;
+    text-decoration: none;
+}
+
+.status-name:hover {
+    text-decoration: underline;
+}

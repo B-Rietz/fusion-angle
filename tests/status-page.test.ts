@@ -1,9 +1,16 @@
-import { assertEquals, assertMatch } from '@std/assert';
+import {
+    assertEquals,
+    assertMatch,
+    assertNotMatch,
+    assertStringIncludes,
+} from '@std/assert';
 import { join } from '@std/path';
+import { cssDeclaration } from './fixtures/css-declaration.ts';
 import {
     jsonRequested,
     statusAssets,
     statusPageHtml,
+    statusUnavailableHtml,
 } from '../server/status-page.ts';
 
 function headers(
@@ -62,8 +69,8 @@ Deno.test('json is requested only when it wins', () => {
 
 Deno.test('the status page escapes text', () => {
     const html = statusPageHtml(
-        'a<b&"c>',
-        { postgres: false },
+        { sha: 'a<b&"c>' },
+        { api: 'down' },
         {
             styles: '/assets/styles.0123abcd.css',
             icon: '/assets/favicon.0123abcd.svg',
@@ -75,26 +82,20 @@ Deno.test('the status page escapes text', () => {
     );
     assertEquals(html.includes('a<b'), false);
     const nameAt = html.indexOf(
-        '<h1 class="font-display text-3xl font-bold mb-6">\n'
-        + 'Fusion Angle\n</h1>',
+        '<a class="status-name" href="/">'
+        + 'Fusion Angle</a>',
     );
-    const downAt = html.indexOf(
-        '<span class="pill" data-tone="error">Down</span>',
-    );
-    const postgresAt = html.indexOf(
+    const ratingAt = html.indexOf('>DOWN</p>');
+    const apiAt = html.indexOf(
         '<span class="pill" data-tone="error">'
-        + 'Postgres down</span>',
+        + 'API down</span>',
     );
+    const shaAt = html.indexOf('class="git-sha');
     assertEquals(nameAt >= 0, true);
-    assertEquals(downAt > nameAt, true);
-    assertEquals(postgresAt > downAt, true);
-    assertEquals(
-        html.includes(
-            '<h1 class="font-display text-4xl font-bold mb-2">\n'
-            + 'Down\n</h1>',
-        ),
-        false,
-    );
+    assertEquals(ratingAt > nameAt, true);
+    assertEquals(apiAt > ratingAt, true);
+    assertEquals(shaAt > apiAt, true);
+    assertNotMatch(html, /style=/);
     assertEquals(
         html.includes(
             'href="/assets/styles.0123abcd.css"',
@@ -108,8 +109,8 @@ Deno.test('the status sha clips to seven digits', () => {
         'web-app/app/styles/base.css',
     );
     const html = statusPageHtml(
-        '0123456789abcdef0123456789abcdef01234567',
-        { postgres: true },
+        { sha: '0123456789abcdef0123456789abcdef01234567' },
+        { api: 'up' },
         {},
     );
     assertEquals(
@@ -163,7 +164,163 @@ async () => {
             styles: '/assets/'
                 + 'styles.0123abcd0123abcd.css',
         });
+        await Deno.writeTextFile(
+            join(root, 'asset-manifest.json'),
+            JSON.stringify({
+                'status-refresh.js':
+                    'status-refresh.0123abcd0123abcd.js',
+            }),
+        );
+        assertEquals(await statusAssets(root), {
+            script: '/assets/'
+                + 'status-refresh.0123abcd0123abcd.js',
+        });
+        await Deno.writeTextFile(
+            join(root, 'asset-manifest.json'),
+            JSON.stringify({
+                'status-refresh.js': '../status-refresh.js',
+            }),
+        );
+        assertEquals(await statusAssets(root), {});
     } finally {
         await Deno.remove(root, { recursive: true });
     }
+});
+
+Deno.test('the status card gives one verdict', () => {
+    const sha = '0123456789abcdef0123456789abcdef01234567';
+    const up = statusPageHtml({ sha }, { api: 'up' }, {});
+    assertStringIncludes(up, 'id="status-card"');
+    assertStringIncludes(
+        up,
+        'status-card max-w-md p-8 text-center"\n'
+        + ' data-tone="success">',
+    );
+    assertStringIncludes(up, '>UP</p>');
+    assertNotMatch(up, /class="pill"/);
+    assertStringIncludes(
+        up,
+        '<a class="status-name" href="/">Fusion Angle</a>',
+    );
+    const down = statusPageHtml({ sha }, { api: 'down' }, {});
+    assertStringIncludes(
+        down,
+        'status-card max-w-md p-8 text-center"\n'
+        + ' data-tone="error">',
+    );
+    assertStringIncludes(down, '>DOWN</p>');
+    assertStringIncludes(
+        down,
+        '<span class="pill" data-tone="error">API down</span>',
+    );
+    const late = statusPageHtml(
+        { sha }, { api: 'timeout' }, {},
+    );
+    assertStringIncludes(
+        late,
+        '<span class="pill" data-tone="error">API timeout'
+        + '</span>',
+    );
+    assertStringIncludes(
+        late,
+        'status-card max-w-md p-8 text-center"\n'
+        + ' data-tone="error">',
+    );
+    assertNotMatch(up + down + late, /style=/);
+    assertStringIncludes(
+        statusUnavailableHtml(),
+        '<a href="/">Fusion Angle</a>',
+    );
+});
+
+Deno.test('the status card names the commit by its subject',
+() => {
+    const sha = '0123456789abcdef0123456789abcdef01234567';
+    const named = statusPageHtml(
+        { sha, subject: `<b>"it's" \\ \${x} é` },
+        { api: 'up' },
+        {},
+    );
+    assertStringIncludes(
+        named,
+        '<p class="git-sha font-mono text-sm">\n'
+        + sha + '\n</p>\n'
+        + '<p class="git-subject text-sm">\n'
+        + '&lt;b&gt;&quot;it\'s&quot; \\ ${x} é\n</p>\n'
+        + '</section>',
+    );
+    const unnamed = statusPageHtml({ sha }, { api: 'up' }, {});
+    assertNotMatch(unnamed, /git-subject/);
+});
+
+Deno.test('the status card tints like the gauge card', () => {
+    const css = Deno.readTextFileSync(
+        'web-app/app/styles/components-cards.css',
+    );
+    for (const tone of ['success', 'error']) {
+        const selector = `.status-card[data-tone="${tone}"]`;
+        assertEquals(
+            cssDeclaration(css, selector, 'background'),
+            `hsl(var(--${tone}-soft))`,
+        );
+        assertEquals(
+            cssDeclaration(css, selector, 'border-color'),
+            `hsl(var(--${tone}) / 0.4)`,
+        );
+    }
+});
+
+Deno.test('the status page refreshes only with its script',
+() => {
+    const sha = '0123456789abcdef0123456789abcdef01234567';
+    const commit = { sha, subject: 'Keep the "card" & <sha>' };
+    const script = '/assets/status-refresh.0123abcd0123abcd.js';
+    const live = statusPageHtml(
+        commit, { api: 'up' }, { script },
+    );
+    const tag = '<script src="' + script + '" defer></script>';
+    assertStringIncludes(live, tag);
+    assertEquals(
+        live.indexOf(tag) < live.indexOf('</head>'),
+        true,
+    );
+    assertStringIncludes(
+        live,
+        '<div id="status-live" aria-live="polite">\n'
+        + '<section id="status-card"',
+    );
+    const open = '<template id="status-timeout">';
+    const templateAt = live.indexOf(open);
+    assertEquals(templateAt > live.indexOf('</div>'), true);
+    const timeout = live.slice(
+        templateAt + open.length,
+        live.indexOf('</template>'),
+    );
+    assertStringIncludes(
+        timeout,
+        'status-card max-w-md p-8 text-center"\n'
+        + ' data-tone="error">',
+    );
+    assertStringIncludes(timeout, '>DOWN</p>');
+    assertEquals(timeout.match(/class="pill"/g)?.length, 1);
+    assertStringIncludes(
+        timeout,
+        '<span class="pill" data-tone="error">Timeout</span>',
+    );
+    assertStringIncludes(
+        timeout,
+        '<p class="git-sha font-mono text-sm">\n'
+        + sha + '\n</p>\n'
+        + '<p class="git-subject text-sm">\n'
+        + 'Keep the &quot;card&quot; &amp; &lt;sha&gt;\n</p>',
+    );
+    assertNotMatch(live, /style=/);
+    const still = statusPageHtml(commit, { api: 'up' }, {
+        styles: '/assets/styles.0123abcd.css',
+        icon: '/assets/favicon.0123abcd.svg',
+    });
+    assertNotMatch(still, /<script/);
+    assertNotMatch(still, /status-live/);
+    assertNotMatch(still, /<template/);
+    assertNotMatch(statusUnavailableHtml(), /<script/);
 });

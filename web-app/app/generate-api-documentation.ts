@@ -29,8 +29,10 @@ import {
 } from '../../api/http-status-documents.ts';
 import type { StatusDocument } from
     '../../api/http-status-documents.ts';
-import { AUTHENTICATION_ROUTES } from
-    '../../api/request-auth.ts';
+import {
+    AUTHENTICATION_ROUTES,
+    STATUS_ROUTE,
+} from '../../api/request-auth.ts';
 import { documentFamilyWiring } from
     '../../api/document-family.ts';
 import { FAMILY_REGISTRY } from
@@ -766,13 +768,20 @@ const QUERY_STATUS_CODES = [
     '200', '204', '400', '401', '403', '415',
 ] as const;
 
+// The gate answers the status route ahead of the bearer
+// check and the route match, so it is never 401 or 404:
+// its document, 500 when the API is handed no commit, and
+// 503 when a component is not up.
+const SYSTEM_STATUS_CODES = ['200', '500', '503'] as const;
+
 export function statusCodesFor(
     row: Route,
     verb: HttpVerb,
 ): string[] {
     if (verb === 'query') return [...QUERY_STATUS_CODES];
-    const codes: number[] = [];
     const uri = uriOf(row);
+    if (isSystemStatusUri(uri)) return [...SYSTEM_STATUS_CODES];
+    const codes: number[] = [];
     const selects = verb === 'get' && row.select !== undefined;
     for (const code of successCodes(row, verb)) {
         codes.push(code);
@@ -867,6 +876,10 @@ function isGrantUri(uri: string): boolean {
         || uri === '/authentication/authorize';
 }
 
+function isSystemStatusUri(uri: string): boolean {
+    return uri === '/' + STATUS_ROUTE;
+}
+
 function isMembershipItem(uri: string): boolean {
     return uri
             === '/identities/:id/invitations/:membership-id'
@@ -893,7 +906,8 @@ function isMembershipConflict(
 // collection, a QUERY, or a versions list answers an
 // envelope: the lines ride each part, not the response.
 // History answers JSON. A grant's wire is the pair it
-// stored, so it carries the same three.
+// stored, so it carries the same three. The status route
+// computes its answer and stores no pair.
 const PAIR_RESPONSE_HEADERS = [
     'last-modified: on 2xx',
     'requester-identity-id: on 2xx',
@@ -912,6 +926,7 @@ function carriesStoredPairLines(
         return true;
     }
     if (lower !== 'get' || uri.endsWith('/')) return false;
+    if (isSystemStatusUri(uri)) return false;
     const row = routes.find(
         (candidate) => uriOf(candidate) === uri,
     );
@@ -929,10 +944,14 @@ function headersFor(
 ): DocumentedHeaders {
     const lower = verb.toLowerCase();
     const request: string[] = [];
-    if (!isGrantUri(uri)) {
-        request.push('Authorization: Bearer …');
+    // The gate answers the status route before it reads
+    // either line.
+    if (!isSystemStatusUri(uri)) {
+        if (!isGrantUri(uri)) {
+            request.push('Authorization: Bearer …');
+        }
+        request.push('Operation-ID: on every request');
     }
-    request.push('Operation-ID: on every request');
     const conditional = conditionalFor(lower, uri);
     if (conditional === 'in-order') {
         request.push('If-Match: strong etag');

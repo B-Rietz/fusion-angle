@@ -145,6 +145,7 @@ import {
     rotateRefreshJti,
     revokeTokenChain,
 } from './authentication.ts';
+import { STATUS_ROUTE } from './request-auth.ts';
 import { backedWrite } from './db-backed.ts';
 import {
     ApiError,
@@ -3716,6 +3717,15 @@ async function authGrantOffered(): Promise<never> {
     );
 }
 
+// Offer only: the gate answers this pattern before it
+// matches a route. Reaching this function is a wiring
+// bug.
+async function statusOffered(): Promise<never> {
+    throw new Error(
+        'system status is answered by the gate',
+    );
+}
+
 // The tenant root's document, a pure message-plane write:
 // the operator's seed writes its genesis here, below the
 // route. The response is the entity organizationEntityOf
@@ -4210,6 +4220,13 @@ export const routes: Route[] = [
     }),
     route('authentication/authorize', {
         post: authGrantOffered,
+    }),
+    // The gate answers the status route itself, ahead
+    // of the Operation-ID and bearer checks (api.ts
+    // dispatched). The table offers GET so the generator
+    // documents the verb.
+    route(STATUS_ROUTE, {
+        select: statusOffered,
     }),
     // Create retired into the SAME document PUT ideas/:id
     // already serves (Decision 7, Phase 2 Task 3, R1): genesis

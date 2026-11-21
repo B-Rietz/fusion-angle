@@ -1,8 +1,10 @@
 #!/bin/bash
 # Sourced from repo root after the caller `cd "$ROOT"`.
 # Not a command. bundle_client composes the pages
-# and bundles the client into DEST; ./bin/build owns
-# the clean-tree gate, the executable, and the ZIP.
+# and bundles the client into DEST; fetched_commit
+# reads a commit a build without a checkout embeds;
+# ./bin/build owns the clean-tree gate, the
+# executable, and the ZIP.
 
 # Fail when the artifact is empty or absent; report its
 # size otherwise — one voice for every emitted artifact.
@@ -65,6 +67,15 @@ bundle_client() {
 
     emitted "Bundle created" "$dest/assets/root-redirect.js"
 
+    deno bundle --frozen \
+        --platform browser \
+        --format iife \
+        --minify \
+        -o "$dest/assets/status-refresh.js" \
+        web-app/app/status-refresh.ts
+
+    emitted "Bundle created" "$dest/assets/status-refresh.js"
+
     cp web-app/assets/*.woff2 "$dest/assets/"
     cp web-app/assets/favicon.ico "$dest/assets/"
     cp web-app/assets/favicon.svg "$dest/assets/"
@@ -116,4 +127,34 @@ bundle_client() {
     deno run --frozen --allow-read \
         --allow-write="$dest" \
         web-app/app/hash-static.ts --gzip "$dest"
+}
+
+# Print SHA and its subject, one per line, as fetched
+# from URL with no credential; print nothing and fail
+# when any git call fails or the fetch answers another
+# commit: a caller under `if !` runs with set -e off. The
+# scratch repository sits under TMPDIR, outside the
+# source tree, and the commit object is all it holds.
+fetched_commit() {
+    local url="$1" sha="$2" scratch fetched subject
+    scratch=$(mktemp -d \
+        "${TMPDIR:-/tmp}/fusion-commit.XXXXXX")
+    if ! git init --quiet "$scratch" \
+        || ! GIT_TERMINAL_PROMPT=0 git -C "$scratch" \
+            -c http.lowSpeedLimit=1000 \
+            -c http.lowSpeedTime=30 \
+            fetch --quiet --depth 1 --filter=tree:0 \
+            "$url" "$sha" >&2 \
+        || ! fetched=$(git -C "$scratch" rev-parse \
+            FETCH_HEAD) \
+        || ! subject=$(git -C "$scratch" log -1 \
+            --format=%s FETCH_HEAD); then
+        rm -rf "$scratch"
+        return 1
+    fi
+    rm -rf "$scratch"
+    if [ "$fetched" != "$sha" ]; then
+        return 1
+    fi
+    printf '%s\n%s\n' "$fetched" "$subject"
 }

@@ -83,7 +83,10 @@ deploy's `createdAt` to its `finishedAt`, the
 build-artifact spec's "measured at the first deploy"
 risk, closed. The Docker build runs no tests. The
 builder stage declares `ARG RENDER_GIT_COMMIT` and
-sees that commit, and no secrets. The runtime stage
+`ARG RENDER_GIT_REPO_SLUG`, fetches that one commit
+from the public GitHub repository with no credential,
+reads its sha and subject from it, and sees no
+secrets. The runtime stage
 declares no `ARG`, unlike the retired native build,
 whose `./validate` step saw the build-time
 `POSTGRES_URL`.

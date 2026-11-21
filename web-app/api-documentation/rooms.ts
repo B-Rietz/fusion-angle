@@ -1965,6 +1965,22 @@ export const API_DOC_ROOMS:
         ],
     },
     {
+        hash: 'get/status',
+        verb: 'GET',
+        uri: '/api/status',
+        body: 'none',
+        headers:
+        [],
+        responseHeaders:
+        [],
+        statuses:
+        [
+            '200',
+            '500',
+            '503',
+        ],
+    },
+    {
         hash:
             'patch/organizations/organization-id/record-types/record-type-id'
             + '/instances/instance-id',
@@ -3436,5 +3452,18 @@ export const API_DOC_STATUSES:
         hash: 'statuses/429',
         code: '429',
         body: '{\n  "error": "too many requests"\n}',
+    },
+    {
+        hash: 'statuses/500',
+        code: '500',
+        body: '{\n  "error": "git sha unavailable"\n}',
+    },
+    {
+        hash: 'statuses/503',
+        code: '503',
+        body:
+            '{\n  "git-sha": "0123456789abcdef0123456789abcdef01234567",\n  '
+            + '"git-subject": "Answer system status at /api/status",\n  "up"'
+            + ': false,\n  "components": {\n    "postgres": "down"\n  }\n}',
     },
 ];

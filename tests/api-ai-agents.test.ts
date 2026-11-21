@@ -632,6 +632,7 @@ function lawTransactionWatched(organization: string): {
         hasSchema: () => inner.hasSchema(),
         postSchemaCreation: () => inner.postSchemaCreation(),
         deleteSchema: () => inner.deleteSchema(),
+        probe: () => inner.probe(),
     };
     return {
         backend,

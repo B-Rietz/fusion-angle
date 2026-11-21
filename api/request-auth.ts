@@ -46,6 +46,11 @@ export const AUTHENTICATION_ROUTES: ReadonlySet<string> =
         'authentication/authorize',
     ]);
 
+// The gate answers this route before authentication. It is
+// not in AUTHENTICATION_ROUTES, so it is not throttled and
+// reads no proxy line.
+export const STATUS_ROUTE = 'status';
+
 export async function authenticateRequest(
     ctx: FramedContext,
     request: Request,
