@@ -1,89 +1,89 @@
 {
     "api-documentation": {
-        "readyMs": 57
+        "readyMs": 39
     },
     "auth": {
-        "readyMs": 38
+        "readyMs": 25
     },
     "billing": {
-        "readyMs": 50
+        "readyMs": 38
     },
     "dashboard": {
-        "readyMs": 64
+        "readyMs": 74
     },
     "design-system": {
-        "readyMs": 58
+        "readyMs": 43
     },
     "flow-detail": {
         "readyMs": 61
     },
     "flow-stats": {
-        "readyMs": 80
+        "readyMs": 93
     },
     "flows": {
-        "readyMs": 62
+        "readyMs": 45
     },
     "idea-convert": {
-        "readyMs": 59
-    },
-    "idea-create": {
-        "readyMs": 50
-    },
-    "idea-detail": {
-        "readyMs": 56
-    },
-    "ideas": {
-        "readyMs": 58
-    },
-    "identities": {
-        "readyMs": 56
-    },
-    "identity-detail": {
-        "readyMs": 49
-    },
-    "identity-providers": {
         "readyMs": 48
     },
+    "idea-create": {
+        "readyMs": 36
+    },
+    "idea-detail": {
+        "readyMs": 46
+    },
+    "ideas": {
+        "readyMs": 37
+    },
+    "identities": {
+        "readyMs": 40
+    },
+    "identity-detail": {
+        "readyMs": 37
+    },
+    "identity-providers": {
+        "readyMs": 37
+    },
     "identity-tokens": {
-        "readyMs": 49
+        "readyMs": 38
     },
     "invitations": {
-        "readyMs": 49
+        "readyMs": 35
     },
     "landing": {
-        "readyMs": 34
+        "readyMs": 26
     },
     "member-detail": {
-        "readyMs": 54
+        "readyMs": 48
     },
     "members": {
-        "readyMs": 55
+        "readyMs": 50
     },
     "not-found": {
-        "readyMs": 34
+        "readyMs": 26
     },
     "organization": {
-        "readyMs": 53
+        "readyMs": 48
     },
     "project-detail": {
-        "readyMs": 57
+        "readyMs": 45
     },
     "projects": {
-        "readyMs": 65
+        "readyMs": 73
     },
     "record-create": {
-        "readyMs": 50
+        "readyMs": 37
     },
     "record-detail": {
         "readyMs": 92
     },
     "records": {
-        "readyMs": 58
+        "readyMs": 42
     },
     "workbox": {
-        "readyMs": 91
+        "readyMs": 87
     },
     "workbox-detail": {
-        "readyMs": 68
+        "readyMs": 58
     }
 }
