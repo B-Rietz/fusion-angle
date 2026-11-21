@@ -5,12 +5,6 @@ import {
     followTranslateY,
 } from './drag-reorder-positions.ts';
 
-const INDICATOR_HEIGHT = 3;
-const INDICATOR_COLOR =
-    'hsl(var(--primary))';
-const INDICATOR_BORDER_RADIUS = '2px';
-const INDICATOR_MARGIN = '2px 0';
-const DRAGGING_OPACITY = '0.4';
 const DRAG_HANDLE_SELECTOR = '.drag-handle';
 
 type CardRect = {
@@ -73,14 +67,7 @@ export function initDragReorder(
     function buildIndicator():
         HTMLElement {
         const el = createElement('div');
-        el.style.height =
-            INDICATOR_HEIGHT + 'px';
-        el.style.background =
-            INDICATOR_COLOR;
-        el.style.borderRadius =
-            INDICATOR_BORDER_RADIUS;
-        el.style.margin = INDICATOR_MARGIN;
-        el.style.pointerEvents = 'none';
+        el.className = 'drag-drop-indicator';
         return el;
     }
 
@@ -204,8 +191,7 @@ export function initDragReorder(
                 startClientY: e.clientY,
                 card,
             };
-            card.style.opacity =
-                DRAGGING_OPACITY;
+            card.classList.add('is-dragging');
         },
     );
 
@@ -273,7 +259,7 @@ export function initDragReorder(
                 committedIdx,
             );
             for (const c of items) {
-                c.style.opacity = '';
+                c.classList.remove('is-dragging');
             }
             onReorder(draggedId, newPos);
         },
@@ -289,7 +275,7 @@ export function initDragReorder(
             card.style.transform = '';
             drag = { kind: 'idle' };
             for (const c of cards()) {
-                c.style.opacity = '';
+                c.classList.remove('is-dragging');
             }
         },
     );

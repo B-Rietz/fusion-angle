@@ -1,0 +1,13 @@
+/* List reorder: drop line and the card being dragged. */
+
+.drag-drop-indicator {
+    height: 3px;
+    margin: 2px 0;
+    pointer-events: none;
+    border-radius: 2px;
+    background: hsl(var(--primary));
+}
+
+.is-dragging {
+    opacity: 0.4;
+}
