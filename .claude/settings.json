@@ -10,5 +10,8 @@
         ".git/worktrees"
       ]
     }
+  },
+  "worktree": {
+    "bgIsolation": "none"
   }
 }
