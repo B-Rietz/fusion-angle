@@ -512,10 +512,12 @@ async function postValueBearingTransitionIn(
 
 // Each work order's trace is one chain in (at, id) order: a
 // transition lands a version, so no wave holds two writers
-// of one document (Interpretation R). Chains run
-// concurrently, from each trace's third event: the create
-// carries the first two. WO01 binds before its first
-// value-bearing move, and those moves ride the live op.
+// of one document (Interpretation R). Chains run one after
+// another, in the traces' own order, so a re-seed under
+// fixed pins draws the same ids and stamps. Each starts at
+// its trace's third event: the create carries the first two.
+// WO01 binds before its first value-bearing move, and those
+// moves ride the live op.
 async function postWorkOrderChainsIn(
     adapter: DbAdapter,
     messagePairs: ReadonlyMap<string, MessagePair>,
@@ -527,7 +529,7 @@ async function postWorkOrderChainsIn(
         [chain.review.event.id, chain.review],
         [chain.complete.event.id, chain.complete],
     ]);
-    await Promise.all([...traces.values()].map(async (trace) => {
+    for (const trace of traces.values()) {
         const ordered = trace.slice(2);
         const firstValueBearing = ordered.find(
             (event) => valueBearing.has(event.id),
@@ -559,7 +561,7 @@ async function postWorkOrderChainsIn(
                 ),
             );
         }
-    }));
+    }
 }
 
 async function postMockDataLoadIn(
@@ -993,30 +995,6 @@ async function postMockDataLoadIn(
                 ),
             ),
         ),
-        // In this wave, before the flow-record joins of
-        // the next: the create requires an instance once
-        // its flow names a record type, so a seeded work
-        // order is born unbound only while no join
-        // exists. WO01 is bound afterwards, through the
-        // live op.
-        ...[
-            ...mockWorkOrders,
-            ...leadToCloseData.workOrders,
-        ].map((wo) => {
-            const trace = workOrderTraces.get(wo.id)!;
-            return postWorkOrderCreationOp(
-                adapter,
-                workOrderCreateSeedBody(
-                    wo, joinByWorkOrder.get(wo.id)!, trace,
-                ),
-                trace[0]!.member_id,
-                requireMessagePair(
-                    messagePairs,
-                    seedMessagePairKey('work-orders', wo.id),
-                ),
-                STARK_ORGANIZATION,
-            );
-        }),
         ...aiMembers.map(m => {
             const { id: _id, ...fields } = m;
             return postAiAgentDocumentOp(
@@ -1077,6 +1055,30 @@ async function postMockDataLoadIn(
             );
         }),
     ]);
+
+    // One at a time, in list order: ids and stamps repeat under pins.
+    // Before the flow-record joins below: the create requires an
+    // instance once its flow names a record type, so a seeded
+    // work order is born unbound only while no join exists. WO01
+    // is bound afterwards, through the live op.
+    for (const wo of [
+        ...mockWorkOrders,
+        ...leadToCloseData.workOrders,
+    ]) {
+        const trace = workOrderTraces.get(wo.id)!;
+        await postWorkOrderCreationOp(
+            adapter,
+            workOrderCreateSeedBody(
+                wo, joinByWorkOrder.get(wo.id)!, trace,
+            ),
+            trace[0]!.member_id,
+            requireMessagePair(
+                messagePairs,
+                seedMessagePairKey('work-orders', wo.id),
+            ),
+            STARK_ORGANIZATION,
+        );
+    }
 
     // Bindings probe their record inside the write gate
     // (postFlowRecordDocumentOp), so the records above must
