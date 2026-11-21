@@ -13,6 +13,10 @@ import {
     statusUnavailableHtml,
 } from '../server/status-page.ts';
 
+// A commit with no commit time renders the same at any
+// clock.
+const NOW = 0;
+
 function headers(
     init: Record<string, string>,
 ): Headers {
@@ -75,6 +79,7 @@ Deno.test('the status page escapes text', () => {
             styles: '/assets/styles.0123abcd.css',
             icon: '/assets/favicon.0123abcd.svg',
         },
+        NOW,
     );
     assertEquals(
         html.includes('a&lt;b&amp;&quot;c&gt;'),
@@ -112,6 +117,7 @@ Deno.test('the status sha clips to seven digits', () => {
         { sha: '0123456789abcdef0123456789abcdef01234567' },
         { api: 'up' },
         {},
+        NOW,
     );
     assertEquals(
         html.includes('class="git-sha font-mono text-sm"'),
@@ -189,7 +195,7 @@ async () => {
 
 Deno.test('the status card gives one verdict', () => {
     const sha = '0123456789abcdef0123456789abcdef01234567';
-    const up = statusPageHtml({ sha }, { api: 'up' }, {});
+    const up = statusPageHtml({ sha }, { api: 'up' }, {}, NOW);
     assertStringIncludes(up, 'id="status-card"');
     assertStringIncludes(
         up,
@@ -202,7 +208,7 @@ Deno.test('the status card gives one verdict', () => {
         up,
         '<a class="status-name" href="/">Fusion Angle</a>',
     );
-    const down = statusPageHtml({ sha }, { api: 'down' }, {});
+    const down = statusPageHtml({ sha }, { api: 'down' }, {}, NOW);
     assertStringIncludes(
         down,
         'status-card max-w-md p-8 text-center"\n'
@@ -214,7 +220,7 @@ Deno.test('the status card gives one verdict', () => {
         '<span class="pill" data-tone="error">API down</span>',
     );
     const late = statusPageHtml(
-        { sha }, { api: 'timeout' }, {},
+        { sha }, { api: 'timeout' }, {}, NOW,
     );
     assertStringIncludes(
         late,
@@ -240,6 +246,7 @@ Deno.test('the status card names the commit by its subject',
         { sha, subject: `<b>"it's" \\ \${x} é` },
         { api: 'up' },
         {},
+        NOW,
     );
     assertStringIncludes(
         named,
@@ -249,7 +256,7 @@ Deno.test('the status card names the commit by its subject',
         + '&lt;b&gt;&quot;it\'s&quot; \\ ${x} é\n</p>\n'
         + '</section>',
     );
-    const unnamed = statusPageHtml({ sha }, { api: 'up' }, {});
+    const unnamed = statusPageHtml({ sha }, { api: 'up' }, {}, NOW);
     assertNotMatch(unnamed, /git-subject/);
 });
 
@@ -276,7 +283,7 @@ Deno.test('the status page refreshes only with its script',
     const commit = { sha, subject: 'Keep the "card" & <sha>' };
     const script = '/assets/status-refresh.0123abcd0123abcd.js';
     const live = statusPageHtml(
-        commit, { api: 'up' }, { script },
+        commit, { api: 'up' }, { script }, NOW,
     );
     const tag = '<script src="' + script + '" defer></script>';
     assertStringIncludes(live, tag);
@@ -318,9 +325,74 @@ Deno.test('the status page refreshes only with its script',
     const still = statusPageHtml(commit, { api: 'up' }, {
         styles: '/assets/styles.0123abcd.css',
         icon: '/assets/favicon.0123abcd.svg',
-    });
+    }, NOW);
     assertNotMatch(still, /<script/);
     assertNotMatch(still, /status-live/);
     assertNotMatch(still, /<template/);
     assertNotMatch(statusUnavailableHtml(), /<script/);
+});
+
+const SHA = '0123456789abcdef0123456789abcdef01234567';
+const MERGE_SHA = 'fedcba9876543210fedcba9876543210fedcba98';
+const COMMITTED_AT = '2026-11-20T00:00:00.000Z';
+const COMMITTED_MS = Date.parse(COMMITTED_AT);
+
+function ageTag(age: string): string {
+    return '<time class="git-age" aria-live="off" datetime="'
+        + COMMITTED_AT + '">' + age + '</time>';
+}
+
+Deno.test('the status card ages the commit', () => {
+    const commit = { sha: SHA, committedAt: COMMITTED_AT };
+    const aged = statusPageHtml(
+        commit, { api: 'up' }, {}, COMMITTED_MS + 90_000,
+    );
+    const ageAt = aged.indexOf(ageTag('2 minutes ago'));
+    assertEquals(ageAt > aged.indexOf('class="git-sha'), true);
+    assertEquals(ageAt < aged.indexOf('</section>'), true);
+    assertStringIncludes(
+        statusPageHtml(commit, { api: 'up' }, {}, COMMITTED_MS),
+        ageTag('now'),
+    );
+});
+
+Deno.test('the merges list below the card', () => {
+    const html = statusPageHtml(
+        {
+            sha: SHA,
+            merges: [{
+                sha: MERGE_SHA,
+                subject: 'Land <the> merge',
+                committedAt: COMMITTED_AT,
+            }],
+        },
+        { api: 'up' },
+        { script: '/assets/status-refresh.0123abcd.js' },
+        COMMITTED_MS + 3 * 60 * 60 * 1_000,
+    );
+    const sectionAt = html.indexOf('<section id="status-merges"');
+    assertEquals(sectionAt > html.indexOf('</div>'), true);
+    assertEquals(sectionAt < html.indexOf('</main>'), true);
+    assertStringIncludes(
+        html.slice(sectionAt),
+        '<li>\n'
+        + '<p class="git-sha font-mono text-sm">\n'
+        + MERGE_SHA + '\n</p>\n'
+        + '<p class="git-subject text-sm">\n'
+        + 'Land &lt;the&gt; merge\n</p>\n'
+        + '<p class="text-muted text-sm">'
+        + ageTag('3 hours ago') + '</p>\n'
+        + '</li>',
+    );
+    for (const merges of [undefined, []]) {
+        assertNotMatch(
+            statusPageHtml(
+                { sha: SHA, ...(merges ? { merges } : {}) },
+                { api: 'up' },
+                {},
+                NOW,
+            ),
+            /status-merges/,
+        );
+    }
 });

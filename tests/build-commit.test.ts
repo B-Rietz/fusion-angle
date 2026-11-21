@@ -73,9 +73,15 @@ async () => {
         const sha = await git(['-C', repo, 'rev-parse', 'HEAD']);
         const url = `file://${repo}`;
 
+        const time = await git([
+            '-C', repo, 'log', '-1', '--format=%ct',
+        ]);
         const held = await fetchedCommit(url, sha, scratchTmp);
         assertEquals(held.code, 0);
-        assertEquals(held.stdout, sha + '\n' + SUBJECT + '\n');
+        assertEquals(
+            held.stdout,
+            sha + ' ' + time + ' ' + SUBJECT + '\n',
+        );
         assertEquals([...Deno.readDirSync(scratchTmp)], []);
 
         const absent = await fetchedCommit(

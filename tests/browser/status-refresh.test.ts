@@ -65,8 +65,9 @@ const CARD = `(() => {
 
 async function withStatusPage(
     fn: (page: Page, origin: Origin) => Promise<void>,
+    status: Parameters<typeof startOrigin>[0] = STATUS,
 ): Promise<void> {
-    const origin = await startOrigin(STATUS);
+    const origin = await startOrigin(status);
     try {
         const page = await browser.get().newPage();
         try {
@@ -240,4 +241,75 @@ Deno.test('the timeout card follows the server', async () => {
             'the served timeout card',
         );
     });
+});
+
+// Seconds old, so its age ticks between refreshes.
+function agingStatus(): Parameters<typeof startOrigin>[0] {
+    const committedMs = Date.now() - 5_000;
+    return {
+        ...STATUS,
+        commit: {
+            ...STATUS.commit,
+            committedAt: new Date(committedMs).toISOString(),
+            merges: [{
+                sha: 'fedcba9876543210fedcba9876543210fedcba98',
+                subject: 'Land the merge before',
+                committedAt: new Date(
+                    committedMs - 60_000,
+                ).toISOString(),
+            }],
+        },
+    };
+}
+
+const AGE = `document.querySelector('#status-card .git-age')
+    .textContent`;
+
+Deno.test('a ticking age keeps the card and backs off',
+async () => {
+    await withStatusPage(async (page) => {
+        await cardReads(page, 'success|UP|');
+        const first = await page.evaluate<string>(AGE);
+        await page.evaluate(
+            `document.getElementById('status-card').kept = true`,
+        );
+        await page.until<boolean>(
+            `${AGE} !== ${JSON.stringify(first)}`,
+            'the age ticks',
+        );
+        assertEquals(
+            await page.evaluate<boolean>(
+                `document.getElementById('status-card').kept`,
+            ),
+            true,
+        );
+        await page.evaluate(RECORD_WAITS);
+        try {
+            await page.evaluate(
+                `window.skewMs = ${PAST_A_MINUTE_MS}`,
+            );
+            await lastWaitIs(page, OVER_A_MINUTE_WAIT_MS);
+        } finally {
+            await page.evaluate(RESTORE_WAITS);
+        }
+    }, agingStatus());
+});
+
+Deno.test('the merges sit below the live card', async () => {
+    await withStatusPage(async (page) => {
+        assertEquals(
+            await page.evaluate<string>(`(() => {
+                const merges = document
+                    .getElementById('status-merges');
+                return [
+                    merges.previousElementSibling.id,
+                    merges.querySelector('.git-subject')
+                        .textContent.trim(),
+                    merges.querySelector('.git-age')
+                        .textContent,
+                ].join('|');
+            })()`),
+            'status-live|Land the merge before|1 minute ago',
+        );
+    }, agingStatus());
 });

@@ -373,7 +373,9 @@ function statusDocument(
     readonly status: number;
     readonly response: Response;
 } {
-    const systemStatus = systemStatusOf(commit, components);
+    const systemStatus = systemStatusOf(
+        commit, components, Date.now(),
+    );
     const status = systemStatus.up
         ? HTTP_OK
         : HTTP_SERVICE_UNAVAILABLE;
@@ -423,7 +425,9 @@ async function statusHtml(
         status,
         response: htmlStatus(
             status,
-            statusPageHtml(commit, components, assets),
+            statusPageHtml(
+                commit, components, assets, Date.now(),
+            ),
         ),
     };
 }

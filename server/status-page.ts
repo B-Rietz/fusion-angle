@@ -8,7 +8,10 @@ import {
     REQUEST_HEADERS,
     requestHeaderOf,
 } from '../api/request-header-names.ts';
+import { NO_DURATION } from '../shared/duration-text.ts';
 import {
+    type CommitDocument,
+    commitDocumentOf,
     type ComponentStates,
     everyComponentUp,
     type RunningCommit,
@@ -120,8 +123,10 @@ export function statusPageHtml(
     commit: RunningCommit,
     components: StatusComponents,
     assets: StatusAssets,
+    nowMs: number,
 ): string {
     const up = everyComponentUp(components);
+    const shown = commitDocumentOf(commit, nowMs);
     const links: string[] = [];
     if (assets.styles !== undefined) {
         links.push(
@@ -142,7 +147,7 @@ export function statusPageHtml(
         up ? 'success' : 'error',
         up ? 'UP' : 'DOWN',
         up ? [] : componentPills(components),
-        commit,
+        shown,
     );
     return [
         '<!DOCTYPE html>',
@@ -159,13 +164,14 @@ export function statusPageHtml(
         ]),
         '</head>',
         '<body>',
-        '<main class="flex min-h-screen items-center',
-        ' justify-center bg-background">',
+        '<main class="flex min-h-screen flex-col',
+        ' items-center justify-center bg-background">',
         ...(assets.script === undefined ? card : [
             '<div id="status-live" aria-live="polite">',
             ...card,
             '</div>',
         ]),
+        ...mergesSection(commit, nowMs),
         '</main>',
         ...(assets.script === undefined ? [] : [
             '<template id="status-timeout">',
@@ -173,7 +179,7 @@ export function statusPageHtml(
                 'error',
                 'DOWN',
                 [statusPill('Timeout', false)],
-                commit,
+                shown,
             ),
             '</template>',
         ]),
@@ -214,7 +220,7 @@ function statusCard(
     tone: 'success' | 'error',
     rating: string,
     pills: readonly string[],
-    commit: RunningCommit,
+    commit: CommitDocument,
 ): readonly string[] {
     return [
         '<section id="status-card"',
@@ -232,15 +238,70 @@ function statusCard(
             '</p>',
         ]),
         '<p class="text-muted text-sm">git sha</p>',
+        ...commitLines(commit),
+        '</section>',
+    ];
+}
+
+// The merges before the running commit, each shown as the
+// card shows it. Outside the live region: a deploy that
+// changes them changes the card, which is announced.
+function mergesSection(
+    commit: RunningCommit,
+    nowMs: number,
+): readonly string[] {
+    if (commit.merges === undefined
+        || commit.merges.length === 0) {
+        return [];
+    }
+    return [
+        '<section id="status-merges"',
+        ' class="card max-w-md p-8 mt-6 text-center">',
+        '<h2 class="text-lg font-semibold mb-4">'
+        + 'Recent merges</h2>',
+        '<ol class="flex flex-col gap-4">',
+        ...commit.merges.flatMap((merge) => [
+            '<li>',
+            ...commitLines(commitDocumentOf(merge, nowMs)),
+            '</li>',
+        ]),
+        '</ol>',
+        '</section>',
+    ];
+}
+
+function commitLines(
+    commit: CommitDocument,
+): readonly string[] {
+    return [
         '<p class="git-sha font-mono text-sm">',
-        escapeText(commit.sha),
+        escapeText(commit['git-sha']),
         '</p>',
-        ...(commit.subject === undefined ? [] : [
+        ...(commit['git-subject'] === undefined ? [] : [
             '<p class="git-subject text-sm">',
-            escapeText(commit.subject),
+            escapeText(commit['git-subject']),
             '</p>',
         ]),
-        '</section>',
+        ...ageLines(commit),
+    ];
+}
+
+// The age refreshes in place, never announced: the live
+// region speaks only when the verdict or commit changes.
+function ageLines(
+    commit: CommitDocument,
+): readonly string[] {
+    const age = commit['git-age'];
+    const committedAt = commit['git-committed-at'];
+    if (age === undefined || committedAt === undefined) {
+        return [];
+    }
+    return [
+        '<p class="text-muted text-sm">'
+        + '<time class="git-age" aria-live="off" datetime="'
+        + escapeText(committedAt) + '">'
+        + escapeText(age === NO_DURATION ? age : age + ' ago')
+        + '</time></p>',
     ];
 }
 

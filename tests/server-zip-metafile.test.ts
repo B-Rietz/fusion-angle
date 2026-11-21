@@ -159,10 +159,10 @@ Deno.test('build entry carries the running commit', () => {
     );
     assertMatch(
         BUILD_SCRIPT,
-        /GIT_SUBJECT="\$\(git log -1 --format=%s "\$GIT_SHA"\)"/,
+        /COMMIT_LOG="\$\(commit_log \. "\$GIT_SHA"\)"/,
     );
     // Render's build has no repository: it fetches the
-    // one commit Render names and reads both from it.
+    // commit Render names and reads the log from it.
     assertStringIncludes(
         BUILD_SCRIPT,
         'fetched_commit \\\n'
@@ -171,12 +171,16 @@ Deno.test('build entry carries the running commit', () => {
         + '        "$RENDER_GIT_COMMIT")',
     );
     assertNotMatch(BUILD_SCRIPT, /GIT_SHA="\$\{?RENDER_GIT_COMMIT/);
+    assertStringIncludes(
+        BUILD_SCRIPT,
+        '[ "${COMMIT_LOG%% *}" != "$RENDER_GIT_COMMIT" ]',
+    );
     assertMatch(
         BUILD_SCRIPT,
         /Error: no commit SHA to embed\./,
     );
-    // A subject is arbitrary text, so the entry carries it
-    // encoded and never spliced into source.
+    // A subject is arbitrary text, so the entry carries the
+    // log encoded and never spliced into source.
     const entryAt = BUILD_SCRIPT.indexOf('<<ENTRY\n');
     const entry = BUILD_SCRIPT.slice(
         entryAt,
@@ -189,10 +193,10 @@ Deno.test('build entry carries the running commit', () => {
     );
     assertStringIncludes(
         entry,
-        "Deno.args,\n    embeddedCommit('${GIT_SHA}',"
-        + " '${GIT_SUBJECT_BASE64}'),",
+        "Deno.args,\n    embeddedCommit('${COMMIT_LOG_BASE64}'),",
     );
-    assertNotMatch(entry, /\$\{GIT_SUBJECT\}/);
+    assertNotMatch(entry, /\$\{COMMIT_LOG\}/);
+    assertNotMatch(entry, /\$\{GIT_SHA\}/);
     const compileAt = BUILD_SCRIPT.indexOf(
         'deno compile',
     );
@@ -236,29 +240,38 @@ Deno.test('build entry carries the running commit', () => {
     assertNotMatch(runtime, /apt-get|ca-certificates|\bgit\b/);
 });
 
-// GNU base64 wraps at 76 columns, so the subject runs past
+// GNU base64 wraps at 76 columns, so the log runs past
 // that and must still arrive as one line, byte for byte.
-Deno.test('build encodes the subject the entry decodes',
+Deno.test('build encodes the log the entry decodes',
 async () => {
-    const line = /^GIT_SUBJECT_BASE64=.*$/m.exec(BUILD_SCRIPT);
+    const line = /^COMMIT_LOG_BASE64=.*$/m.exec(BUILD_SCRIPT);
     assert(line !== null, 'the encoding line');
-    const subject = `-n <b>"it's" \\ \${x} $HOME é `.repeat(4);
+    const subject = `-n <b>"it's" \\ \${x} $HOME é`.repeat(4);
     const sha = '0123456789abcdef0123456789abcdef01234567';
+    const merge = 'fedcba9876543210fedcba9876543210fedcba98';
+    const log = sha + ' 1795240408 ' + subject + '\n'
+        + merge + ' 1795239823 Land a merge';
     const output = await new Deno.Command('sh', {
         args: [
             '-c',
-            line[0] + '\nprintf %s "$GIT_SUBJECT_BASE64"',
+            line[0] + '\nprintf %s "$COMMIT_LOG_BASE64"',
         ],
-        env: { GIT_SUBJECT: subject },
+        env: { COMMIT_LOG: log },
         stdout: 'piped',
     }).output();
     assertStrictEquals(output.success, true);
     const encoded = new TextDecoder().decode(output.stdout);
     assertNotMatch(encoded, /\n/);
-    assertEquals(
-        embeddedCommit(sha, encoded),
-        { sha, subject },
-    );
+    assertEquals(embeddedCommit(encoded), {
+        sha,
+        subject,
+        committedAt: '2026-11-21T05:53:28.000Z',
+        merges: [{
+            sha: merge,
+            subject: 'Land a merge',
+            committedAt: '2026-11-21T05:43:43.000Z',
+        }],
+    });
 });
 
 Deno.test('build --no-zip help names deploy', () => {

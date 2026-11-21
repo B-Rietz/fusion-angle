@@ -9,7 +9,8 @@ export interface StatusDocument {
 }
 
 // The commit the 503 example names, sha and subject, and
-// the one the documentation's replay reports.
+// the one the documentation's replay reports. It carries
+// no commit time, so the documentation holds no age.
 export const EXAMPLE_COMMIT: RunningCommit = {
     sha: '0123456789abcdef0123456789abcdef01234567',
     subject: 'Answer system status at /api/status',
@@ -101,6 +102,7 @@ export const STATUS_DOCUMENTS: readonly
         body: systemStatusOf(
             EXAMPLE_COMMIT,
             { postgres: 'down' },
+            Date.now(),
         ),
     },
     {
