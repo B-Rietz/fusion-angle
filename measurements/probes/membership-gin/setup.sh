@@ -8,7 +8,14 @@
 # is removed.
 set -eu
 name=fa-gin-probe
-image=postgres:18.6
+# The image compose runs, so the probe measures the
+# Postgres the product targets, never a stale pin.
+compose="$(dirname "$0")/../../../compose.yaml"
+image=$(sed -n 's/^ *image: *//p' "$compose" | head -n 1)
+if [ -z "$image" ]; then
+    echo "no image in $compose" >&2
+    exit 1
+fi
 
 running=$(
     docker inspect -f '{{.State.Running}}' "$name" \

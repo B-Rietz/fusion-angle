@@ -8,10 +8,12 @@ Items 0 and 1 have landed and left TODO.md; their
 specs run from
 `docs/superpowers/specs/2026-09-23-ledger-store-design.md`
 through `2026-10-04-work-order-events-design.md`.
-Postgres probes ran on Postgres 18.6 in Docker; Deno probes
-on Deno 2.9.6. Each script is as it ran, except that the
-Deno probes' imports now point into this tree instead of a
-retired worktree, and the two drivers read their URL from
+Postgres probes ran on Postgres 18.6 in Docker, except
+membership-gin, which follows compose (last run on
+18.7); Deno probes on Deno 2.9.6. Each script is as
+it ran, except that the Deno probes' imports now
+point into this tree instead of a retired worktree,
+and the two drivers read their URL from
 `FA_PROBE_POSTGRES_URL` instead of a literal.
 
 None of these gates anything. `./test validate` neither
@@ -149,10 +151,12 @@ compose shape, on host port 55433, named by
   reaches the handler de-chunked with its
   `transfer-encoding` line and no `content-length`.
 
-## membership-gin/ (2026-10-01)
+## membership-gin/ (2026-10-01, 2026-11-21)
 
-Postgres 18.6, image `postgres:18.6`. The server
-reports `PostgreSQL 18.6 (Debian 18.6-1.pgdg13+2)`.
+The image compose.yaml runs: `setup.sh` reads it, so
+the probe follows the product. Last run on
+`postgres:18.7`; the server reports
+`PostgreSQL 18.7 (Debian 18.7-1.pgdg13+5)`.
 Container `fa-gin-probe`, database `probe`, tmpfs on
 `/var/lib/postgresql`, not compose. From the worktree:
 
@@ -178,11 +182,11 @@ running, and removes `fa-gin-probe` when it finishes.
   `fa_message_pairs_body` and without it. The index
   is dropped between the legs and recreated after.
 
-Indexed insert 102.436 ms; unindexed insert 81.943 ms.
+Indexed insert 119.320 ms; unindexed insert 95.415 ms.
 After `ANALYZE` on the indexed load, the table is
 6832128 bytes and the index is 622592 bytes. The
-organization view is 1.355 ms with the index (a bitmap
-index scan of `fa_message_pairs_body`) and 12.434 ms
+organization view is 1.513 ms with the index (a bitmap
+index scan of `fa_message_pairs_body`) and 15.284 ms
 as a sequential scan (`enable_bitmapscan` off and
 `enable_indexscan` off).
 
