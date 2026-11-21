@@ -24,6 +24,13 @@ Claude Code reads it through `CLAUDE.md`, a one-line
 ./bin/measure
 ```
 
+Production is always https://fusionangle.com
+(`/status` there names the live build).
+`fusionangle.ai` serves the same site; the `www.`
+hosts 301 to their apex. Render's `onrender.com`
+subdomain is blocked and 404s on every path — never
+treat it as production.
+
 Deno 2.9.8 runs `./test`, `./test validate`,
 `./bin/build`, `./test browser`, `./bin/measure`,
 `./bin/develop`, and both generators, each
