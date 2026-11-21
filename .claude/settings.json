@@ -1,15 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git worktree add .worktrees/*)"
+      "Bash(./bin/worktree-add *)"
     ]
   },
   "sandbox": {
-    "filesystem": {
-      "allowWrite": [
-        ".git/worktrees"
-      ]
-    }
+    "excludedCommands": [
+      "./bin/worktree-add *"
+    ]
   },
   "worktree": {
     "bgIsolation": "none"
