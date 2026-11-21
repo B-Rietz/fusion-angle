@@ -17,12 +17,20 @@ Claude Code reads it through `CLAUDE.md`, a one-line
 ./deploy --render TOKEN --postgres mock-data|bootstrap
 ./bin/build            # executable ZIP to ~/Desktop/
 ./bin/build --no-zip dir/
+./bin/worktree-add SLUG # .worktrees/SLUG, branch SLUG
 ./bin/serve dir/ port  # ZIP hatch; PORT from argv
 ./bin/develop PORT --postgres mock-data|bootstrap
 ./bin/postgres-seed --postgres local --mock-data|--bootstrap
 ./bin/postgres-wipe --postgres local
 ./bin/measure
 ```
+
+Production is always https://fusionangle.com
+(`/status` there names the live build).
+`fusionangle.ai` serves the same site; the `www.`
+hosts 301 to their apex. Render's `onrender.com`
+subdomain is blocked and 404s on every path — never
+treat it as production.
 
 Deno 2.9.8 runs `./test`, `./test validate`,
 `./bin/build`, `./test browser`, `./bin/measure`,
@@ -226,7 +234,7 @@ before the first file. The slug names branch, directory,
 plan (`<slug>.md`), and spec (`<slug>-design.md`).
 
 ```bash
-git worktree add .worktrees/<slug> -b <slug>
+./bin/worktree-add <slug>  # .worktrees/<slug>, branch <slug>
 cd .worktrees/<slug>
 git rebase master          # onto current master
 ./test validate --syntax   # gate for each commit

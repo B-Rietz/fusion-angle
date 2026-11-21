@@ -1,0 +1,68 @@
+#!/bin/bash
+set -euo pipefail
+
+# The one way a spec's worktree is made, so it is the one
+# command the agent settings let run without a prompt:
+# a slug that cannot carry a path or an option, a fixed
+# location under .worktrees/, and no hooks or fsmonitor.
+
+usage() {
+    cat <<'USAGE'
+Usage: ./bin/worktree-add SLUG
+  SLUG   lowercase letters, digits, and inner hyphens
+  Creates .worktrees/SLUG on a new branch SLUG from the
+  main checkout's HEAD.
+USAGE
+}
+
+if [ $# -eq 1 ] && { [ "$1" = "--help" ] \
+    || [ "$1" = "-h" ]; }; then
+    usage
+    exit 0
+fi
+
+if [ $# -ne 1 ]; then
+    usage >&2
+    exit 1
+fi
+
+SLUG=$1
+if ! [[ "$SLUG" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
+    echo "Error: SLUG must be lowercase letters," \
+        "digits, and inner hyphens" >&2
+    usage >&2
+    exit 1
+fi
+
+# Every git call runs with a fixed environment, so no
+# inherited GIT_* variable or outside config steers it,
+# and finds the repo from this script, not the caller.
+SCRIPT_ROOT=$(cd "$(dirname "$0")/.." && pwd -P)
+clean_git() {
+    env -i PATH=/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin \
+        HOME="$HOME" GIT_CONFIG_GLOBAL=/dev/null \
+        GIT_CONFIG_NOSYSTEM=1 \
+        git -c core.hooksPath=/dev/null \
+        -c core.fsmonitor=false "$@"
+}
+
+COMMON_DIR=$(clean_git -C "$SCRIPT_ROOT" rev-parse \
+    --path-format=absolute --git-common-dir)
+ROOT=$(dirname "$COMMON_DIR")
+
+# A filter or an included file is code the checkout would
+# run outside the sandbox. Ask git for every source it
+# reads; refuse on a match, and on any failure to answer.
+set +e
+clean_git -C "$ROOT" config --show-origin \
+    --get-regexp '^(filter|include|includeif)\.' > /dev/null
+CONFIG_STATUS=$?
+set -e
+if [ "$CONFIG_STATUS" -ne 1 ]; then
+    echo "Error: git config names a filter or an include," \
+        "or could not be read; refusing to check out" >&2
+    exit 1
+fi
+
+clean_git -C "$ROOT" worktree add \
+    "$ROOT/.worktrees/$SLUG" -b "$SLUG"

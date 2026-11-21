@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./bin/worktree-add *)"
+    ],
+    "deny": [
+      "Edit(/bin/worktree-add)"
+    ]
+  },
+  "sandbox": {
+    "excludedCommands": [
+      "./bin/worktree-add *"
+    ],
+    "filesystem": {
+      "denyWrite": [
+        "bin/worktree-add"
+      ]
+    }
+  },
+  "worktree": {
+    "bgIsolation": "none"
+  }
+}

@@ -4,6 +4,15 @@ Enterprise innovation management platform for capturing ideas,
 defining business cases, and tracking projects through approval
 and execution.
 
+## Production
+
+Production is always https://fusionangle.com.
+`fusionangle.ai` serves the same site, and both
+`www.` hosts redirect (301) to their apex. The Render
+`onrender.com` subdomain is blocked and answers 404 on
+every path; never use it as the production origin.
+`./deploy --render` probes these hosts after a deploy.
+
 ## Modules
 
 - **Ideas** — submit, review, and promote innovation ideas
