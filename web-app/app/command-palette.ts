@@ -22,8 +22,6 @@ import {
 import {
     getIdeas,
     getProjects,
-    getHumanMembers,
-    featuredHumanMembers,
     ideaOf,
     projectOf,
     queryOrganization,
@@ -37,7 +35,6 @@ import { getClient, sessionContext } from './client.ts';
 import {
     Idea,
     Project,
-    HumanMember,
     ideaIsVisible,
     type MembershipReadEntity,
 } from '../../shared/types.ts';
@@ -228,29 +225,6 @@ export function projectToSearchItem(
     };
 }
 
-export function humanMemberToSearchItem(
-    member: HumanMember,
-): SearchItem {
-    const pii = member.pii();
-    const profile = member.profile();
-    const title = pii.erased
-        ? MEMBER_WITHOUT_PII_NAME
-        : pii.name;
-    const role = profile.present
-        ? profile.title + ' · ' + profile.department
-        : '';
-    return {
-        id: 'member-' + member.idForLink(),
-        title,
-        meta: role,
-        category: 'members',
-        icon: iconPerson(
-            ICON_SIZE.base, '',
-        ),
-        href: buildPageUrl('members'),
-    };
-}
-
 // The membership carries no profile, so a matched member
 // shows no role; the server still matched on it.
 export function membershipToSearchItem(
@@ -323,29 +297,23 @@ export function initCommandPalette(
     async function getSearchIndex(
     ): Promise<void> {
         if (state.isDataLoaded) return;
-        // The index reads ideas, projects, and members — org-bound.
+        // The index reads ideas and projects — org-bound.
         // On an unscoped session (the anonymous seed on an auth-exempt
         // sidebar page) skip the build rather than 401; a later scoped
         // load reseeds it.
         if (!getClient().sessionIsOrganizationScoped()) return;
 
         const ctx = sessionContext();
-        const [ideas, projects, humans] =
+        const [ideas, projects] =
             await Promise.all([
                 getIdeas(ctx),
                 getProjects(ctx),
-                getHumanMembers(ctx),
             ]);
-        const featured =
-            featuredHumanMembers(humans);
 
         state.allItems = [
             ...ideas.map(ideaToSearchItem),
             ...projects.map(
                 projectToSearchItem,
-            ),
-            ...featured.map(
-                humanMemberToSearchItem,
             ),
             ...pages.map(page => page.item),
         ];
@@ -973,8 +941,8 @@ posIndex === state.activeIndex
         );
     }
 
-    // The index is a derived snapshot of ideas, projects,
-    // and members — it builds lazily on first open and
+    // The index is a derived snapshot of ideas and
+    // projects — it builds lazily on first open and
     // re-derives when any source table rings its change
     // channel, the same freshness covenant the data pages
     // honor. No reads happen until the palette is opened.

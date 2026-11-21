@@ -4,7 +4,6 @@ import {
     matchedSearchItems,
     ideaToSearchItem,
     projectToSearchItem,
-    humanMemberToSearchItem,
     membershipToSearchItem,
 } from '../web-app/app/command-palette.ts';
 import type {
@@ -12,11 +11,9 @@ import type {
     SearchItem,
 } from '../web-app/app/command-palette.ts';
 import {
-    Idea, Project, HumanMember,
+    Idea, Project,
     type IdeaEntity,
     type IdeaState,
-    type IdentityPiiEntity,
-    type MembershipEntity,
     type MembershipReadEntity,
     type ProjectEntity,
 } from '../shared/types.ts';
@@ -120,49 +117,6 @@ function buildPage(
 const NO_MATCHES: OrganizationMatches = {
     ideas: [], projects: [], members: [],
 };
-
-function buildHumanMember(
-    id: string,
-    first: string, last: string,
-    title = 'engineer',
-    department = 'Eng',
-): HumanMember {
-    const pii = {
-        name: first + ' ' + last,
-        email: first.toLowerCase()
-            + '@example.com',
-        phone: '',
-        bio: '',
-    };
-    return new HumanMember(
-        {
-            id,
-            type: 'human',
-        },
-        {
-            present: true,
-            title,
-            department,
-            strengths: [],
-            team_dimensions: {},
-        },
-        {
-            erased: false,
-            ...pii,
-            message: responseMessage<IdentityPiiEntity>({
-                id, ...pii,
-            }),
-        },
-        responseMessage<MembershipEntity>({
-            id,
-            organization_id: 'AjdvjuECVZEgZoFajaIEkg',
-            identity_id: id,
-            type: 'member',
-            state: 'accepted',
-            at: '2026-01-01T00:00:00.000000Z',
-        }),
-    );
-}
 
 const sampleItems: SearchItem[] = [
     {
@@ -391,21 +345,6 @@ Deno.test(
             out.meta.includes('42%'),
             'meta includes progress',
         );
-    },
-);
-
-Deno.test(
-    'humanMemberToSearchItem builds correct shape',
-    () => {
-        const out = humanMemberToSearchItem(
-            buildHumanMember(
-                'u1', 'Carol', 'Smith',
-                'pm', 'Product',
-            ),
-        );
-        assertStrictEquals(out.id, 'member-u1');
-        assertStrictEquals(out.title, 'Carol Smith');
-        assertStrictEquals(out.category, 'members');
     },
 );
 

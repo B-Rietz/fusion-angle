@@ -109,9 +109,8 @@ function seatedHumanParent(
     return { id, type: 'human' };
 }
 
-// The roster serves in write order; the members page and
-// the palette's featured six read memberships in grant
-// order: at, then identity.
+// The roster serves in write order; the members page
+// reads memberships in grant order: at, then identity.
 export function buildHumanMemberMap(
     memberships: readonly HttpMessage<MembershipEntity>[],
 ): Map<MemberId, HumanMember> {
@@ -174,21 +173,11 @@ export async function getCurrentHumanMember(
     return { id: ctx.identity.id };
 }
 
-const TOP_HUMAN_MEMBER_COUNT = 6;
-
 export async function getHumanMembers(
     ctx: RequestContext,
 ): Promise<HumanMember[]> {
     const memberMap = await getHumanMemberMap(ctx);
     return Array.from(memberMap.values());
-}
-
-export function featuredHumanMembers(
-    members: HumanMember[],
-): HumanMember[] {
-    return members
-        .filter(member => member.department().present)
-        .slice(0, TOP_HUMAN_MEMBER_COUNT);
 }
 
 export async function getHumanMember(

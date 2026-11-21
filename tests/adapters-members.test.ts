@@ -16,7 +16,6 @@ import { deriveIdentityPii } from
     '../api/derive-identity-spine.ts';
 import {
     buildHumanMemberMap,
-    featuredHumanMembers,
     getAdminSeatIds,
     getHumanMember,
     getHumanMemberProfile,
@@ -42,7 +41,6 @@ import {
 import {
     isHumanMember,
     nowUtc,
-    type HumanMember,
     type MembershipEntity,
     type MembershipReadEntity,
 } from '../shared/types.ts';
@@ -246,28 +244,6 @@ Deno.test(
         assertStrictEquals(after.title, 'Lead');
     },
 );
-
-Deno.test('featuredHumanMembers keeps only members with a dept',
-() => {
-    const mk = (present: boolean) =>
-        ({ department: () => present
-            ? { present: true, label: 'Eng' }
-            : { present: false } }) as
-            unknown as HumanMember;
-    const result = featuredHumanMembers([
-        mk(true), mk(false), mk(true),
-    ]);
-    assertStrictEquals(result.length, 2);
-});
-
-Deno.test('featuredHumanMembers caps the list at six', () => {
-    const mk = () =>
-        ({ department: () =>
-            ({ present: true, label: 'Eng' }) }) as
-            unknown as HumanMember;
-    const ten = Array.from({ length: 10 }, mk);
-    assertStrictEquals(featuredHumanMembers(ten).length, 6);
-});
 
 function outside(method: string, path: string): string {
     return 'forbidden: ' + method + ' ' + path
