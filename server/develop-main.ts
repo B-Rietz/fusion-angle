@@ -3,6 +3,7 @@
 // not take this path.
 
 import { toFileUrl } from '@std/path';
+import { envCommit } from './git-sha.ts';
 import { dispatch } from './main.ts';
 
 const enc = new TextEncoder();
@@ -24,5 +25,5 @@ if (Deno.args.length !== 1
 Deno.exit(await dispatch(
     toFileUrl(dir),
     ['serve'],
-    Deno.env.get('GIT_SHA'),
+    envCommit((name) => Deno.env.get(name)),
 ));

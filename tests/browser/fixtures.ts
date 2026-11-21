@@ -15,8 +15,10 @@ import { buildMembers } from
     '../../api/mock-data/members.ts';
 import { STARK_ORGANIZATION } from
     '../../api/mock-data/seed-constants.ts';
-import { listenHttp } from
-    '../../server/http-server.ts';
+import {
+    type HttpListenOptions,
+    listenHttp,
+} from '../../server/http-server.ts';
 import { testHashPassword } from '../mock-seed.ts';
 import { organizationToken } from
     '../token-fixtures.ts';
@@ -54,7 +56,11 @@ export type Origin = {
     close(): Promise<void>;
 };
 
-export async function startOrigin(): Promise<Origin> {
+// A status test fixes the commit, so no refresh waits on
+// git, and widens the API's wait past a loaded machine's.
+export async function startOrigin(
+    status?: Pick<HttpListenOptions, 'commit' | 'apiStatusWaitMs'>,
+): Promise<Origin> {
     const staticRoot =
         Deno.env.get('FUSION_ANGLE_STATIC_ROOT');
     if (staticRoot === undefined || staticRoot === '') {
@@ -72,6 +78,7 @@ export async function startOrigin(): Promise<Origin> {
         staticRoot,
         port: 0,
         host: '127.0.0.1',
+        ...status,
     });
     return {
         baseUrl: `http://127.0.0.1:${listener.port}`,

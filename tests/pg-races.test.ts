@@ -374,6 +374,7 @@ function pausedAfterRosterRead(
         hasSchema: () => inner.hasSchema(),
         postSchemaCreation: () => inner.postSchemaCreation(),
         deleteSchema: () => inner.deleteSchema(),
+        probe: () => inner.probe(),
     };
     return { backend, readDone: read, release };
 }

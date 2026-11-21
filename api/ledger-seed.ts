@@ -16,6 +16,8 @@ import type {
     TxMode,
 } from './db.ts';
 import { BackedDbAdapter } from './db-backed.ts';
+import type { ComponentState } from
+    '../shared/system-status.ts';
 import { SuccessionConflict } from './ledger-statement.ts';
 import type {
     Attempt,
@@ -264,6 +266,10 @@ export class RehearsalBackend implements StorageBackend {
 
     deleteSchema(): Promise<void> {
         return this.#scratch.deleteSchema();
+    }
+
+    probe(): Promise<ComponentState> {
+        return this.#scratch.probe();
     }
 
     // Each of the three takes the scratch's serializer,

@@ -2,7 +2,7 @@
 // the gate answers. Each request kind — a route and verb the
 // route table offers, the token route once per grant type and
 // once more for a grant_type it does not take — is driven
-// through handleRequest on the memory backend, for every
+// through handleRequest's gate on the memory backend, for every
 // declared header handleRequest reads: the endpoint and
 // transport declarations, less forwarded and x-forwarded-for,
 // which the server reads before handleRequest.
@@ -52,7 +52,7 @@
 // and the kind when one did, never the value.
 
 import { assertEquals } from '@std/assert';
-import { handleRequest } from '../api/api.ts';
+import { requestHandlerFor } from '../api/api.ts';
 import {
     basicAuthorization,
     GRANT_TYPES,
@@ -100,6 +100,10 @@ import { seedRootAdmin } from './root-admin-fixture.ts';
 import { devToken, organizationToken } from './token-fixtures.ts';
 
 const BASE = 'http://localhost';
+
+// handleRequest's gate, handed a commit: with none the status
+// route answers 500, which agrees with no check.
+const handle = requestHandlerFor({ sha: 'a'.repeat(40) });
 
 const TOKEN_ROUTE = 'authentication/token';
 const AUTHORIZE_ROUTE = 'authentication/authorize';
@@ -688,7 +692,7 @@ async function responseTo(
             sent.push({ header: name, kind: labelOf(kind), value });
         }
     }
-    return handleRequest(world.db, new Request(
+    return handle(world.db, new Request(
         BASE + '/' + pathOf(kind.routePattern),
         {
             method: kind.method,

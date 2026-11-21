@@ -30,7 +30,10 @@ import {
     type RequestHeader,
     type RequestHeaderKey,
 } from './request-header-names.ts';
-import { AUTHENTICATION_ROUTES } from './request-auth.ts';
+import {
+    AUTHENTICATION_ROUTES,
+    STATUS_ROUTE,
+} from './request-auth.ts';
 import { conditionalOf } from './routes.ts';
 import type { Conditional, WriteMethod } from './routes.ts';
 
@@ -98,6 +101,8 @@ const TOKEN_AUTHORIZATION_STATES: Readonly<
 };
 
 function authorizationStateOf(kind: RequestKind): RequestHeaderState {
+    // api.ts dispatched answers the status route first
+    if (kind.routePattern === STATUS_ROUTE) return 'unused';
     // request-auth.ts authenticateRequest
     if (!AUTHENTICATION_ROUTES.has(kind.routePattern)) {
         return 'required';
@@ -143,8 +148,11 @@ const HEADER_STATES: {
         alternatives: NO_ALTERNATIVES,
     },
     operationId: {
-        // api.ts dispatched, before the route match
-        stateOf: () => 'required',
+        // api.ts dispatched, before the route match and after
+        // the status route's answer
+        stateOf: (kind) => kind.routePattern === STATUS_ROUTE
+            ? 'unused'
+            : 'required',
         alternatives: NO_ALTERNATIVES,
     },
     contentType: {

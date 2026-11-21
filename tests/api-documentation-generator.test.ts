@@ -408,6 +408,23 @@ Deno.test('a stored pair\'s 2xx names the three lines'
     }
 });
 
+Deno.test('the status room names no credential line, no'
+    + ' stored pair, and its three statuses', () => {
+    const rooms = generateAll();
+    const html = roomHtmlOf(rooms, 'get', '/status');
+    assert(html);
+    assertNotMatch(html, /Authorization/);
+    assertNotMatch(html, /Operation-ID/);
+    assertStrictEquals(responseHeaderBlock(html), '');
+    for (const line of PAIR_LINES) {
+        assert(!html.includes(line), line);
+    }
+    assertEquals(
+        statusesOf(rooms, 'get', '/status'),
+        ['200', '500', '503'],
+    );
+});
+
 Deno.test('a created answer is 201, and memberships'
     + ' name the body the handler validates', () => {
     const rooms = generateAll();

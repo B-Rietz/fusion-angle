@@ -23,16 +23,23 @@ import {
     REQUEST_BODY_MAX_BYTES,
     listenHttp,
     type HttpListener,
-    type PostgresProbe,
     type RequestHandler,
 } from '../server/http-server.ts';
+import type {
+    ComponentState,
+    RunningCommit,
+} from '../shared/system-status.ts';
+import {
+    REQUEST_HEADERS,
+    requestHeaderOf,
+} from '../api/request-header-names.ts';
 import { fetchDiscardingBody } from
     './fixtures/fetch-discarding-body.ts';
 import { withPerformanceNow } from
     './fixtures/performance-now.ts';
 import { generateIdentifier } from
     '../shared/identifier.ts';
-import { readWorktreeGitSha } from
+import { runningCommitFor } from
     '../server/git-sha.ts';
 
 // The Office of Time: RFC-3339 zulu at the fullest
@@ -46,6 +53,15 @@ const JSON_ASK = {
 
 const STATUS_SHA =
     '0123456789abcdef0123456789abcdef01234567';
+
+// /status's wait for an API expected to answer. Generous, so
+// a loaded run never reads its answer as a timeout: the
+// product's own wait is pinned where it is defined.
+const ANSWER_WAIT_MS = 10_000;
+
+// A silent API speaks at the backstop, so a wait that never
+// expires fails its assertion rather than hanging the suite.
+const RELEASE_BACKSTOP_MS = 10_000;
 
 async function gzipBytes(
     text: string,
@@ -150,8 +166,9 @@ async function withServer(
         base: string,
         logs: Record<string, unknown>[],
     ) => Promise<void>,
-    gitSha?: string,
-    postgresProbe?: PostgresProbe | null,
+    commit?: RunningCommit,
+    probe?: () => Promise<ComponentState>,
+    apiStatusWaitMs?: number,
 ): Promise<void> {
     const root = await Deno.makeTempDir({
         prefix: 'fusion-http-',
@@ -170,8 +187,10 @@ async function withServer(
                 await Deno.writeTextFile(path, body);
             }
         }
+        const adapter = memoryDbAdapter();
+        if (probe !== undefined) adapter.probe = probe;
         const options = {
-            adapter: memoryDbAdapter(),
+            adapter,
             staticRoot: root,
             port: 0,
             host: '127.0.0.1',
@@ -179,13 +198,8 @@ async function withServer(
                 logs.push(line);
             },
             ...(handle !== undefined ? { handle } : {}),
-            ...(gitSha !== undefined ? { gitSha } : {}),
-            ...(postgresProbe === null
-                ? {}
-                : {
-                    postgresProbe: postgresProbe
-                        ?? (async () => true),
-                }),
+            ...(commit !== undefined ? { commit } : {}),
+            apiStatusWaitMs: apiStatusWaitMs ?? ANSWER_WAIT_MS,
         };
         listener = await listenHttp(options);
         await run(
@@ -588,12 +602,7 @@ Deno.test('GET /status returns the given git sha',
 async () => {
     const sha =
         '0123456789abcdef0123456789abcdef01234567';
-    let handled = 0;
-    const handle: RequestHandler = async () => {
-        handled += 1;
-        return new Response('api', { status: 200 });
-    };
-    await withServer({}, handle, async (base) => {
+    await withServer({}, undefined, async (base) => {
         const res = await fetch(base + '/status', JSON_ASK);
         assertStrictEquals(res.status, HTTP_OK);
         assertStrictEquals(
@@ -613,39 +622,90 @@ async () => {
             {
                 'git-sha': sha,
                 up: true,
-                components: { postgres: true },
+                components: { api: 'up' },
             },
         );
         assertStrictEquals(
             res.headers.get('request-id'), null,
         );
-        assertStrictEquals(handled, 0);
-    }, sha);
+    }, { sha });
+});
+
+Deno.test('GET /status asks the API over HTTP',
+async () => {
+    const seen: (string | null)[][] = [];
+    const handle: RequestHandler = async (_adapter, request) => {
+        seen.push([
+            request.method,
+            new URL(request.url).pathname,
+            requestHeaderOf(
+                request.headers, REQUEST_HEADERS.accept,
+            ),
+        ]);
+        return Response.json({ up: true });
+    };
+    await withServer({}, handle, async (base) => {
+        const res = await fetch(base + '/status', JSON_ASK);
+        assertStrictEquals(res.status, HTTP_OK);
+        assertEquals(await res.json(), {
+            'git-sha': STATUS_SHA,
+            up: true,
+            components: { api: 'up' },
+        });
+    }, { sha: STATUS_SHA });
+    assertEquals(seen, [['GET', '/status', 'application/json']]);
 });
 
 Deno.test('GET /status reads the worktree when unset',
 async () => {
-    const expected = await readWorktreeGitSha();
-    assert(expected !== undefined, 'worktree sha');
+    const expected = await runningCommitFor(undefined);
+    assert(expected !== undefined, 'worktree commit');
+    assert(expected.subject !== undefined, 'HEAD subject');
     await withServer({}, undefined, async (base) => {
         const res = await fetch(base + '/status', JSON_ASK);
         assertStrictEquals(res.status, HTTP_OK);
         assertEquals(await res.json(), {
-            'git-sha': expected,
+            'git-sha': expected.sha,
+            'git-subject': expected.subject,
             up: true,
-            components: { postgres: true },
+            components: { api: 'up' },
         });
     });
 });
 
+Deno.test('GET /status names the commit by its subject',
+async () => {
+    const subject = `<b>"it's" \\ \${x} é`;
+    await withServer({}, undefined, async (base) => {
+        for (const path of ['/status', '/api/status']) {
+            const res = await fetch(base + path, JSON_ASK);
+            assertStrictEquals(res.status, HTTP_OK);
+            const document = await res.json();
+            assertStrictEquals(
+                document['git-subject'], subject,
+            );
+            assertEquals(
+                Object.keys(document),
+                ['git-sha', 'git-subject', 'up', 'components'],
+            );
+        }
+        const page = await fetch(base + '/status');
+        assertStringIncludes(
+            await page.text(),
+            '<p class="git-subject text-sm">\n'
+            + '&lt;b&gt;&quot;it\'s&quot; \\ ${x} é\n</p>',
+        );
+    }, { sha: STATUS_SHA, subject });
+});
+
 Deno.test('GET /status hides an unacceptable sha',
 async () => {
-    let probes = 0;
-    const probe: PostgresProbe = async () => {
-        probes += 1;
-        return true;
+    let handled = 0;
+    const handle: RequestHandler = async () => {
+        handled += 1;
+        return Response.json({ up: true });
     };
-    await withServer({}, undefined, async (base) => {
+    await withServer({}, handle, async (base) => {
         const res = await fetch(base + '/status', JSON_ASK);
         assertStrictEquals(
             res.status, HTTP_INTERNAL_ERROR,
@@ -664,20 +724,15 @@ async () => {
             JSON.stringify(body).includes('nope'),
             false,
         );
-        assertStrictEquals(probes, 0);
-    }, 'nope', probe);
+        assertStrictEquals(handled, 0);
+    }, { sha: 'nope' });
 });
 
 Deno.test('GET /status is 503 when postgres is down',
 async () => {
     const sha =
         '0123456789abcdef0123456789abcdef01234567';
-    let handled = 0;
-    const handle: RequestHandler = async () => {
-        handled += 1;
-        return new Response('api', { status: 200 });
-    };
-    await withServer({}, handle, async (base, logs) => {
+    await withServer({}, undefined, async (base, logs) => {
         const res = await fetch(base + '/status', JSON_ASK);
         assertStrictEquals(
             res.status, HTTP_SERVICE_UNAVAILABLE,
@@ -689,35 +744,62 @@ async () => {
         assertEquals(await res.json(), {
             'git-sha': sha,
             up: false,
-            components: { postgres: false },
+            components: { api: 'down' },
         });
-        assertStrictEquals(handled, 0);
-        const last = logs[logs.length - 1];
-        assert(last !== undefined);
-        assertStrictEquals(last['path'], '/status');
-        assertStrictEquals(last['status'], 503);
-        assertStrictEquals(last['level'], 'error');
-        assertStrictEquals(
-            last['operationId'], undefined,
+        assertEquals(
+            logs.map((line) => [
+                line['path'],
+                line['status'],
+                line['level'],
+                line['operationId'],
+            ]),
+            [
+                ['/api/status', 503, 'error', undefined],
+                ['/status', 503, 'error', undefined],
+            ],
         );
-    }, sha, async () => false);
+    }, { sha }, async () => 'down');
 });
 
-Deno.test('GET /status treats a thrown probe as down',
+Deno.test('GET /status is a timeout when the API is silent',
 async () => {
-    const sha =
-        '0123456789abcdef0123456789abcdef01234567';
-    await withServer({}, undefined, async (base) => {
-        const res = await fetch(base + '/status', JSON_ASK);
-        assertStrictEquals(
-            res.status, HTTP_SERVICE_UNAVAILABLE,
+    const { promise: released, resolve: release } =
+        Promise.withResolvers<void>();
+    const handle: RequestHandler = async () => {
+        await released;
+        return Response.json({ up: true });
+    };
+    await withServer({}, handle, async (base) => {
+        const backstop = setTimeout(
+            release, RELEASE_BACKSTOP_MS,
         );
-        assertEquals(await res.json(), {
-            'git-sha': sha,
-            up: false,
-            components: { postgres: false },
-        });
-    }, sha, () => Promise.reject(new Error('db down')));
+        try {
+            const res = await fetch(
+                base + '/status', JSON_ASK,
+            );
+            assertStrictEquals(
+                res.status, HTTP_SERVICE_UNAVAILABLE,
+            );
+            assertEquals(await res.json(), {
+                'git-sha': STATUS_SHA,
+                up: false,
+                components: { api: 'timeout' },
+            });
+            const page = await fetch(base + '/status');
+            const html = await page.text();
+            assertHtmlStatus(
+                page, html, HTTP_SERVICE_UNAVAILABLE,
+            );
+            assertStringIncludes(
+                html,
+                '<span class="pill" data-tone="error">'
+                + 'API timeout</span>',
+            );
+        } finally {
+            clearTimeout(backstop);
+            release();
+        }
+    }, { sha: STATUS_SHA }, undefined, 20);
 });
 
 Deno.test('GET /status is outside the auth throttle',
@@ -730,24 +812,7 @@ async () => {
             assertStrictEquals(res.status, HTTP_OK);
             await res.text();
         }
-    }, sha);
-});
-
-Deno.test('GET /status without a probe is down',
-async () => {
-    const sha =
-        '0123456789abcdef0123456789abcdef01234567';
-    await withServer({}, undefined, async (base) => {
-        const res = await fetch(base + '/status', JSON_ASK);
-        assertStrictEquals(
-            res.status, HTTP_SERVICE_UNAVAILABLE,
-        );
-        assertEquals(await res.json(), {
-            'git-sha': sha,
-            up: false,
-            components: { postgres: false },
-        });
-    }, sha, null);
+    }, { sha });
 });
 
 Deno.test('POST /status is not the status document',
@@ -762,7 +827,7 @@ async () => {
         assertStrictEquals(probes, 0);
     }, undefined, async () => {
         probes += 1;
-        return true;
+        return 'up';
     });
 });
 
@@ -812,19 +877,13 @@ async () => {
         assertEquals(html.includes('break-all'), false);
         assertStringIncludes(
             html,
-            '<span class="pill" data-tone="success">'
-            + 'Up</span>',
+            'status-card max-w-md p-8 text-center"\n'
+            + ' data-tone="success">',
         );
-        assertStringIncludes(
-            html,
-            '<span class="pill" data-tone="success">'
-            + 'Postgres up</span>',
-        );
-        const nameAt = html.indexOf('Fusion Angle');
-        const upAt = html.indexOf(
-            '<span class="pill" data-tone="success">'
-            + 'Up</span>',
-        );
+        assertStringIncludes(html, '>UP</p>');
+        assertNotMatch(html, /class="pill"/);
+        const nameAt = html.indexOf('class="status-name"');
+        const upAt = html.indexOf('>UP</p>');
         assertEquals(nameAt >= 0 && nameAt < upAt, true);
         assertStringIncludes(
             html,
@@ -849,8 +908,10 @@ async () => {
         );
         const page = await browser.text();
         assertHtmlStatus(browser, page, HTTP_OK);
-        assertStringIncludes(page, 'Postgres up');
-    }, STATUS_SHA);
+        assertStringIncludes(page, '>UP</p>');
+        assertNotMatch(page, /class="pill"/);
+        assertNotMatch(page, /<script/);
+    }, { sha: STATUS_SHA });
 });
 
 Deno.test(
@@ -872,9 +933,9 @@ Deno.test(
             assertEquals(await res.json(), {
                 'git-sha': STATUS_SHA,
                 up: true,
-                components: { postgres: true },
+                components: { api: 'up' },
             });
-        }, STATUS_SHA);
+        }, { sha: STATUS_SHA });
     },
 );
 
@@ -888,9 +949,9 @@ async () => {
         assertEquals(await res.json(), {
             'git-sha': STATUS_SHA,
             up: true,
-            components: { postgres: true },
+            components: { api: 'up' },
         });
-    }, STATUS_SHA);
+    }, { sha: STATUS_SHA });
 });
 
 Deno.test(
@@ -905,8 +966,9 @@ Deno.test(
             });
             const html = await res.text();
             assertHtmlStatus(res, html, HTTP_OK);
-            assertStringIncludes(html, 'Postgres up');
-        }, STATUS_SHA);
+            assertStringIncludes(html, '>UP</p>');
+            assertNotMatch(html, /class="pill"/);
+        }, { sha: STATUS_SHA });
     },
 );
 
@@ -920,21 +982,53 @@ async () => {
         );
         assertStringIncludes(
             html,
+            'status-card max-w-md p-8 text-center"\n'
+            + ' data-tone="error">',
+        );
+        assertStringIncludes(html, '>DOWN</p>');
+        assertStringIncludes(
+            html,
             '<span class="pill" data-tone="error">'
-            + 'Down</span>',
+            + 'API down</span>',
+        );
+    }, { sha: STATUS_SHA }, async () => 'down');
+});
+
+// The API answered, so /status names it down: a timeout is
+// reported only by the hop that waited.
+Deno.test('GET /status is down when the probe times out',
+async () => {
+    await withServer({}, undefined, async (base) => {
+        const res = await fetch(base + '/status', JSON_ASK);
+        assertStrictEquals(
+            res.status, HTTP_SERVICE_UNAVAILABLE,
+        );
+        assertEquals(await res.json(), {
+            'git-sha': STATUS_SHA,
+            up: false,
+            components: { api: 'down' },
+        });
+        const page = await fetch(base + '/status');
+        const html = await page.text();
+        assertHtmlStatus(
+            page, html, HTTP_SERVICE_UNAVAILABLE,
         );
         assertStringIncludes(
             html,
             '<span class="pill" data-tone="error">'
-            + 'Postgres down</span>',
+            + 'API down</span>',
         );
-    }, STATUS_SHA, async () => false);
+    }, { sha: STATUS_SHA }, async () => 'timeout');
 });
 
 Deno.test('GET /status page hides an unacceptable sha',
 async () => {
-    let probes = 0;
-    await withServer({}, undefined, async (base) => {
+    let handled = 0;
+    const handle: RequestHandler = async () => {
+        handled += 1;
+        return Response.json({ up: true });
+    };
+    await withServer({}, handle, async (base) => {
         const res = await fetch(base + '/status');
         const html = await res.text();
         assertHtmlStatus(
@@ -944,11 +1038,8 @@ async () => {
             html, 'git sha unavailable',
         );
         assertEquals(html.includes('nope'), false);
-        assertStrictEquals(probes, 0);
-    }, 'nope', async () => {
-        probes += 1;
-        return true;
-    });
+        assertStrictEquals(handled, 0);
+    }, { sha: 'nope' });
 });
 
 Deno.test(
@@ -964,7 +1055,62 @@ Deno.test(
             const html = await res.text();
             assertHtmlStatus(res, html, HTTP_OK);
             assertNotMatch(html, /<link/);
-            assertStringIncludes(html, 'Up');
-        }, STATUS_SHA);
+            assertStringIncludes(html, '>UP</p>');
+        }, { sha: STATUS_SHA });
     },
 );
+
+Deno.test('GET /status loads its published script',
+async () => {
+    await withServer({
+        'asset-manifest.json': JSON.stringify({
+            'status-refresh.js':
+                'status-refresh.0123abcd0123abcd.js',
+        }),
+    }, undefined, async (base) => {
+        const res = await fetch(base + '/status');
+        const html = await res.text();
+        assertHtmlStatus(res, html, HTTP_OK);
+        assertStringIncludes(
+            html,
+            '<script src="/assets/'
+            + 'status-refresh.0123abcd0123abcd.js"'
+            + ' defer></script>',
+        );
+        assertStringIncludes(
+            html, '<div id="status-live" aria-live="polite">',
+        );
+        assertStringIncludes(
+            html,
+            '<span class="pill" data-tone="error">'
+            + 'Timeout</span>',
+        );
+    }, { sha: STATUS_SHA });
+});
+
+Deno.test('GET /api/status answers the system status',
+async () => {
+    await withServer({}, undefined, async (base, logs) => {
+        const res = await fetch(base + '/api/status');
+        assertStrictEquals(res.status, HTTP_OK);
+        assertStrictEquals(
+            res.headers.get('cache-control'),
+            NO_STORE,
+        );
+        assertEquals(await res.json(), {
+            'git-sha': STATUS_SHA,
+            up: true,
+            components: { postgres: 'up' },
+        });
+        const requestId = res.headers.get('request-id');
+        assertStrictEquals(typeof requestId, 'string');
+        const last = logs[logs.length - 1];
+        assert(last !== undefined);
+        assertStrictEquals(last['path'], '/api/status');
+        assertStrictEquals(last['status'], HTTP_OK);
+        assertStrictEquals(last['requestId'], requestId);
+        assertStrictEquals(
+            last['operationId'], undefined,
+        );
+    }, { sha: STATUS_SHA });
+});

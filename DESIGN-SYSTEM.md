@@ -60,7 +60,9 @@ truth. Tones: `primary`, `success`, `warning`, `error`,
 Buttons: `btn-primary`, `secondary`, `outline`, `ghost`,
 `destructive`, `success`, `hero`,
 `outline-error`, `.link`. Cards:
-`.card`, `.card-flat`.
+`.card`, `.card-flat`, and `.status-card[data-tone]`,
+which tints with the gauge card's recipe (soft fill,
+0.4-alpha border).
 
 **Displayed id.** Every id a page shows renders through
 `idLabel(thing, id)` (`presenters/id-label.ts`) as a

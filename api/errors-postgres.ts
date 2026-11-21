@@ -59,12 +59,21 @@ export function mapPostgresError(
     );
 }
 
+// A thrown fault's code: the server's SQLSTATE, or the
+// driver's own name for a connection fault.
+export function errorCodeOf(error: unknown): string | undefined {
+    if (error === null || typeof error !== 'object') {
+        return undefined;
+    }
+    return asString((error as Record<string, unknown>).code);
+}
+
 function faultOf(error: unknown): Fault | null {
     if (error === null || typeof error !== 'object') {
         return null;
     }
     const rec = error as Record<string, unknown>;
-    const code = asString(rec.code);
+    const code = errorCodeOf(error);
     const constraint = asString(rec.constraint)
         ?? asString(rec.constraint_name);
     if (code === undefined && constraint === undefined) {

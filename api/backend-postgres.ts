@@ -16,6 +16,9 @@ import {
 } from './schema-postgres.ts';
 import { serializeRecord } from './storage-serialize.ts';
 import { mapPostgresError } from './errors-postgres.ts';
+import { probePostgres } from './postgres-probe.ts';
+import type { ComponentState } from
+    '../shared/system-status.ts';
 import { Octets } from '../shared/http-message/octets.ts';
 import type { NotificationEvent } from
     '../shared/notifications.ts';
@@ -231,6 +234,10 @@ export class PostgresBackend implements StorageBackend {
         } catch (error) {
             throw mapPostgresError(error);
         }
+    }
+
+    probe(): Promise<ComponentState> {
+        return probePostgres(this.#sql);
     }
 }
 

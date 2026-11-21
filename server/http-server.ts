@@ -8,8 +8,13 @@ import {
     resolve,
     SEPARATOR,
 } from '@std/path';
-import { handleRequest } from '../api/api.ts';
+import {
+    handleRequest,
+    requestHandlerFor,
+} from '../api/api.ts';
 import type { DbAdapter } from '../api/db.ts';
+import { isSystemStatusPath } from
+    '../api/system-status.ts';
 import {
     HTTP_INTERNAL_ERROR,
     HTTP_METHOD_NOT_ALLOWED,
@@ -25,10 +30,20 @@ import {
 } from '../api/request-header-names.ts';
 import { REQUEST_ID_HEADER } from '../shared/message-id-fields.ts';
 import { msSinceMonotonic } from '../shared/types.ts';
-import { gitShaForStatus } from './git-sha.ts';
+import {
+    API_STATUS_WAIT_MS,
+    apiState,
+    apiStatusUrl,
+} from './api-status.ts';
+import { runningCommitFor } from './git-sha.ts';
 import { logStampUtc } from './log-stamp.ts';
 import {
+    type ComponentState,
     everyComponentUp,
+    type RunningCommit,
+    systemStatusOf,
+} from '../shared/system-status.ts';
+import {
     jsonRequested,
     statusAssets,
     statusPageHtml,
@@ -83,8 +98,6 @@ export type RequestLog = (
     fields: Record<string, unknown>,
 ) => void;
 
-export type PostgresProbe = () => Promise<boolean>;
-
 const STATUS_VARY = 'Accept, Content-Type';
 
 export interface HttpListenOptions {
@@ -95,9 +108,9 @@ export interface HttpListenOptions {
     readonly handle?: RequestHandler;
     readonly log?: RequestLog;
     readonly drainMs?: number;
+    readonly apiStatusWaitMs?: number;
     readonly trustedProxyHops?: string;
-    readonly gitSha?: string;
-    readonly postgresProbe?: PostgresProbe;
+    readonly commit?: RunningCommit;
 }
 
 export interface HttpListener {
@@ -339,21 +352,17 @@ function jsonResponse(
 }
 
 function statusDocument(
-    sha: string,
+    commit: RunningCommit,
     components: StatusComponents,
 ): {
     readonly status: number;
     readonly response: Response;
 } {
-    const up = everyComponentUp(components);
-    const status = up
+    const systemStatus = systemStatusOf(commit, components);
+    const status = systemStatus.up
         ? HTTP_OK
         : HTTP_SERVICE_UNAVAILABLE;
-    const response = new Response(JSON.stringify({
-        'git-sha': sha,
-        up,
-        components,
-    }), {
+    const response = new Response(JSON.stringify(systemStatus), {
         status,
         headers: {
             'Content-Type':
@@ -383,7 +392,7 @@ function htmlStatus(
 }
 
 async function statusHtml(
-    sha: string,
+    commit: RunningCommit,
     components: StatusComponents,
     staticRoot: string,
 ): Promise<{
@@ -399,24 +408,18 @@ async function statusHtml(
         status,
         response: htmlStatus(
             status,
-            statusPageHtml(sha, components, assets),
+            statusPageHtml(commit, components, assets),
         ),
     };
 }
 
-async function postgresUp(
-    probe: PostgresProbe | undefined,
-): Promise<boolean> {
-    if (probe === undefined) return false;
-    try {
-        return await probe();
-    } catch {
-        // A thrown probe is that component down.
-        // The document still answers. The error
-        // can carry a server message, so it is
-        // not logged.
-        return false;
-    }
+// The API reports the commit the listener hands it. The
+// commit is read for a status request alone, as /status
+// reads it, so no other API request waits on git.
+async function systemStatusHandler(
+    given: RunningCommit | undefined,
+): Promise<RequestHandler> {
+    return requestHandlerFor(await runningCommitFor(given));
 }
 
 function internalError(): Response {
@@ -639,6 +642,7 @@ async function dispatch(
     handle: RequestHandler,
     log: RequestLog,
     throttle: AuthThrottle,
+    askApiState: () => Promise<ComponentState>,
 ): Promise<Response> {
     const started = performance.now();
     let status = HTTP_INTERNAL_ERROR;
@@ -664,10 +668,10 @@ async function dispatch(
             const wantJson = jsonRequested(
                 request.headers,
             );
-            const sha = await gitShaForStatus(
-                options.gitSha,
+            const commit = await runningCommitFor(
+                options.commit,
             );
-            if (sha === undefined) {
+            if (commit === undefined) {
                 status = HTTP_INTERNAL_ERROR;
                 response = wantJson
                     ? jsonResponse(
@@ -681,14 +685,11 @@ async function dispatch(
                     );
                 return response;
             }
-            const postgres = await postgresUp(
-                options.postgresProbe,
-            );
-            const components = { postgres };
+            const components = { api: await askApiState() };
             const answered = wantJson
-                ? statusDocument(sha, components)
+                ? statusDocument(commit, components)
                 : await statusHtml(
-                    sha,
+                    commit,
                     components,
                     options.staticRoot,
                 );
@@ -754,7 +755,11 @@ async function dispatch(
             const bytes = body.kind === 'bytes'
                 ? body.bytes
                 : undefined;
-            response = await handle(
+            const handleApi = options.handle === undefined
+                && isSystemStatusPath(requestPathname)
+                ? await systemStatusHandler(options.commit)
+                : handle;
+            response = await handleApi(
                 options.adapter,
                 apiRequest(
                     request,
@@ -839,10 +844,18 @@ export function listenHttp(
     const handle = options.handle ?? handleRequest;
     const log = options.log ?? defaultLog;
     const drainMs = options.drainMs ?? DRAIN_TIMEOUT_MS;
+    const apiStatusWaitMs = options.apiStatusWaitMs
+        ?? API_STATUS_WAIT_MS;
     const throttle = createAuthThrottle(
         options.trustedProxyHops,
     );
     const controller = new AbortController();
+    // Deno.serve takes no request before onListen, so the
+    // URL /status asks is fixed there, from the port
+    // bound: options.port may be 0.
+    let loopbackStatusUrl: string;
+    const askApiState = (): Promise<ComponentState> =>
+        apiState(loopbackStatusUrl, apiStatusWaitMs);
     return new Promise((resolveListen, reject) => {
         try {
             const server = Deno.serve({
@@ -852,6 +865,7 @@ export function listenHttp(
                     : {}),
                 signal: controller.signal,
                 onListen: (addr) => {
+                    loopbackStatusUrl = apiStatusUrl(addr.port);
                     resolveListen({
                         port: addr.port,
                         close: () => closeServer(
@@ -862,7 +876,7 @@ export function listenHttp(
                 onError: internalError,
             }, (request, info) => dispatch(
                 request, info, options, handle, log,
-                throttle,
+                throttle, askApiState,
             ));
         } catch (error) {
             reject(error);

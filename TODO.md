@@ -350,9 +350,13 @@ code comments cite; specs and plans written before the
   the one source of the `<sha>` in the `user-agent`
   token the client and item 0h send. `./deploy` fills it from
   `git rev-parse HEAD`, exact because the build refuses
-  a dirty tree; on Render from the host's commit
+  a dirty tree; on Render from the commit the build
+  fetches from GitHub, named by the host's commit
   variable (`RENDER_GIT_COMMIT`), a name that stays at
-  the edge (item 0e). How the page bundle
+  the edge (item 0e). Today the build embeds the sha
+  and that commit's subject (`embeddedCommit`,
+  `server/git-sha.ts:31`), and `/status` and
+  `/api/status` report both. How the page bundle
   learns it — embedded at build, or served — is this
   bullet's to settle. Nothing sends the token yet: no
   `user-agent` line appears under `client/`,
@@ -421,7 +425,7 @@ code comments cite; specs and plans written before the
   by `migrate` beneath the adapter, where the
   seed lands every pair — one owner-side writer
   for seed and migration, and `handleRequest`
-  (`api/api.ts:446`) stays the api's. Names order
+  (`api/api.ts:507`) stays the api's. Names order
   migrations, bytewise: the verb applies its binary's
   migrations in name order and refuses one whose
   predecessors lack a head. Item 0f's insert
@@ -608,9 +612,9 @@ code comments cite; specs and plans written before the
   login — one that belongs to none of our roles — and
   this keeps the port out of its reach. Error logs as
   one JSON object per line, as the request log already
-  is (`server/http-server.ts:542-571`):
-  `api/api.ts:322-329` ('fence read failed') and
-  `:1406-1413` ('request failed') print a label, an
+  is (`server/http-server.ts:597-626`):
+  `api/api.ts:362-369` ('fence read failed') and
+  `:1576-1583` ('request failed') print a label, an
   object, and an
   error as three values (the Office of Structured
   Observability wants one document with level, message,
@@ -619,16 +623,16 @@ code comments cite; specs and plans written before the
   is a second writer). One request clock, read once
   at arrival and carried in the context: the edge
   stamps `performance.now()` at accept
-  (`server/http-server.ts:591`) while the api reads its
+  (`server/http-server.ts:647`) while the api reads its
   own after the body and mints `requestAt` there
   (`api/request-context.ts:85-96`); latency must be
   their difference, not a second clock. Every answer names
   its request: the edge's 413 and the throttle's 429
   are bare `jsonResponse`s with no `request-id`
-  (`server/http-server.ts:598-601`, `:678-681`), as is
+  (`server/http-server.ts:654-657`, `:749-752`), as is
   the 500 for a throw that escapes `handleRequest`,
   whose bare `catch` drops the error itself
-  (`server/http-server.ts:738-741`). An alert when
+  (`server/http-server.ts:813-817`). An alert when
   `/status` is not 200 or the error rate rises.
   `TRUSTED_PROXY_HOPS` set to Render's real hop
   count. Item 4 shipped. Includes: the throttle seam
@@ -1042,7 +1046,7 @@ Off the critical path; each with its oracle.
   genesis the narrowest reading would answer 200
   (`docs/superpowers/specs/2026-09-25-state-by-put-design.md`
   §10). The gate checks only a latch's presence and
-  form (`preconditionRefusal`, `api/api.ts:236-306`),
+  form (`preconditionRefusal`, `api/api.ts:271-345`),
   and the flow PUT does not re-read the head to
   refuse its latch (`postFlowDocumentOp`,
   `api/routes.ts:1334-1360`). Both head reads carry
@@ -1085,7 +1089,7 @@ Off the critical path; each with its oracle.
   a raw `TypeError`; a request that never answers — no
   `fetch` in the client carries a timeout or an abort
   signal; a 429 — the throttle sends no `Retry-After`
-  (`server/http-server.ts:678-681`) and the client throws
+  (`server/http-server.ts:749-752`) and the client throws
   it like any failure; a 502, 503, or 504; and an error
   body that is not JSON — `answered` reads every
   failure as `{ error }`
@@ -1236,9 +1240,9 @@ Off the critical path; each with its oracle.
   (`docs/superpowers/specs/2026-09-23-message-plane-design.md:534-541`),
   yet the server reads and mints it elsewhere. Two
   handler calls read the raw
-  header with `?? ''` (`api/api.ts:1011-1013`,
-  `:1303-1305`) after the gate has required it
-  (`:469-484`), and `headerFieldsWithOperationId`
+  header with `?? ''` (`api/api.ts:1172-1174`,
+  `:1473-1475`) after the gate has required it
+  (`:544-553`), and `headerFieldsWithOperationId`
   (`api/message-pair.ts:227-238`, called at `:353`) adds
   an `operation-id` line to a request the server forms
   itself. On the client, the raw token verbs take
@@ -1366,7 +1370,7 @@ Off the critical path; each with its oracle.
   spawned server already times every request — one
   JSON line each with `method`, `path`, `status`, and
   `latencyMs`, dispatch to response construction
-  (`server/http-server.ts:550-556`; µs kept,
+  (`server/http-server.ts:605-612`; µs kept,
   `tests/http-server.test.ts:231`, run) — and
   `web-app/app/measure.ts:632` spawns it with
   `stdout: 'null'`, so every sweep discards them. Pipe
@@ -1432,7 +1436,7 @@ Off the critical path; each with its oracle.
   page script cannot read it — a same-origin `fetch` to
   `/api/authentication/token` still sends it and the
   JSON returns a live access token. CSP `script-src
-  'self'` (`server/http-server.ts:46-52`) narrows
+  'self'` (`server/http-server.ts:72-78`) narrows
   injection; it does not close cookie-use. Closes KNOWN
   seam "XSS can use the refresh cookie from the page".
   Oracle: a Layer 1 case that an unauthenticated page
@@ -1502,7 +1506,7 @@ Off the critical path; each with its oracle.
   no unmatched path, where today a missing Operation-ID
   answers 400 before authentication, and a present one
   with no bearer answers 401, before the 404
-  (`api/api.ts:512-517`, `:576-592`). It sends one
+  (`api/api.ts:548-553`, `:612-628`). It sends one
   caller and varies one header at a time, so it cannot
   see the order between two refusals. It drives neither
   the proxy rows (`forwarded`, `x-forwarded-for`) nor
@@ -3167,13 +3171,15 @@ Off the critical path; each with its oracle.
   its `HEAD` reports GET's
   `Content-Length`. The API serves no `HEAD`: its
   method switch has no case for it
-  (`api/api.ts:964-1349`), so it answers 405, and that
-  405 carries no `Allow` (`api/api.ts:1340-1348`) —
+  (`api/api.ts:1077-1520`), so it answers 405, and that
+  405 carries no `Allow` (`api/api.ts:1510-1519`;
+  `/api/status` alone sends `Allow: GET`,
+  `api/system-status.ts:42`) —
   RFC 9110 §9.1 requires GET and HEAD of a
   general-purpose server and §15.5.6 requires `Allow` on
   a 405 — while the gate requires `operation-id` on
-  every request, a method never served included
-  (`api/api.ts:469-484`). Add
+  every request but `/api/status`, a method never
+  served included (`api/api.ts:544-553`). Add
   `HEAD` to the API: a document GET serves the
   stored response with three substitutions and three
   additions (`servedResponse`,
@@ -3205,12 +3211,23 @@ Off the critical path; each with its oracle.
   current strong etag answers 304 with no body, and
   `If-Modified-Since` at or after `last-modified`
   does the same; a miss answers 200.
+- Every GET-only route refuses `HEAD`.
+  `systemStatusResponse` (`api/system-status.ts:33`)
+  refuses every method but `GET`, and the API's method
+  switch has no `HEAD` case, so `HEAD /api/status` and
+  every other GET-only route answers 405, where RFC 9110
+  §9.1 expects a server to support `HEAD` wherever it
+  supports `GET`. Some uptime monitors probe with `HEAD`
+  and read the 405 as an outage. Oracle: `HEAD` on
+  `/api/status` answers its GET's status and headers
+  with no body, and the same holds for every GET-only
+  route.
 - A 401 omits `WWW-Authenticate`. RFC 9110 §15.5.2
   requires the header (MUST), and RFC 6750 §3
   requires the Bearer challenge on a resource
   server. The bearer refusal
   (`unauthorizedBearerResponse`,
-  `api/request-auth.ts:76-83`) and the grant
+  `api/request-auth.ts:87-95`) and the grant
   refusal both return JSON and a status and no
   challenge. Oracle: every 401
   carries `WWW-Authenticate`, Bearer on the
@@ -3228,12 +3245,12 @@ Off the critical path; each with its oracle.
   The server writes `Vary` elsewhere:
   `Accept-Encoding` when a static file has a
   gzip sidecar
-  (`server/http-server.ts:474-476`), and
+  (`server/http-server.ts:489-491`), and
   `Accept, Content-Type` on `/status`
-  (`STATUS_VARY`, `server/http-server.ts:85`,
-  `:353`, `:371`, `:661`). The edge sets
+  (`STATUS_VARY`, `server/http-server.ts:101`,
+  `:371`, `:389`, `:680`). The edge sets
   `Cache-Control: no-store` when the handler
-  set none (`server/http-server.ts:746-749`),
+  set none (`server/http-server.ts:770-774`),
   so a shared cache does not store the API
   response today. A conditional GET, in
   Cachability above, would 304 one reader's
@@ -3352,7 +3369,7 @@ Off the critical path; each with its oracle.
 - Comments name absent code. Comments cite
   `appendMessagePairOnce` and `appendMessagePairAlways`,
   which do not exist:
-  five in `api/` (`api/api.ts:1245`,
+  five in `api/` (`api/api.ts:1414`,
   `api/derive-documents.ts:33`,
   `api/message-pair.ts:94`, `api/routes.ts:707`,
   `:2636`), two explaining stamp order by
@@ -3746,8 +3763,8 @@ Off the critical path; each with its oracle.
   size and a report section per statement naming its 30 ms
   crossing or "beyond 1M".
 - Request statistics in `./bin/measure`, with
-  visualizations. `handleRequest` (`api/api.ts:446`) is
-  the one seam: `server/http-server.ts:687` routes the
+  visualizations. `handleRequest` (`api/api.ts:507`) is
+  the one seam: `server/http-server.ts:758-762` routes the
   product through it, and the tests' in-process
   transport (`inProcessFetch`,
   `tests/in-page-facade.ts:31-56`) does too, after

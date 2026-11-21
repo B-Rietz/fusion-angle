@@ -8,35 +8,32 @@ import {
     REQUEST_HEADERS,
     requestHeaderOf,
 } from '../api/request-header-names.ts';
+import {
+    type ComponentStates,
+    everyComponentUp,
+    type RunningCommit,
+} from '../shared/system-status.ts';
 
 const JSON_TYPE = 'application/json';
 const HTML_TYPE = 'text/html';
 
 const STYLES_NAME = /^styles\.[0-9a-f]{8,}\.css$/;
 const ICON_NAME = /^favicon\.[0-9a-f]{8,}\.svg$/;
+const SCRIPT_NAME = /^status-refresh\.[0-9a-f]{8,}\.js$/;
 
 // `up` is every key. A new component is another key.
-export interface StatusComponents {
-    readonly postgres: boolean;
-}
+export type StatusComponents = ComponentStates<'api'>;
 
 const COMPONENT_LABEL: {
     readonly [K in keyof StatusComponents]: string;
 } = {
-    postgres: 'Postgres',
+    api: 'API',
 };
 
 export interface StatusAssets {
     readonly styles?: string;
     readonly icon?: string;
-}
-
-export function everyComponentUp(
-    components: StatusComponents,
-): boolean {
-    return Object.values(components).every(
-        (up) => up === true,
-    );
+    readonly script?: string;
 }
 
 export function jsonRequested(headers: Headers): boolean {
@@ -109,19 +106,22 @@ export async function statusAssets(
     const icon = publishedHref(
         record['favicon.svg'], ICON_NAME,
     );
+    const script = publishedHref(
+        record['status-refresh.js'], SCRIPT_NAME,
+    );
     return {
         ...(styles !== undefined ? { styles } : {}),
         ...(icon !== undefined ? { icon } : {}),
+        ...(script !== undefined ? { script } : {}),
     };
 }
 
 export function statusPageHtml(
-    sha: string,
+    commit: RunningCommit,
     components: StatusComponents,
     assets: StatusAssets,
 ): string {
     const up = everyComponentUp(components);
-    const title = up ? 'Up' : 'Down';
     const links: string[] = [];
     if (assets.styles !== undefined) {
         links.push(
@@ -138,6 +138,12 @@ export function statusPageHtml(
             + '">',
         );
     }
+    const card = statusCard(
+        up ? 'success' : 'error',
+        up ? 'UP' : 'DOWN',
+        up ? [] : componentPills(components),
+        commit,
+    );
     return [
         '<!DOCTYPE html>',
         '<html lang="en">',
@@ -147,25 +153,30 @@ export function statusPageHtml(
         ' content="width=device-width, initial-scale=1.0">',
         '<title>Status | Fusion Angle</title>',
         ...links,
+        ...(assets.script === undefined ? [] : [
+            '<script src="' + escapeText(assets.script)
+            + '" defer></script>',
+        ]),
         '</head>',
         '<body>',
         '<main class="flex min-h-screen items-center',
         ' justify-center bg-background">',
-        '<section class="card max-w-md p-8 text-center">',
-        '<h1 class="font-display text-3xl font-bold mb-6">',
-        'Fusion Angle',
-        '</h1>',
-        '<p class="mb-6 flex flex-wrap justify-center',
-        ' gap-2">',
-        statusPill(title, up),
-        ...componentPills(components),
-        '</p>',
-        '<p class="text-muted text-sm">git sha</p>',
-        '<p class="git-sha font-mono text-sm">',
-        escapeText(sha),
-        '</p>',
-        '</section>',
+        ...(assets.script === undefined ? card : [
+            '<div id="status-live" aria-live="polite">',
+            ...card,
+            '</div>',
+        ]),
         '</main>',
+        ...(assets.script === undefined ? [] : [
+            '<template id="status-timeout">',
+            ...statusCard(
+                'error',
+                'DOWN',
+                [statusPill('Timeout', false)],
+                commit,
+            ),
+            '</template>',
+        ]),
         '</body>',
         '</html>',
     ].join('\n');
@@ -186,7 +197,7 @@ export function statusUnavailableHtml(): string {
         ' justify-center bg-background">',
         '<section class="card max-w-md p-8 text-center">',
         '<h1 class="font-display text-3xl font-bold mb-6">',
-        'Fusion Angle',
+        '<a href="/">Fusion Angle</a>',
         '</h1>',
         '<p class="text-muted">Unavailable</p>',
         '<p class="text-muted">git sha unavailable</p>',
@@ -195,6 +206,42 @@ export function statusUnavailableHtml(): string {
         '</body>',
         '</html>',
     ].join('\n');
+}
+
+// One renderer for every verdict card: the page script
+// replaces the card by its id.
+function statusCard(
+    tone: 'success' | 'error',
+    rating: string,
+    pills: readonly string[],
+    commit: RunningCommit,
+): readonly string[] {
+    return [
+        '<section id="status-card"',
+        ' class="card status-card max-w-md p-8 text-center"',
+        ' data-tone="' + tone + '">',
+        '<h1 class="font-display text-3xl font-bold mb-6">',
+        '<a class="status-name" href="/">Fusion Angle</a>',
+        '</h1>',
+        '<p class="status-rating text-xl font-semibold mb-6">'
+        + escapeText(rating) + '</p>',
+        ...(pills.length === 0 ? [] : [
+            '<p class="mb-6 flex flex-wrap justify-center'
+            + ' gap-2">',
+            ...pills,
+            '</p>',
+        ]),
+        '<p class="text-muted text-sm">git sha</p>',
+        '<p class="git-sha font-mono text-sm">',
+        escapeText(commit.sha),
+        '</p>',
+        ...(commit.subject === undefined ? [] : [
+            '<p class="git-subject text-sm">',
+            escapeText(commit.subject),
+            '</p>',
+        ]),
+        '</section>',
+    ];
 }
 
 function statusPill(label: string, up: boolean): string {
@@ -209,10 +256,10 @@ function componentPills(
     const keys = Object.keys(COMPONENT_LABEL) as
         (keyof StatusComponents)[];
     return keys.map((key) => {
-        const up = components[key];
-        const word = up ? 'up' : 'down';
+        const state = components[key];
         return statusPill(
-            COMPONENT_LABEL[key] + ' ' + word, up,
+            COMPONENT_LABEL[key] + ' ' + state,
+            state === 'up',
         );
     });
 }

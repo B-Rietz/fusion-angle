@@ -29,6 +29,8 @@ import type {
 } from '../shared/ledger-statement.ts';
 import { compareIdentifiers }
     from '../shared/identifier.ts';
+import type { ComponentState } from
+    '../shared/system-status.ts';
 import { Octets } from
     '../shared/http-message/octets.ts';
 
@@ -269,6 +271,11 @@ export class MemoryStorageBackend
 
     async deleteSchema(): Promise<void> {
         this.#rows = undefined;
+    }
+
+    // No connection to lose.
+    async probe(): Promise<ComponentState> {
+        return 'up';
     }
 }
 

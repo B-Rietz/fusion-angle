@@ -65,7 +65,7 @@ ALLOW_ENV="$ALLOW_ENV,PGTARGET_SESSION_ATTRS,PGAPPNAME"
 ALLOW_ENV="$ALLOW_ENV,PGTARGETSESSIONATTRS"
 ALLOW_ENV="$ALLOW_ENV,JWT_HMAC_SIGNING_KEY,PORT"
 ALLOW_ENV="$ALLOW_ENV,TRUSTED_PROXY_HOPS"
-ALLOW_ENV="$ALLOW_ENV,GIT_SHA"
+ALLOW_ENV="$ALLOW_ENV,GIT_SHA,GIT_SUBJECT"
 
 CLEANED=''
 LOOP_PID=''
@@ -124,6 +124,7 @@ read_return() {
 
 start_server() {
     export GIT_SHA="$(git rev-parse HEAD)"
+    export GIT_SUBJECT="$(git log -1 --format=%s "$GIT_SHA")"
     deno run --frozen --allow-net \
         --allow-read="$SITE" \
         --allow-env="$ALLOW_ENV" \

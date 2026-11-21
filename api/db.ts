@@ -10,6 +10,8 @@ import type {
     StatementAnswer,
     StatementBind,
 } from '../shared/ledger-statement.ts';
+import type { ComponentState } from
+    '../shared/system-status.ts';
 
 export class EntityNotFoundError extends Error {
     readonly table: string;
@@ -259,6 +261,9 @@ export interface StorageBackend {
     hasSchema(): Promise<boolean>;
     postSchemaCreation(): Promise<void>;
     deleteSchema(): Promise<void>;
+    // Reachability, read only. It answers a state and
+    // never rejects.
+    probe(): Promise<ComponentState>;
 }
 
 // How a store reaches storage. Standalone, a store opens a
@@ -312,6 +317,7 @@ export interface DbLifecycle {
     // cross-process) subscribers are informed of state
     // changes — never polled.
     postNotification: NotificationPost;
+    probe(): Promise<ComponentState>;
 }
 
 export interface DbAdapter extends DbLifecycle, DbStores {
