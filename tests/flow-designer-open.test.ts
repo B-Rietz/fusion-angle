@@ -246,6 +246,52 @@ Deno.test(
     }),
 );
 
+Deno.test(
+    'a rename that trims to the stored name appends'
+    + ' no pair',
+    () => withLocalStorageAsync(NULL_STORAGE, async () => {
+        const db = await freshDb();
+        putClient(inPageClient(db));
+        getClient().putSessionToken(DEV_TOKEN);
+        const flowId = generateIdentifier();
+        await createFlow(db, DEV_TOKEN, flowId);
+        const ctx = inPageContext(db, DEV_TOKEN);
+        const graph = await getRenderableFlowGraph(
+            ctx, flowId,
+        );
+        const node = graph.nodes[0];
+        if (node === undefined) {
+            throw new Error('flow has no node');
+        }
+        const snap = buildInitialFlowSnapshot(
+            graph, CANVAS_W, CANVAS_H, [], [], [],
+        );
+        const presenter = new FlowDesignerPresenter(
+            snap, CANVAS_W, CANVAS_H,
+            buildFlowHistorySnapshot(
+                (await getFlowVersions(ctx, flowId))
+                    .length > 1,
+            ),
+        );
+        const n = await flowDocumentPairCount(
+            db, flowId,
+        );
+        const next = presenter.withNodeNamed(
+            node.id, `  ${node.name}  `,
+        );
+        await enqueueFlowSave(
+            flowId, async () => undefined,
+        );
+        assertStrictEquals(
+            next, presenter.snapshot(),
+        );
+        assertStrictEquals(
+            await flowDocumentPairCount(db, flowId),
+            n,
+        );
+    }),
+);
+
 // onFlowLoaded's boot, minus the DOM: read the renderable
 // graph, build the one per-load presenter, size its canvas,
 // and reconcile its layout — the snapshot boot paints.

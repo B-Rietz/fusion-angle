@@ -776,12 +776,6 @@ Auto Fit</label>
         );
     }
 
-    #hasEdge(edgeId: string): boolean {
-        return this.#snapshot.edges.some(
-            e => e.id === edgeId,
-        );
-    }
-
     withNodeNamed(
         nodeId: string,
         name: string,
@@ -789,7 +783,18 @@ Auto Fit</label>
         if (this.#guardLocked()) {
             return this.#snapshot;
         }
-        if (!this.#hasNode(nodeId)) {
+        const node = this.#snapshot.nodes.find(
+            n => n.id === nodeId,
+        );
+        if (node === undefined) {
+            return this.#snapshot;
+        }
+        const trimmed = name.trim();
+        // Whitespace that trims to the name already
+        // stored is the snapshot this presenter holds:
+        // no save, no history note. commitDebouncedEdit
+        // then skips the panel repaint.
+        if (node.name === trimmed) {
             return this.#snapshot;
         }
         const next: FlowSnapshot = {
@@ -797,7 +802,7 @@ Auto Fit</label>
             nodes: applyUpdateNode(
                 this.#snapshot.nodes,
                 nodeId,
-                { name: name.trim() },
+                { name: trimmed },
             ),
         };
         this.#queueSave(next);
@@ -857,7 +862,14 @@ Auto Fit</label>
         if (this.#guardLocked()) {
             return this.#snapshot;
         }
-        if (!this.#hasEdge(edgeId)) {
+        const edge = this.#snapshot.edges.find(
+            e => e.id === edgeId,
+        );
+        if (edge === undefined) {
+            return this.#snapshot;
+        }
+        const trimmed = name.trim();
+        if (edge.name === trimmed) {
             return this.#snapshot;
         }
         const next: FlowSnapshot = {
@@ -865,7 +877,7 @@ Auto Fit</label>
             edges: applyUpdateEdge(
                 this.#snapshot.edges,
                 edgeId,
-                { name: name.trim() },
+                { name: trimmed },
             ),
         };
         this.#queueSave(next);

@@ -1349,12 +1349,18 @@ function bindPanelActions(
                     id, () => {
                         const presenter = pageState
                             .presenter();
-                        commitDebouncedEdit(
-                            presenter.snapshot(),
+                        const held =
+                            presenter.snapshot();
+                        const next =
                             presenter.withNodeNamed(
                                 nodeId, value,
-                            ),
+                            );
+                        commitDebouncedEdit(
+                            held, next,
                             commitPanelEdit,
+                        );
+                        writeTrimmedName(
+                            target, value,
                         );
                     },
                 );
@@ -1388,12 +1394,18 @@ function bindPanelActions(
                     id, () => {
                         const presenter = pageState
                             .presenter();
-                        commitDebouncedEdit(
-                            presenter.snapshot(),
+                        const held =
+                            presenter.snapshot();
+                        const next =
                             presenter.withEdgeNamed(
                                 edgeId, value,
-                            ),
+                            );
+                        commitDebouncedEdit(
+                            held, next,
                             commitPanelEdit,
+                        );
+                        writeTrimmedName(
+                            target, value,
                         );
                     },
                 );
@@ -1968,13 +1980,67 @@ export interface DesignerShortcutInput {
     readonly isPanelOpen: boolean;
 }
 
+// The live name field. A structural slice, so a test
+// can stand in for the input.
+export interface NameField {
+    value: string;
+    selectionStart: number | null;
+    selectionEnd: number | null;
+    setSelectionRange(
+        start: number,
+        end: number,
+    ): void;
+}
+
+// Where a caret sits once the surrounding whitespace
+// is gone. A caret in the cut ends parks at the nearer
+// end of the kept text; one inside it stays on the
+// same character. Leading is tested first so an
+// all-whitespace name stays at 0.
+export function caretAfterTrim(
+    raw: string,
+    position: number,
+): number {
+    const leading = raw.length
+        - raw.trimStart().length;
+    const keptEnd = raw.trimEnd().length;
+    if (position <= leading) return 0;
+    if (position >= keptEnd) {
+        return keptEnd - leading;
+    }
+    return position - leading;
+}
+
+// A name commits trimmed. keepPanel leaves the input
+// showing the spaces, so write the trimmed name back.
+// A newer value in the field is left alone: the user
+// typed past this pause.
+export function writeTrimmedName(
+    input: NameField,
+    raw: string,
+): void {
+    if (input.value !== raw) return;
+    const trimmed = raw.trim();
+    if (trimmed === raw) return;
+    const start = input.selectionStart
+        ?? raw.length;
+    const end = input.selectionEnd ?? start;
+    input.value = trimmed;
+    input.setSelectionRange(
+        caretAfterTrim(raw, start),
+        caretAfterTrim(raw, end),
+    );
+}
+
 // A debounced property edit commits only when the
 // presenter produced a new snapshot. A miss — the target
-// deleted during the debounce — hands back the snapshot
-// the presenter already holds; commit() would rebuild,
-// save through the presenter's own queue, and advance
-// history for nothing. Tell, don't ask: the caller says
-// what a commit is, and it runs only for a change.
+// deleted during the debounce, or a name whose trim
+// equals the one already stored — hands back the
+// snapshot the presenter already holds; commit() would
+// rebuild, save through the presenter's own queue, and
+// advance history for nothing. Tell, don't ask: the
+// caller says what a commit is, and it runs only for a
+// change.
 export function commitDebouncedEdit(
     held: FlowSnapshot,
     next: FlowSnapshot,

@@ -744,6 +744,129 @@ Deno.test(
     },
 );
 
+function presenterNamed(
+    nodes: ReturnType<typeof node>[],
+    edges: {
+        id: string;
+        name: string;
+        fromNodeId: string;
+        toNodeId: string;
+    }[] = [],
+): FlowDesignerPresenter {
+    const snap = buildInitialFlowSnapshot(
+        { ...emptyGraph, nodes, edges },
+        800, 600, [], [], [],
+    );
+    return new FlowDesignerPresenter(
+        snap, 800, 600, redoOfOne(),
+    );
+}
+
+Deno.test(
+    'withNodeNamed that only trims returns the held'
+    + ' snapshot and keeps the redo stack',
+    () => {
+        const presenter = presenterNamed([node('a')]);
+        const spaced = presenter.withNodeNamed(
+            'a', '  A  ',
+        );
+        assertStrictEquals(
+            spaced, presenter.snapshot(),
+        );
+        assertStrictEquals(
+            spaced.nodes.find(n => n.id === 'a')!.name,
+            'A',
+        );
+        const exact = presenter.withNodeNamed('a', 'A');
+        assertStrictEquals(
+            exact, presenter.snapshot(),
+        );
+        assertStrictEquals(
+            canRedoFlowEdits(presenter.history()),
+            true,
+        );
+    },
+);
+
+Deno.test(
+    'withNodeNamed stores a trim that changes the'
+    + ' name and clears redo',
+    () => {
+        const presenter = presenterNamed([node('a')]);
+        const next = presenter.withNodeNamed(
+            'a', '  Hello  ',
+        );
+        assertNotStrictEquals(
+            next, presenter.snapshot(),
+        );
+        assertStrictEquals(
+            next.nodes.find(n => n.id === 'a')!.name,
+            'Hello',
+        );
+        assertStrictEquals(
+            canRedoFlowEdits(presenter.history()),
+            false,
+        );
+    },
+);
+
+Deno.test(
+    'withEdgeNamed that only trims returns the held'
+    + ' snapshot and keeps the redo stack',
+    () => {
+        const presenter = presenterNamed(
+            [node('a'), node('b')],
+            [{
+                id: 'e1',
+                name: 'go',
+                fromNodeId: 'a',
+                toNodeId: 'b',
+            }],
+        );
+        const next = presenter.withEdgeNamed(
+            'e1', '  go  ',
+        );
+        assertStrictEquals(
+            next, presenter.snapshot(),
+        );
+        assertStrictEquals(
+            next.edges.find(e => e.id === 'e1')!.name,
+            'go',
+        );
+        assertStrictEquals(
+            canRedoFlowEdits(presenter.history()),
+            true,
+        );
+    },
+);
+
+Deno.test(
+    'withEdgeNamed stores a trim that changes the'
+    + ' name and clears redo',
+    () => {
+        const presenter = presenterNamed(
+            [node('a'), node('b')],
+            [{
+                id: 'e1',
+                name: 'go',
+                fromNodeId: 'a',
+                toNodeId: 'b',
+            }],
+        );
+        const next = presenter.withEdgeNamed(
+            'e1', '  go on  ',
+        );
+        assertStrictEquals(
+            next.edges.find(e => e.id === 'e1')!.name,
+            'go on',
+        );
+        assertStrictEquals(
+            canRedoFlowEdits(presenter.history()),
+            false,
+        );
+    },
+);
+
 Deno.test(
     'opening the panel replaces a stale saved'
     + ' viewBox (F14)',
