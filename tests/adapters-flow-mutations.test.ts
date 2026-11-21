@@ -85,6 +85,11 @@ function buildNode(
     };
 }
 
+// The two nodes every saved flow holds. A test that saves a
+// graph names them beside its own.
+const CREATE = buildNode(generateIdentifier(), { isCreate: true });
+const ARCHIVE = buildNode(generateIdentifier(), { isArchive: true });
+
 function buildEdge(
     id: string,
     fromNodeId: string,
@@ -178,7 +183,7 @@ Deno.test(
             isAutoLayout: false,
             isAutoFit: false,
             lockTimeout: DEFAULT_LOCK_TIMEOUT,
-            nodes: [],
+            nodes: [CREATE, ARCHIVE],
             edges: [],
         });
         const parts = await ctx.GETCollection<{
@@ -313,7 +318,7 @@ Deno.test(
             isAutoLayout: false,
             isAutoFit: false,
             lockTimeout: DEFAULT_LOCK_TIMEOUT,
-            nodes: [a, b],
+            nodes: [CREATE, ARCHIVE, a, b],
             edges: [ab],
         });
         await putFlow(ctx, 'aEsGMmBEFaVdWihhHXwCbw', {
@@ -322,7 +327,7 @@ Deno.test(
             isAutoLayout: false,
             isAutoFit: false,
             lockTimeout: DEFAULT_LOCK_TIMEOUT,
-            nodes: [a],
+            nodes: [CREATE, ARCHIVE, a],
             edges: [],
         });
         const flow = (await ctx.GET<FlowWithGraph>(
@@ -331,8 +336,10 @@ Deno.test(
         )).body().toValue();
         const graph =
             flow.graph as unknown as StoredGraph;
-        assertStrictEquals(graph.nodes.length, 1);
-        assertStrictEquals(graph.nodes[0]!.id, aId);
+        assertEquals(
+            graph.nodes.map((n) => n.id).sort(),
+            [CREATE.id, ARCHIVE.id, aId].sort(),
+        );
         assertStrictEquals(graph.edges.length, 0);
     },
 );
@@ -347,10 +354,10 @@ Deno.test(
         const bAdded = generateIdentifier();
         const baseNode = buildNode(generateIdentifier());
         const callerANodes = [
-            baseNode, buildNode(aAdded),
+            CREATE, ARCHIVE, baseNode, buildNode(aAdded),
         ];
         const callerBNodes = [
-            baseNode, buildNode(bAdded),
+            CREATE, ARCHIVE, baseNode, buildNode(bAdded),
         ];
         await putFlow(ctx, 'aEsGMmBEFaVdWihhHXwCbw', {
             name: 'caller-A',
@@ -377,7 +384,7 @@ Deno.test(
         assertStrictEquals(flow.name, 'caller-B');
         const graph =
             flow.graph as unknown as StoredGraph;
-        assertStrictEquals(graph.nodes.length, 2);
+        assertStrictEquals(graph.nodes.length, 4);
         assert(
             graph.nodes.some(
                 n => n.id === bAdded,
@@ -416,7 +423,7 @@ Deno.test(
             state: 'updated',
             state_at: '2026-01-01T00:00:00.000000Z',
             state_event_id: generateIdentifier(),
-            graph: { nodes: [], edges: [] },
+            graph: { nodes: [CREATE, ARCHIVE], edges: [] },
             graphDelta: EMPTY_GRAPH_DELTA,
             revivals: [],
         };
@@ -458,7 +465,7 @@ Deno.test(
             isAutoLayout: false,
             isAutoFit: false,
             lockTimeout: DEFAULT_LOCK_TIMEOUT,
-            nodes: [],
+            nodes: [CREATE, ARCHIVE],
             edges: [],
         });
         const undoHead = await ctx.GET<unknown>(
@@ -519,7 +526,7 @@ Deno.test(
                 state: 'updated',
                 state_at: '2099-01-03T00:00:00.000000Z',
                 state_event_id: generateIdentifier(),
-                graph: { nodes: [], edges: [] },
+                graph: { nodes: [CREATE, ARCHIVE], edges: [] },
                 graphDelta: EMPTY_GRAPH_DELTA,
                 revivals: [],
             },
@@ -706,7 +713,10 @@ Deno.test(
                 isAutoLayout: false,
                 isAutoFit: false,
                 lockTimeout: DEFAULT_LOCK_TIMEOUT,
-                nodes: [buildNode(generateIdentifier())],
+                nodes: [
+                    CREATE, ARCHIVE,
+                    buildNode(generateIdentifier()),
+                ],
                 edges: [],
             });
             await putFlow(ctx, heldId, {
@@ -715,7 +725,10 @@ Deno.test(
                 isAutoLayout: false,
                 isAutoFit: false,
                 lockTimeout: DEFAULT_LOCK_TIMEOUT,
-                nodes: [buildNode(generateIdentifier())],
+                nodes: [
+                    CREATE, ARCHIVE,
+                    buildNode(generateIdentifier()),
+                ],
                 edges: [],
             });
         } finally {

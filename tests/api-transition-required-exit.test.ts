@@ -28,6 +28,8 @@ import {
 import { seedSeat } from './root-admin-fixture.ts';
 import { seedCreatedWorkOrder } from
     './work-order-fixtures.ts';
+import { createArchiveDelta } from
+    './fixtures/create-archive-graph.ts';
 
 // POST organizations/:id/work-orders/:id/transition — W10 required-at-exit
 // gate (Task 9). Gate tier only: every transition leaving
@@ -285,13 +287,7 @@ async function seedFlow(
             initialState: 'active',
             initialStateEventId: generateIdentifier(),
             initialStateAt: AT,
-            graphDelta: {
-                nodes: [],
-                edges: [],
-                deletions: [],
-                memberEvents: [],
-                attributeEvents: [],
-            },
+            graphDelta: createArchiveDelta(FLOW_ID, AT),
         },
     ));
     assertStrictEquals(res.status, 201);

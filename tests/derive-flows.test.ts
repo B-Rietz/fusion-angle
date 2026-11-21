@@ -14,6 +14,10 @@ import {
 } from './http-fixtures.ts';
 import { generateIdentifier } from
     '../shared/identifier.ts';
+import {
+    createArchiveGraph,
+    graphWithNodes,
+} from './fixtures/create-archive-graph.ts';
 
 
 // The flows sibling of tests/derive-ideas.test.ts/derive-
@@ -69,21 +73,14 @@ function emptyDelta() {
     };
 }
 
-function emptyGraph() {
-    return { nodes: [], edges: [] };
-}
-
 function graphWithNode(nodeId: string, name: string) {
-    return {
-        nodes: [{
-            id: nodeId, name,
-            positionX: 0, positionY: 0,
-            isCreate: false, isArchive: false,
-            memberIds: [], attributes: [],
-            taskInstructions: '',
-        }],
-        edges: [],
-    };
+    return graphWithNodes(createArchiveGraph(), [{
+        id: nodeId, name,
+        positionX: 0, positionY: 0,
+        isCreate: false, isArchive: false,
+        memberIds: [], attributes: [],
+        taskInstructions: '',
+    }]);
 }
 
 function flowDocument(
@@ -235,7 +232,7 @@ Deno.test('ordering is oldest live head (at, id)', async () => {
     for (const id of ids) {
         const res = await putFlow(
             db, token, id, 'Order ' + id, 'active',
-            AT, generateIdentifier(), emptyGraph(),
+            AT, generateIdentifier(), createArchiveGraph(),
             { 'if-none-match': '*' },
         );
         assertStrictEquals(res.status, 201);

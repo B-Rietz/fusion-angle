@@ -351,9 +351,12 @@ when asked.
   `flow-graph-golden-unlocked.svg` (the designer's SVG
   for one flow, locked and unlocked, as it was drawn
   before its helpers were shared, which the golden test
-  compares the renderer against byte for byte), and
+  compares the renderer against byte for byte),
   `css-declaration.ts` (read one declaration from a
-  stylesheet, for tests that pin a CSS rule);
+  stylesheet, for tests that pin a CSS rule), and
+  `create-archive-graph.ts` (the least graph the flow
+  gate accepts, one Create node and one Archive node,
+  and the delta a flow is born with);
   `client-init.ts` (the test composition
   root) and `in-page-facade.ts` (the in-process
   transport)

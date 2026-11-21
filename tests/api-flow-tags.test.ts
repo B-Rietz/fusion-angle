@@ -21,6 +21,10 @@ import {
     apiRequest,
     pairIdOf,
 } from './http-fixtures.ts';
+import {
+    createArchiveDeltaOf,
+    createArchiveGraph,
+} from './fixtures/create-archive-graph.ts';
 
 // Flow tags: the codebase's FIRST message-plane-ONLY document
 // family (Phase 14 Task 9) — no backing table, derived entirely
@@ -68,9 +72,9 @@ function emptyDelta() {
     };
 }
 
-function emptyGraph() {
-    return { nodes: [], edges: [] };
-}
+// Every flow here is born with these two nodes and keeps
+// them through each save.
+const BORN_GRAPH = createArchiveGraph();
 
 function documentBody(
     name: string,
@@ -81,7 +85,7 @@ function documentBody(
         state: 'updated',
         state_at: AT,
         state_event_id: stateEventId,
-        graph: emptyGraph(),
+        graph: BORN_GRAPH,
         graphDelta: emptyDelta(),
         revivals: [],
     };
@@ -112,7 +116,9 @@ async function createFlow(
             initialState: 'active',
             initialStateEventId: generateIdentifier(),
             initialStateAt: AT,
-            graphDelta: emptyDelta(),
+            graphDelta: createArchiveDeltaOf(
+                BORN_GRAPH, flowId, AT,
+            ),
         },
     ));
 }

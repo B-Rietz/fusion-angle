@@ -50,6 +50,10 @@ import { seedCreatedWorkOrder } from
     './work-order-fixtures.ts';
 import { getWorkOrderEvents } from
     './fixtures/work-order-events.ts';
+import {
+    createArchiveDeltaOf,
+    createArchiveGraph,
+} from './fixtures/create-archive-graph.ts';
 
 const DRIFT_STATES_FENCE_OWN_IDEA = generateIdentifier();
 const DRIFT_STATES_FENCE_FOREIGN_IDEA = generateIdentifier();
@@ -214,15 +218,11 @@ function emptyDelta() {
     };
 }
 
-function emptyGraph() {
-    return { nodes: [], edges: [] };
-}
-
 function nodeRowBody(id: string, flowId: string, at: string) {
     return {
         id, flow_id: flowId, name: 'Drift Node',
         position_x: 0, position_y: 0,
-        is_create: true, is_archive: false,
+        is_create: false, is_archive: false,
         task_instructions: '', at,
     };
 }
@@ -994,6 +994,9 @@ async () => {
     const flowId = DRIFT_STATES_FLOW_NODE_1;
     const nodeId = generateIdentifier();
     const genesisAt = '2026-02-01T00:00:00.000000Z';
+    // The flow keeps its Create and Archive nodes through
+    // the save, so the node below is all the undo restores.
+    const born = createArchiveGraph();
 
     const created = await handleRequest(db, req(
         'POST', '/organizations/AjdvjuECVZEgZoFajaIEkg/flows/', token, {
@@ -1008,7 +1011,12 @@ async () => {
             initialStateEventId: generateIdentifier(),
             initialStateAt: genesisAt,
             graphDelta: {
-                nodes: [nodeRowBody(nodeId, flowId, genesisAt)],
+                nodes: [
+                    ...createArchiveDeltaOf(
+                        born, flowId, genesisAt,
+                    ).nodes,
+                    nodeRowBody(nodeId, flowId, genesisAt),
+                ],
                 edges: [], deletions: [],
                 memberEvents: [], attributeEvents: [],
             },
@@ -1023,7 +1031,7 @@ async () => {
             ...flowFields('Drift Node Flow Trimmed'),
             state: 'updated', state_at: deleteAt,
             state_event_id: FLOWID_DELETE_SAVE,
-            graph: emptyGraph(),
+            graph: born,
             graphDelta: {
                 ...emptyDelta(),
                 deletions: [{

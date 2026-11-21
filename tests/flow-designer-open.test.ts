@@ -53,6 +53,8 @@ import { performUndo } from
     '../web-app/app/flow-operations.ts';
 import { withLocalStorageAsync } from
     './fixtures/local-storage.ts';
+import { createArchiveDelta } from
+    './fixtures/create-archive-graph.ts';
 
 const AT = '2026-01-01T00:00:00.000000Z';
 const ORGANIZATION = 'AjdvjuECVZEgZoFajaIEkg';
@@ -100,16 +102,6 @@ function flowFields(name: string) {
     };
 }
 
-function emptyDelta() {
-    return {
-        nodes: [],
-        edges: [],
-        deletions: [],
-        memberEvents: [],
-        attributeEvents: [],
-    };
-}
-
 async function createFlow(
     db: MemoryDbAdapter,
     token: string,
@@ -133,7 +125,7 @@ async function createFlow(
             initialStateEventId:
                 generateIdentifier(),
             initialStateAt: AT,
-            graphDelta: emptyDelta(),
+            graphDelta: createArchiveDelta(flowId, AT),
         },
     ));
     assertStrictEquals(created.status, 201);

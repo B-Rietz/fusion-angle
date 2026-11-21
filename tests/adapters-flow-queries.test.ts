@@ -219,7 +219,14 @@ Deno.test(
                 isAutoLayout: true,
                 isAutoFit: true,
                 lockTimeout: 900,
-                nodes: [buildNode(generateIdentifier())],
+                nodes: [
+                    buildNode(
+                        generateIdentifier(), { isCreate: true },
+                    ),
+                    buildNode(
+                        generateIdentifier(), { isArchive: true },
+                    ),
+                ],
                 edges: [],
             },
         );
@@ -308,7 +315,10 @@ Deno.test(
         await saveGraph(
             inPageContext(db, await organizationToken())
                 , 'aEsGMmBEFaVdWihhHXwCbw',
-            [buildNode(a), buildNode(b)],
+            [
+                buildNode(a, { isCreate: true }),
+                buildNode(b, { isArchive: true }),
+            ],
             [buildEdge(generateIdentifier(), a, b)],
         );
         const rows = await getFlowsByProject(
@@ -392,8 +402,8 @@ Deno.test(
             inPageContext(db, await organizationToken())
                 , 'aEsGMmBEFaVdWihhHXwCbw',
             [
-                buildNode(a), buildNode(b),
-                buildNode(c),
+                buildNode(a, { isCreate: true }), buildNode(b),
+                buildNode(c, { isArchive: true }),
             ],
             [
                 buildEdge(generateIdentifier(), a, b),

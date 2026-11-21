@@ -492,7 +492,14 @@ creates the document; the item PUT does not.
 the organization's AI or service member ids, accepted or
 removed, with 400: a program stays a program after its
 membership ends. A node's `agentIds` must name AI members
-whose membership is accepted, or it is 400.
+whose membership is accepted, or it is 400. A graph holds
+exactly one Create node and exactly one Archive node, as
+two different nodes, or the write is 400: the creating
+POST, the document PUT, and an undo whose target graph
+breaks the rule alike. The designer adds a node only by
+dragging from an existing one and never deletes those
+two, so a flow stored without them could not be repaired
+there.
 
 **Idea conversion.**
 `POST organizations/:id/ideas/:id/conversion` in

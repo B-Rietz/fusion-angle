@@ -24,6 +24,8 @@ import { seedAdminSchema } from './test-fixtures.ts';
 import { seedCurrentMember } from './member-fixtures.ts';
 import { operationIdHeader } from
     './operation-id-header.ts';
+import { createArchiveDelta } from
+    './fixtures/create-archive-graph.ts';
 
 
 // Destroying a record attribute is RESTRICT, not cascade:
@@ -126,6 +128,7 @@ async function seedFlowNodeAttribute(
         initialStateAt: AT,
         graphDelta: {
             nodes: [
+                ...createArchiveDelta(flowId, AT).nodes,
                 {
                     id: nodeId, flow_id: flowId,
                     name: 'Step',
@@ -464,13 +467,16 @@ Deno.test(
             initialStateEventId: generateIdentifier(),
             initialStateAt: AT,
             graphDelta: {
-                nodes: [{
-                    id: NODE_HOST, flow_id: FLOW_HOST,
-                    name: 'Host',
-                    position_x: 0, position_y: 0,
-                    is_create: true, is_archive: false,
-                    task_instructions: '', at: AT,
-                }],
+                nodes: [
+                    ...createArchiveDelta(FLOW_HOST, AT).nodes,
+                    {
+                        id: NODE_HOST, flow_id: FLOW_HOST,
+                        name: 'Host',
+                        position_x: 0, position_y: 0,
+                        is_create: false, is_archive: false,
+                        task_instructions: '', at: AT,
+                    },
+                ],
                 edges: [],
                 deletions: [],
                 memberEvents: [],

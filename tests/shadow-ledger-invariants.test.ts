@@ -31,6 +31,8 @@ import { HttpMessage } from
     '../shared/http-message/http-message.ts';
 import { generateIdentifier } from
     '../shared/identifier.ts';
+import { createArchiveGraph } from
+    './fixtures/create-archive-graph.ts';
 const N_START = generateIdentifier();
 const N_FINISH = generateIdentifier();
 const INV_REC_1 = generateIdentifier();
@@ -140,7 +142,7 @@ function flowDocumentBody(name: string, stateEventId: string) {
         state: 'active',
         state_at: AT,
         state_event_id: stateEventId,
-        graph: { nodes: [], edges: [] },
+        graph: createArchiveGraph(),
         graphDelta: {
             nodes: [], edges: [], deletions: [],
             memberEvents: [], attributeEvents: [],

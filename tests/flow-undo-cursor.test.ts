@@ -80,6 +80,11 @@ import {
 } from './http-fixtures.ts';
 import { withLocalStorageAsync } from
     './fixtures/local-storage.ts';
+import {
+    createArchiveDeltaOf,
+    createArchiveGraph,
+    graphWithNodes,
+} from './fixtures/create-archive-graph.ts';
 
 const PROJECT_1 = generateIdentifier();
 const FLOWID_A = generateIdentifier();
@@ -157,6 +162,10 @@ function emptyDelta() {
     };
 }
 
+// Every flow a route-level test writes is born with these
+// two nodes and keeps them through each save.
+const BORN_GRAPH = createArchiveGraph();
+
 const NODE_ID_BY_NAME = new Map<string, string>();
 
 function graphOf(name: string) {
@@ -165,21 +174,18 @@ function graphOf(name: string) {
         nodeId = generateIdentifier();
         NODE_ID_BY_NAME.set(name, nodeId);
     }
-    return {
-        nodes: [{
-            id: nodeId,
-            name,
-            positionX: 0, positionY: 0,
-            isCreate: false, isArchive: false,
-            memberIds: [], attributes: [],
-            taskInstructions: '',
-        }],
-        edges: [],
-    };
+    return graphWithNodes(BORN_GRAPH, [{
+        id: nodeId,
+        name,
+        positionX: 0, positionY: 0,
+        isCreate: false, isArchive: false,
+        memberIds: [], attributes: [],
+        taskInstructions: '',
+    }]);
 }
 
 // One document PUT body naming its own graph — each call's
-// `name` also seeds its ONE node's id/name, so a test can tell
+// `name` also seeds its ONE added node's id/name, so a test can tell
 // which save undo landed on just by reading the restored
 // graph's node id.
 function documentBody(
@@ -216,7 +222,9 @@ async function createFlow(
             initialState: 'active',
             initialStateEventId: generateIdentifier(),
             initialStateAt: AT,
-            graphDelta: emptyDelta(),
+            graphDelta: createArchiveDeltaOf(
+                BORN_GRAPH, flowId, AT,
+            ),
         },
     ));
     assertStrictEquals(created.status, 201);
@@ -458,13 +466,19 @@ Deno.test(
             projectId: PROJECT_1,
             name: 'Retry Flow',
         });
+        // The save adds a node to the two the flow was born
+        // with.
+        const nodes = [
+            ...(await getFlowGraph(ctx, flowId)).nodes,
+            buildNode(nodeId),
+        ];
         await putFlow(ctx, flowId, {
             name: 'Retry Flow',
             isLocked: false,
             isAutoLayout: false,
             isAutoFit: false,
             lockTimeout: DEFAULT_LOCK_TIMEOUT,
-            nodes: [buildNode(nodeId)],
+            nodes,
             edges: [],
         });
 
@@ -509,9 +523,7 @@ Deno.test(
             },
         };
 
-        const snap = snapOf(flowId, [
-            buildNode(nodeId),
-        ]);
+        const snap = snapOf(flowId, nodes);
         const held = (await getFlowGraph(ctx, flowId)).message;
         const op = await performUndo(
             flaky, snap, buildFlowHistorySnapshot(true), held,
@@ -670,7 +682,9 @@ Deno.test(
                 initialStateEventId: generateIdentifier(),
                 initialStateAt: AT,
                 graphDelta: {
-                    nodes: [{
+                    nodes: [...createArchiveDeltaOf(
+                        BORN_GRAPH, flowId, AT,
+                    ).nodes, {
                         id: nodeId, flow_id: flowId,
                         name: 'N', position_x: 0,
                         position_y: 0, is_create: false,
@@ -699,7 +713,7 @@ Deno.test(
             documentBody(
                 'Sidecar Trimmed', FLOWID_DEL, {
                     state_at: deleteAt,
-                    graph: { nodes: [], edges: [] },
+                    graph: BORN_GRAPH,
                     graphDelta: {
                         ...emptyDelta(),
                         deletions: [{

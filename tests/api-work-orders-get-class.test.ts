@@ -24,6 +24,8 @@ import {
 } from './http-fixtures.ts';
 import { seedCreatedWorkOrder } from
     './work-order-fixtures.ts';
+import { createArchiveDelta } from
+    './fixtures/create-archive-graph.ts';
 
 // GET work-orders (inbox) and GET
 // organizations/:id/work-orders/:id are Stream: a work
@@ -108,13 +110,7 @@ async function seedFlow(
             initialState: 'active',
             initialStateEventId: generateIdentifier(),
             initialStateAt: AT,
-            graphDelta: {
-                nodes: [],
-                edges: [],
-                deletions: [],
-                memberEvents: [],
-                attributeEvents: [],
-            },
+            graphDelta: createArchiveDelta(FLOW_ID, AT),
         },
     ));
     assertStrictEquals(res.status, 201);

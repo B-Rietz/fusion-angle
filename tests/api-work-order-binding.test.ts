@@ -31,6 +31,8 @@ import {
 import { seedSeat } from './root-admin-fixture.ts';
 import { seedCreatedWorkOrder } from
     './work-order-fixtures.ts';
+import { createArchiveDelta } from
+    './fixtures/create-archive-graph.ts';
 
 // PUT organizations/:id/work-orders/:id/binding — bind WO ↔ instance.
 // Ladder order is the covenant's (fence → body → instance →
@@ -176,13 +178,7 @@ async function seedFlow(
             initialState: 'active',
             initialStateEventId: generateIdentifier(),
             initialStateAt: AT,
-            graphDelta: {
-                nodes: [],
-                edges: [],
-                deletions: [],
-                memberEvents: [],
-                attributeEvents: [],
-            },
+            graphDelta: createArchiveDelta(FLOW_ID, AT),
         },
     ));
     assertStrictEquals(res.status, 201);

@@ -49,6 +49,8 @@ import { getWorkOrderEvents } from
     './fixtures/work-order-events.ts';
 import { seedCreatedWorkOrder } from
     './work-order-fixtures.ts';
+import { createArchiveGraph } from
+    './fixtures/create-archive-graph.ts';
 
 const BASE = 'http://localhost';
 
@@ -473,7 +475,7 @@ async function seedChain(
             state: 'active',
             state_at: T8_AT,
             state_event_id: generateIdentifier(),
-            graph: { nodes: [], edges: [] },
+            graph: createArchiveGraph(),
             revivals: [],
             graphDelta: {
                 nodes: [],

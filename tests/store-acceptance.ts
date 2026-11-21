@@ -34,6 +34,10 @@ import type { MessagePairEntity } from '../shared/types.ts';
 import { ledgerFields } from './ledger-row.ts';
 import { seedCreatedWorkOrder } from
     './work-order-fixtures.ts';
+import {
+    createArchiveDelta,
+    createArchiveGraph,
+} from './fixtures/create-archive-graph.ts';
 
 // Parameterized store acceptance. ./test-postgres will
 // invoke this factory; the memory runner keeps ./validate
@@ -128,7 +132,7 @@ function flowCreate(
         initialState: 'active',
         initialStateEventId: generateIdentifier(),
         initialStateAt: AT,
-        graphDelta: emptyDelta(),
+        graphDelta: createArchiveDelta(id, AT),
     };
 }
 
@@ -141,7 +145,7 @@ function flowDocument(
         state: 'updated',
         state_at: AT,
         state_event_id: stateEventId,
-        graph: { nodes: [], edges: [] },
+        graph: createArchiveGraph(),
         graphDelta: emptyDelta(),
         revivals: [],
     };

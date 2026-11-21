@@ -19,6 +19,8 @@ import {
 import { seedSeat } from './root-admin-fixture.ts';
 import { seedCreatedWorkOrder } from
     './work-order-fixtures.ts';
+import { createArchiveDelta } from
+    './fixtures/create-archive-graph.ts';
 
 // Foreign-op miss pins: work-order claim/release/transition
 // and flow undo. A miss at this document is 404.
@@ -223,10 +225,9 @@ Deno.test('foreign-org flow undo is 404', async () => {
             initialState: 'active',
             initialStateEventId: generateIdentifier(),
             initialStateAt: AT,
-            graphDelta: {
-                nodes: [], edges: [], deletions: [],
-                memberEvents: [], attributeEvents: [],
-            },
+            graphDelta: createArchiveDelta(
+                'aRKhwTupsfXtczSCmaJMGQ', AT,
+            ),
         },
     ));
     assert(

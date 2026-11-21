@@ -27,6 +27,10 @@ import type { HttpMessage } from
 import { apiRequest, partsOf } from './http-fixtures.ts';
 import { seedCreatedWorkOrder } from
     './work-order-fixtures.ts';
+import {
+    createArchiveDelta,
+    createArchiveGraph,
+} from './fixtures/create-archive-graph.ts';
 
 // A work-orders QUERY serves the collection GET's parts
 // whose work orders match the search text, best first. A
@@ -160,7 +164,7 @@ async function seedFlow(
             initialState: 'active',
             initialStateEventId: generateIdentifier(),
             initialStateAt: AT,
-            graphDelta: emptyDelta(),
+            graphDelta: createArchiveDelta(id, AT),
         },
     ));
 }
@@ -637,7 +641,7 @@ Deno.test('a deleted flow\'s name does not match', async () => {
             state: 'deleted',
             state_at: AT,
             state_event_id: generateIdentifier(),
-            graph: { nodes: [], edges: [] },
+            graph: createArchiveGraph(),
             graphDelta: emptyDelta(),
             revivals: [],
         },

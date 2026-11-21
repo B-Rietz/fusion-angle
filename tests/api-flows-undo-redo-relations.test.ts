@@ -122,6 +122,11 @@ function buildEdge(
     };
 }
 
+// Each test names its own Create node. Every graph it
+// saves, and every snapshot of one, holds this Archive node
+// beside it.
+const ARCHIVE = buildNode(generateIdentifier(), { isArchive: true });
+
 function save(
     nodes: GraphNode[],
     edges: GraphEdge[],
@@ -140,7 +145,7 @@ function save(
         isAutoLayout: false,
         isAutoFit: false,
         lockTimeout: DEFAULT_LOCK_TIMEOUT,
-        nodes,
+        nodes: [...nodes, ARCHIVE],
         edges,
     };
 }
@@ -160,7 +165,9 @@ function snapOf(
             is_auto_layout: false,
             is_auto_fit: false,
             lock_timeout: DEFAULT_LOCK_TIMEOUT,
-            graph: storedGraph({ nodes, edges }),
+            graph: storedGraph({
+                nodes: [...nodes, ARCHIVE], edges,
+            }),
         })),
         800, 600, [], [], [],
     );

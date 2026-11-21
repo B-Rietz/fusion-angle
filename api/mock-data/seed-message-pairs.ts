@@ -780,9 +780,41 @@ export function flowSeedBody(
 // organization_id rides along as the validator's tolerated-
 // but-ignored extra — load-bearing here since the seed drives
 // postFlowDocumentOp below the org fence (no scoping wrapper
-// to stamp it). A fresh flow starts with an empty graph and
-// revives nothing.
+// to stamp it). A fresh flow starts with its Create and
+// Archive nodes, as postFlowCreation's does, and revives
+// nothing.
 export function flowOrg2SeedBody(): Record<string, unknown> {
+    const graph = {
+        nodes: [
+            {
+                id: seedIdentifier('seed-flow-org2-create'),
+                name: 'Create',
+                positionX: -300,
+                positionY: 0,
+                isCreate: true,
+                isArchive: false,
+                taskInstructions: '',
+                memberIds: [],
+                attributes: [],
+            },
+            {
+                id: seedIdentifier('seed-flow-org2-archive'),
+                name: 'Archive',
+                positionX: 300,
+                positionY: 200,
+                isCreate: false,
+                isArchive: true,
+                taskInstructions: '',
+                memberIds: [],
+                attributes: [],
+            },
+        ],
+        edges: [],
+    };
+    const relations = buildFlowGraphRelations(
+        [{ id: seedIdentifier('seed-flow-org2'), graph }],
+        MOCK_SEED_TIMESTAMP,
+    );
     return {
         organization_id: ORGANIZATION_TWO,
         name: 'Wayne Onboarding',
@@ -795,13 +827,13 @@ export function flowOrg2SeedBody(): Record<string, unknown> {
         state_event_id: seedIdentifier(
             'seed-state-flow-org2',
         ),
-        graph: { nodes: [], edges: [] },
+        graph,
         graphDelta: {
-            nodes: [],
-            edges: [],
+            nodes: relations.nodes,
+            edges: relations.edges,
             deletions: [],
-            memberEvents: [],
-            attributeEvents: [],
+            memberEvents: relations.members,
+            attributeEvents: relations.attributes,
         },
         revivals: [],
     };

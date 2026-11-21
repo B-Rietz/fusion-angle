@@ -29,6 +29,8 @@ import {
 import { generateIdentifier } from
     '../shared/identifier.ts';
 import { ledgerFields } from './ledger-row.ts';
+import { createArchiveGraph } from
+    './fixtures/create-archive-graph.ts';
 
 const F_1 = generateIdentifier();
 const WO_1 = generateIdentifier();
@@ -1136,6 +1138,7 @@ Deno.test(
     'validateFlowDocumentBody accepts a native'
     + ' graph object',
     () => {
+        const graph = createArchiveGraph();
         const body = validateFlowDocumentBody({
             name: 'Onboarding',
             is_locked: false,
@@ -1145,7 +1148,7 @@ Deno.test(
             state: 'active',
             state_at: '2026-07-12T00:00:00.000000Z',
             state_event_id: EVT_1,
-            graph: { nodes: [], edges: [] },
+            graph,
             graphDelta: {
                 nodes: [], edges: [],
                 deletions: [],
@@ -1154,9 +1157,7 @@ Deno.test(
             },
             revivals: [],
         });
-        assertEquals(
-            body.graph, { nodes: [], edges: [] },
-        );
+        assertEquals(body.graph, graph);
     },
 );
 

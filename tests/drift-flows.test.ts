@@ -46,6 +46,11 @@ import {
     partsOf,
     storedPutBodyText,
 } from './http-fixtures.ts';
+import {
+    createArchiveDeltaOf,
+    createArchiveGraph,
+    graphWithNodes,
+} from './fixtures/create-archive-graph.ts';
 
 const SEED_FLOW_ORGANIZATION_TWO = seedIdentifier('seed-flow-org2');
 const FLOW_DRIFT_JOIN = generateIdentifier();
@@ -139,9 +144,9 @@ function emptyDelta() {
     };
 }
 
-function emptyGraph() {
-    return { nodes: [], edges: [] };
-}
+// Every flow a helper here writes is born with these two
+// nodes and keeps them through each save.
+const BORN_GRAPH = createArchiveGraph();
 
 interface WireNode {
     readonly id: string;
@@ -238,7 +243,7 @@ function documentBody(
         state: 'updated',
         state_at: AT,
         state_event_id: stateEventId,
-        graph: emptyGraph(),
+        graph: BORN_GRAPH,
         graphDelta: emptyDelta(),
         revivals: [],
         ...(overrides ?? {}),
@@ -296,7 +301,9 @@ async function createFlow(
             initialState: 'active',
             initialStateEventId: eventId,
             initialStateAt: AT,
-            graphDelta: emptyDelta(),
+            graphDelta: createArchiveDeltaOf(
+                BORN_GRAPH, flowId, AT,
+            ),
         },
     ));
 }
@@ -580,6 +587,8 @@ Deno.test('live-write chain: create, save, node delete, undo, '
 
     const n1 = generateIdentifier();
     const n2 = generateIdentifier();
+    const n3 = generateIdentifier();
+    const archive = { ...wireNode(n3, 'Archive'), isArchive: true };
     const YiJPbufDpkyrZcZCYbUJpg = generateIdentifier();
     const genesisAt = '2026-03-01T00:00:00.000000Z';
 
@@ -596,7 +605,7 @@ Deno.test('live-write chain: create, save, node delete, undo, '
         return derived;
     }
 
-    // Create: two nodes, one edge.
+    // Create: three nodes, one edge.
     const created = await handleRequest(db, req(
         'POST', '/organizations/AjdvjuECVZEgZoFajaIEkg/flows/', token, {
             id: flowId,
@@ -616,6 +625,11 @@ Deno.test('live-write chain: create, save, node delete, undo, '
                         genesisAt),
                     deltaNode(n2, flowId, 'Review', false,
                         genesisAt),
+                    {
+                        ...deltaNode(n3, flowId, 'Archive', false,
+                            genesisAt),
+                        is_archive: true,
+                    },
                 ],
                 edges: [
                     deltaEdge(YiJPbufDpkyrZcZCYbUJpg, flowId, 'begin', n1, n2,
@@ -630,7 +644,10 @@ Deno.test('live-write chain: create, save, node delete, undo, '
     let derived = await assertStep();
 
     const fullGraph = graphJson(
-        [wireNode(n1, 'Create', true), wireNode(n2, 'Review')],
+        [
+            wireNode(n1, 'Create', true), wireNode(n2, 'Review'),
+            archive,
+        ],
         [wireEdge(YiJPbufDpkyrZcZCYbUJpg, 'begin', n1, n2)],
     );
 
@@ -664,7 +681,7 @@ Deno.test('live-write chain: create, save, node delete, undo, '
     // Node delete via save: n2 and YiJPbufDpkyrZcZCYbUJpg are tombstoned.
     const deleteAt = '2026-03-04T00:00:00.000000Z';
     const deletedGraph = graphJson(
-        [wireNode(n1, 'Create', true)], [],
+        [wireNode(n1, 'Create', true), archive], [],
     );
     const deletedSave = await handleRequest(db, req(
         'PUT', '/organizations/AjdvjuECVZEgZoFajaIEkg/flows/' + flowId, token,
@@ -693,7 +710,7 @@ Deno.test('live-write chain: create, save, node delete, undo, '
     assertStrictEquals(
         (derived.graph as { nodes: { id: string }[] })
             .nodes.length,
-        1,
+        2,
     );
 
     // Undo-as-replay: reverts to Versioned (fullGraph).
@@ -1019,7 +1036,8 @@ Deno.test('sidecar insensitivity: graphDelta/revivals disagreeing '
     const flowId = generateIdentifier();
 
     // A shape no real client ever sends: `graph` claims ONE
-    // node while `graphDelta` upserts a DIFFERENT one and
+    // node beside Create and Archive while `graphDelta`
+    // upserts a DIFFERENT one and
     // `revivals` restores an unrelated entity —
     // validateFlowDocumentBody never cross-checks the sidecars
     // against `graph` (they are independent fields), so this is
@@ -1027,8 +1045,8 @@ Deno.test('sidecar insensitivity: graphDelta/revivals disagreeing '
     // wire both track `graph` alone; graphDelta only feeds
     // deriveFlowGraphStates (SIDECAR-KEEP), not the working
     // graph.
-    const graph = graphJson(
-        [wireNode(SIDECAR_GRAPH_NODE, 'Graph Node')], [],
+    const graph = graphWithNodes(
+        BORN_GRAPH, [wireNode(SIDECAR_GRAPH_NODE, 'Graph Node')],
     );
     const res = await handleRequest(db, req(
         'PUT', '/organizations/AjdvjuECVZEgZoFajaIEkg/flows/' + flowId
@@ -1061,7 +1079,8 @@ Deno.test('sidecar insensitivity: graphDelta/revivals disagreeing '
         nodes: { id: string }[];
     }).nodes;
     assertEquals(
-        derivedNodes.map((n) => n.id), [SIDECAR_GRAPH_NODE],
+        derivedNodes.map((n) => n.id),
+        graph.nodes.map((n) => n.id),
     );
     const wireText = await wireFlowText(
         db, STARK_ORGANIZATION, flowId,
@@ -1134,7 +1153,8 @@ async () => {
 
     // Deliberately reverse-alphabetical in `graph` and the
     // OPPOSITE order in the storage-shaped delta events.
-    const graph = graphJson(
+    const graph = graphWithNodes(
+        BORN_GRAPH,
         [wireNode(
             nodeId, 'Multi Node', false,
             [ZZ_MEMBER, AA_MEMBER],
@@ -1149,7 +1169,6 @@ async () => {
                 },
             ],
         )],
-        [],
     );
     const graphDelta = {
         nodes: [deltaNode(nodeId, flowId, 'Multi Node', false, AT)],
