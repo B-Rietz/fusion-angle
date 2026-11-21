@@ -70,16 +70,20 @@ p { line-height: var(--leading-normal); }
 
 /* Seven digits, the ZIP's short sha. 1ch is the
    width of 0, so a monospace face clips after
-   the seventh character. */
+   the seventh character. An inline-block that clips
+   sits on the baseline by its bottom edge; bottom
+   alignment keeps the line one line-height tall. */
 .git-sha {
     display: inline-block;
     width: 7ch;
     overflow: hidden;
     white-space: nowrap;
+    vertical-align: bottom;
 }
 
 .text-2xs { font-size: var(--text-2xs); line-height: 1rem; }
 .text-xs { font-size: var(--text-xs); line-height: 1.125rem; }
+.text-xsm { font-size: var(--text-xsm); line-height: 1.125rem; }
 .text-sm { font-size: var(--text-sm); line-height: 1.25rem; }
 .text-base { font-size: var(--text-base); line-height: 1.5rem; }
 .text-lg { font-size: var(--text-lg); line-height: 1.75rem; }

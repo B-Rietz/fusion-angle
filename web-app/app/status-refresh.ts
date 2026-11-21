@@ -5,10 +5,13 @@
 // nothing and the live region announces only a change. A
 // changed age is written in place, unannounced, and does
 // not count as a change, so the refresh still backs off.
-// The merges below the card are replaced when they differ. A page that gets
-// no answer shows the timeout card the server rendered
-// into its template. The server writes every card; this
-// script holds no markup. Loaded from a same-origin file
+// When the answered page names another status script, the
+// page reloads instead, so a deploy's new card never meets
+// an old script; the reloaded page runs the script it
+// names, so it cannot loop. A page that gets no answer
+// shows the timeout card the server rendered into its
+// template. The server writes every card; this script
+// holds no markup. Loaded from a same-origin file
 // so the page's Content-Security-Policy (script-src
 // 'self') can forbid inline scripts. `deno bundle` folds
 // the import below into a self-contained IIFE.
@@ -19,8 +22,25 @@ import {
 } from './status-backoff.ts';
 
 const CARD_ID = 'status-card';
-const MERGES_ID = 'status-merges';
 const AGE = '.git-age';
+
+type RefreshOutcome = 'shown' | 'reloading';
+
+// The attribute, not `.src`, which the browser makes
+// absolute: the server writes the attribute.
+function runningScript(): string {
+    const src = document.currentScript?.getAttribute('src');
+    if (src === undefined || src === null) {
+        throw new Error('the status script cannot name itself');
+    }
+    return src;
+}
+
+function servedScript(answer: Document): string | undefined {
+    const src = answer.querySelector('script[src]')
+        ?.getAttribute('src');
+    return src === null ? undefined : src;
+}
 
 function elementOf(id: string): HTMLElement {
     const element = document.getElementById(id);
@@ -101,6 +121,7 @@ function copyAges(from: Element, to: Element): void {
 }
 
 (function refreshStatus(): void {
+    const running = runningScript();
     const live = elementOf('status-live');
     const timeout = templateOf('status-timeout');
     let changedAt = performance.now();
@@ -115,24 +136,13 @@ function copyAges(from: Element, to: Element): void {
         copyAges(card, shown);
     }
 
-    function showMerges(answer: Document): void {
-        const shown = document.getElementById(MERGES_ID);
-        const served = answer.getElementById(MERGES_ID);
-        if (served === null) {
-            shown?.remove();
-            return;
-        }
-        if (shown?.outerHTML === served.outerHTML) return;
-        const merges = document.importNode(served, true);
-        if (shown === null) {
-            live.after(merges);
-        } else {
-            shown.replaceWith(merges);
-        }
-    }
-
-    async function showAnswer(): Promise<void> {
+    async function showAnswer(): Promise<RefreshOutcome> {
         const answer = await answeredPage();
+        if (answer !== undefined
+            && servedScript(answer) !== running) {
+            location.reload();
+            return 'reloading';
+        }
         const served = answer?.getElementById('status-timeout');
         if (served instanceof HTMLTemplateElement
             && served.innerHTML !== timeout.innerHTML) {
@@ -144,20 +154,23 @@ function copyAges(from: Element, to: Element): void {
             answer?.getElementById(CARD_ID)
                 ?? cardIn(timeout.content),
         );
-        if (answer !== undefined) showMerges(answer);
+        return 'shown';
     }
 
     // An error no branch expects still shows the timeout
     // card, so the page never reads UP on it, and still
-    // reaches the console; the refresh goes on.
+    // reaches the console; the refresh goes on. A reload
+    // schedules nothing.
     async function refresh(): Promise<void> {
+        // Absent when the answer threw.
+        let outcome: RefreshOutcome | undefined;
         try {
-            await showAnswer();
+            outcome = await showAnswer();
         } catch (error) {
             showCard(cardIn(timeout.content));
             throw error;
         } finally {
-            schedule();
+            if (outcome !== 'reloading') schedule();
         }
     }
 

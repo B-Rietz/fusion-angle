@@ -19,10 +19,10 @@ export interface Commit {
     readonly committedAt?: string;
 }
 
-// The merges are the ones before the running commit on its
-// first-parent line, newest first.
+// The history is the commits before the running commit on
+// its first-parent line, newest first.
 export type RunningCommit = Commit & {
-    readonly merges?: readonly Commit[];
+    readonly history?: readonly Commit[];
 };
 
 export interface CommitDocument {
@@ -35,7 +35,7 @@ export interface CommitDocument {
 export type SystemStatus<K extends string> = CommitDocument & {
     readonly up: boolean;
     readonly components: ComponentStates<K>;
-    readonly 'git-merges'?: readonly CommitDocument[];
+    readonly 'git-history'?: readonly CommitDocument[];
 };
 
 export function everyComponentUp(
@@ -75,10 +75,10 @@ export function systemStatusOf<K extends string>(
         ...commitDocumentOf(commit, nowMs),
         up: everyComponentUp(components),
         components,
-        ...(commit.merges !== undefined
+        ...(commit.history !== undefined
             ? {
-                'git-merges': commit.merges.map(
-                    (merge) => commitDocumentOf(merge, nowMs),
+                'git-history': commit.history.map(
+                    (entry) => commitDocumentOf(entry, nowMs),
                 ),
             }
             : {}),

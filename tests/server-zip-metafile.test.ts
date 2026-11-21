@@ -266,7 +266,7 @@ async () => {
         sha,
         subject,
         committedAt: '2026-11-21T05:53:28.000Z',
-        merges: [{
+        history: [{
             sha: merge,
             subject: 'Land a merge',
             committedAt: '2026-11-21T05:43:43.000Z',

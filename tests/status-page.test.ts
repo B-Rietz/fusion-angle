@@ -120,7 +120,9 @@ Deno.test('the status sha clips to seven digits', () => {
         NOW,
     );
     assertEquals(
-        html.includes('class="git-sha font-mono text-sm"'),
+        html.includes(
+            'class="git-sha font-mono text-foreground"',
+        ),
         true,
     );
     assertMatch(
@@ -134,6 +136,10 @@ Deno.test('the status sha clips to seven digits', () => {
     assertMatch(
         css,
         /\.git-sha \{[^}]*white-space: nowrap;[^}]*\}/,
+    );
+    assertMatch(
+        css,
+        /\.git-sha \{[^}]*vertical-align: bottom;[^}]*\}/,
     );
     assertMatch(
         css,
@@ -250,12 +256,16 @@ Deno.test('the status card names the commit by its subject',
     );
     assertStringIncludes(
         named,
-        '<p class="git-sha font-mono text-sm">\n'
-        + sha + '\n</p>\n'
-        + '<p class="git-subject text-sm">\n'
-        + '&lt;b&gt;&quot;it\'s&quot; \\ ${x} é\n</p>\n'
+        '<p class="text-muted text-sm">\n'
+        + '<span class="git-sha font-mono text-foreground">'
+        + sha + '</span>\n'
+        + '</p>\n'
+        + '<p class="git-subject text-base">'
+        + '&lt;b&gt;&quot;it\'s&quot; \\ ${x} é</p>\n'
         + '</section>',
     );
+    assertNotMatch(named, />git sha</);
+    assertNotMatch(named, /•/);
     const unnamed = statusPageHtml({ sha }, { api: 'up' }, {}, NOW);
     assertNotMatch(unnamed, /git-subject/);
 });
@@ -316,10 +326,12 @@ Deno.test('the status page refreshes only with its script',
     );
     assertStringIncludes(
         timeout,
-        '<p class="git-sha font-mono text-sm">\n'
-        + sha + '\n</p>\n'
-        + '<p class="git-subject text-sm">\n'
-        + 'Keep the &quot;card&quot; &amp; &lt;sha&gt;\n</p>',
+        '<p class="text-muted text-sm">\n'
+        + '<span class="git-sha font-mono text-foreground">'
+        + sha + '</span>\n'
+        + '</p>\n'
+        + '<p class="git-subject text-base">'
+        + 'Keep the &quot;card&quot; &amp; &lt;sha&gt;</p>',
     );
     assertNotMatch(live, /style=/);
     const still = statusPageHtml(commit, { api: 'up' }, {
@@ -333,7 +345,8 @@ Deno.test('the status page refreshes only with its script',
 });
 
 const SHA = '0123456789abcdef0123456789abcdef01234567';
-const MERGE_SHA = 'fedcba9876543210fedcba9876543210fedcba98';
+const HISTORY_SHA = 'fedcba9876543210fedcba9876543210fedcba98';
+const OLDER_SHA = 'abcdefabcdefabcdefabcdefabcdefabcdefabcd';
 const COMMITTED_AT = '2026-11-20T00:00:00.000Z';
 const COMMITTED_MS = Date.parse(COMMITTED_AT);
 
@@ -347,8 +360,16 @@ Deno.test('the status card ages the commit', () => {
     const aged = statusPageHtml(
         commit, { api: 'up' }, {}, COMMITTED_MS + 90_000,
     );
+    assertStringIncludes(
+        aged,
+        '<p class="text-muted text-sm">\n'
+        + ageTag('2 minutes ago')
+        + '\n<span aria-hidden="true">•</span>\n'
+        + '<span class="git-sha font-mono text-foreground">'
+        + SHA + '</span>\n</p>',
+    );
     const ageAt = aged.indexOf(ageTag('2 minutes ago'));
-    assertEquals(ageAt > aged.indexOf('class="git-sha'), true);
+    assertEquals(ageAt < aged.indexOf('class="git-sha'), true);
     assertEquals(ageAt < aged.indexOf('</section>'), true);
     assertStringIncludes(
         statusPageHtml(commit, { api: 'up' }, {}, COMMITTED_MS),
@@ -356,43 +377,102 @@ Deno.test('the status card ages the commit', () => {
     );
 });
 
-Deno.test('the merges list below the card', () => {
+Deno.test('the history follows the commit inside the card',
+() => {
     const html = statusPageHtml(
         {
             sha: SHA,
-            merges: [{
-                sha: MERGE_SHA,
-                subject: 'Land <the> merge',
+            subject: 'Head',
+            history: [{
+                sha: HISTORY_SHA,
+                subject: 'Land <the> commit',
                 committedAt: COMMITTED_AT,
-            }],
+            }, { sha: OLDER_SHA }],
         },
         { api: 'up' },
         { script: '/assets/status-refresh.0123abcd.js' },
         COMMITTED_MS + 3 * 60 * 60 * 1_000,
     );
-    const sectionAt = html.indexOf('<section id="status-merges"');
-    assertEquals(sectionAt > html.indexOf('</div>'), true);
-    assertEquals(sectionAt < html.indexOf('</main>'), true);
     assertStringIncludes(
-        html.slice(sectionAt),
-        '<li>\n'
-        + '<p class="git-sha font-mono text-sm">\n'
-        + MERGE_SHA + '\n</p>\n'
-        + '<p class="git-subject text-sm">\n'
-        + 'Land &lt;the&gt; merge\n</p>\n'
-        + '<p class="text-muted text-sm">'
-        + ageTag('3 hours ago') + '</p>\n'
-        + '</li>',
+        html,
+        '<p class="git-subject text-base">Head</p>\n'
+        + '<hr class="status-rule mt-8 mb-8">\n'
+        + '<ol class="flex flex-col gap-5"'
+        + ' aria-label="Recent commits">\n'
+        + '<li>\n<p class="text-muted text-xsm">\n'
+        + ageTag('3 hours ago') + '\n'
+        + '<span aria-hidden="true">•</span>\n'
+        + '<span class="git-sha font-mono">' + HISTORY_SHA
+        + '</span>\n</p>\n'
+        + '<p class="git-subject text-sm text-soft">'
+        + 'Land &lt;the&gt; commit</p>\n</li>\n'
+        + '<li>\n<p class="text-muted text-xsm">\n'
+        + '<span class="git-sha font-mono">' + OLDER_SHA
+        + '</span>\n</p>\n</li>\n'
+        + '</ol>\n</section>',
     );
-    for (const merges of [undefined, []]) {
-        assertNotMatch(
-            statusPageHtml(
-                { sha: SHA, ...(merges ? { merges } : {}) },
-                { api: 'up' },
-                {},
-                NOW,
-            ),
-            /status-merges/,
+    assertEquals(
+        html.match(/aria-label="Recent commits"/g)?.length,
+        2,
+    );
+    assertNotMatch(html, /status-merges|Recent merges/);
+    assertNotMatch(html, /style=/);
+    for (const history of [undefined, []]) {
+        const bare = statusPageHtml(
+            { sha: SHA, ...(history ? { history } : {}) },
+            { api: 'up' },
+            {},
+            NOW,
         );
+        assertNotMatch(bare, /<hr/);
+        assertNotMatch(bare, /<ol/);
     }
+});
+
+Deno.test('both status pages pad the main', () => {
+    const padded = ' bg-background py-8">';
+    assertStringIncludes(
+        statusPageHtml({ sha: SHA }, { api: 'up' }, {}, NOW),
+        padded,
+    );
+    assertStringIncludes(statusUnavailableHtml(), padded);
+});
+
+Deno.test('the status history has its type, tone, and rule',
+() => {
+    const read = (name: string): string =>
+        Deno.readTextFileSync(
+            'web-app/app/styles/' + name,
+        );
+    assertStringIncludes(
+        read('tokens.css'), '--text-xsm: 0.8125rem;',
+    );
+    assertStringIncludes(
+        read('base.css'),
+        '.text-xsm { font-size: var(--text-xsm);'
+        + ' line-height: 1.125rem; }',
+    );
+    assertStringIncludes(
+        read('palette.css'),
+        '--soft-foreground: var(--gray-300);',
+    );
+    assertStringIncludes(
+        read('utilities.css'),
+        '.text-soft { color: hsl(var(--soft-foreground)); }',
+    );
+    const cards = read('components-cards.css');
+    assertEquals(
+        cssDeclaration(cards, '.status-rule', 'border'),
+        'none',
+    );
+    assertEquals(
+        cssDeclaration(cards, '.status-rule', 'border-top'),
+        '1px solid',
+    );
+    assertEquals(
+        cssDeclaration(
+            cards, '.status-rule', 'border-top-color',
+        ),
+        'inherit',
+    );
 });

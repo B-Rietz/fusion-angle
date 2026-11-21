@@ -20,10 +20,17 @@ roles:
   with `-soft`, `-border`, `-text` (and `-foreground`
   where a solid fill carries type)
 - **danger** — solid escalation above warning
+- **soft-foreground** — between muted-foreground and
+  foreground (`.text-soft`); the status history's subject
 - **background** / **foreground** / **card** /
   **border** / **input** / **ring**
 
 Palette HSL lives in `palette.css`, under one `:root`.
+
+**Type scale.** `--text-*` in `tokens.css`, each with a
+`.text-*` class in `base.css`: `2xs` 11, `xs` 12, `xsm` 13,
+`sm` 14, `base` 16, `lg` 18, `xl` 20, `2xl` 24, `3xl` 30,
+`4xl` 36. `xsm` is the status history's line.
 
 **Flow canvas chrome.** Two size tokens in `tokens.css`, beside
 the `--width-*` group, hold the box the flow designer and the

@@ -232,6 +232,9 @@
     background-color: hsl(var(--accent-foreground));
 }
 .bg-foreground { background-color: hsl(var(--foreground)); }
+.bg-soft-foreground {
+    background-color: hsl(var(--soft-foreground));
+}
 .bg-card { background-color: hsl(var(--card)); }
 .bg-muted { background-color: hsl(var(--muted)); }
 .bg-border { background-color: hsl(var(--border)); }

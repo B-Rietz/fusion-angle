@@ -127,6 +127,9 @@ export function statusPageHtml(
 ): string {
     const up = everyComponentUp(components);
     const shown = commitDocumentOf(commit, nowMs);
+    const history = (commit.history ?? []).map(
+        (entry) => commitDocumentOf(entry, nowMs),
+    );
     const links: string[] = [];
     if (assets.styles !== undefined) {
         links.push(
@@ -148,6 +151,7 @@ export function statusPageHtml(
         up ? 'UP' : 'DOWN',
         up ? [] : componentPills(components),
         shown,
+        history,
     );
     return [
         '<!DOCTYPE html>',
@@ -165,13 +169,12 @@ export function statusPageHtml(
         '</head>',
         '<body>',
         '<main class="flex min-h-screen flex-col',
-        ' items-center justify-center bg-background">',
+        ' items-center justify-center bg-background py-8">',
         ...(assets.script === undefined ? card : [
             '<div id="status-live" aria-live="polite">',
             ...card,
             '</div>',
         ]),
-        ...mergesSection(commit, nowMs),
         '</main>',
         ...(assets.script === undefined ? [] : [
             '<template id="status-timeout">',
@@ -180,6 +183,7 @@ export function statusPageHtml(
                 'DOWN',
                 [statusPill('Timeout', false)],
                 shown,
+                history,
             ),
             '</template>',
         ]),
@@ -200,7 +204,7 @@ export function statusUnavailableHtml(): string {
         '</head>',
         '<body>',
         '<main class="flex min-h-screen items-center',
-        ' justify-center bg-background">',
+        ' justify-center bg-background py-8">',
         '<section class="card max-w-md p-8 text-center">',
         '<h1 class="font-display text-3xl font-bold mb-6">',
         '<a href="/">Fusion Angle</a>',
@@ -221,6 +225,7 @@ function statusCard(
     rating: string,
     pills: readonly string[],
     commit: CommitDocument,
+    history: readonly CommitDocument[],
 ): readonly string[] {
     return [
         '<section id="status-card"',
@@ -237,71 +242,71 @@ function statusCard(
             ...pills,
             '</p>',
         ]),
-        '<p class="text-muted text-sm">git sha</p>',
-        ...commitLines(commit),
+        ...commitLines(commit, DEPLOYED_LOOK),
+        ...(history.length === 0 ? [] : [
+            '<hr class="status-rule mt-8 mb-8">',
+            '<ol class="flex flex-col gap-5"'
+            + ' aria-label="Recent commits">',
+            ...history.flatMap((entry) => [
+                '<li>',
+                ...commitLines(entry, HISTORY_LOOK),
+                '</li>',
+            ]),
+            '</ol>',
+        ]),
         '</section>',
     ];
 }
 
-// The merges before the running commit, each shown as the
-// card shows it. Outside the live region: a deploy that
-// changes them changes the card, which is announced.
-function mergesSection(
-    commit: RunningCommit,
-    nowMs: number,
-): readonly string[] {
-    if (commit.merges === undefined
-        || commit.merges.length === 0) {
-        return [];
-    }
-    return [
-        '<section id="status-merges"',
-        ' class="card max-w-md p-8 mt-6 text-center">',
-        '<h2 class="text-lg font-semibold mb-4">'
-        + 'Recent merges</h2>',
-        '<ol class="flex flex-col gap-4">',
-        ...commit.merges.flatMap((merge) => [
-            '<li>',
-            ...commitLines(commitDocumentOf(merge, nowMs)),
-            '</li>',
-        ]),
-        '</ol>',
-        '</section>',
-    ];
+// The deployed commit leads; its history reads a step
+// smaller and quieter.
+interface CommitLook {
+    readonly line: string;
+    readonly sha: string;
+    readonly subject: string;
 }
 
-function commitLines(
-    commit: CommitDocument,
-): readonly string[] {
-    return [
-        '<p class="git-sha font-mono text-sm">',
-        escapeText(commit['git-sha']),
-        '</p>',
-        ...(commit['git-subject'] === undefined ? [] : [
-            '<p class="git-subject text-sm">',
-            escapeText(commit['git-subject']),
-            '</p>',
-        ]),
-        ...ageLines(commit),
-    ];
-}
+const DEPLOYED_LOOK: CommitLook = {
+    line: 'text-muted text-sm',
+    sha: 'git-sha font-mono text-foreground',
+    subject: 'git-subject text-base',
+};
+
+const HISTORY_LOOK: CommitLook = {
+    line: 'text-muted text-xsm',
+    sha: 'git-sha font-mono',
+    subject: 'git-subject text-sm text-soft',
+};
 
 // The age refreshes in place, never announced: the live
 // region speaks only when the verdict or commit changes.
-function ageLines(
+function commitLines(
     commit: CommitDocument,
+    look: CommitLook,
 ): readonly string[] {
     const age = commit['git-age'];
     const committedAt = commit['git-committed-at'];
-    if (age === undefined || committedAt === undefined) {
-        return [];
-    }
+    const subject = commit['git-subject'];
     return [
-        '<p class="text-muted text-sm">'
-        + '<time class="git-age" aria-live="off" datetime="'
-        + escapeText(committedAt) + '">'
-        + escapeText(age === NO_DURATION ? age : age + ' ago')
-        + '</time></p>',
+        '<p class="' + look.line + '">',
+        ...(age === undefined || committedAt === undefined
+            ? []
+            : [
+                '<time class="git-age" aria-live="off"'
+                + ' datetime="' + escapeText(committedAt) + '">'
+                + escapeText(
+                    age === NO_DURATION ? age : age + ' ago',
+                )
+                + '</time>',
+                '<span aria-hidden="true">•</span>',
+            ]),
+        '<span class="' + look.sha + '">'
+        + escapeText(commit['git-sha']) + '</span>',
+        '</p>',
+        ...(subject === undefined ? [] : [
+            '<p class="' + look.subject + '">'
+            + escapeText(subject) + '</p>',
+        ]),
     ];
 }
 

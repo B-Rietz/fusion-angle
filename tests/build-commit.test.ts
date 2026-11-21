@@ -60,6 +60,13 @@ async () => {
             '-c', 'user.name=Test',
             '-c', 'user.email=test@example.com',
             'commit', '--quiet', '--allow-empty',
+            '-m', 'First',
+        ]);
+        await git([
+            '-C', repo,
+            '-c', 'user.name=Test',
+            '-c', 'user.email=test@example.com',
+            'commit', '--quiet', '--allow-empty',
             '-m', SUBJECT,
         ]);
         await git([
@@ -76,11 +83,19 @@ async () => {
         const time = await git([
             '-C', repo, 'log', '-1', '--format=%ct',
         ]);
+        const firstSha = await git([
+            '-C', repo, 'rev-parse', 'HEAD~1',
+        ]);
+        const firstTime = await git([
+            '-C', repo, 'log', '-1', '--format=%ct', 'HEAD~1',
+        ]);
         const held = await fetchedCommit(url, sha, scratchTmp);
         assertEquals(held.code, 0);
         assertEquals(
             held.stdout,
-            sha + ' ' + time + ' ' + SUBJECT + '\n',
+            sha + ' ' + time + ' ' + SUBJECT + '\n'
+            + sha + ' ' + time + ' ' + SUBJECT + '\n'
+            + firstSha + ' ' + firstTime + ' First\n',
         );
         assertEquals([...Deno.readDirSync(scratchTmp)], []);
 
