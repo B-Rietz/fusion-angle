@@ -38,7 +38,6 @@ import {
     createArchiveDelta,
     createArchiveGraph,
 } from './fixtures/create-archive-graph.ts';
-import { advisoryKey } from '../api/advisory-lock.ts';
 import { openPoolToFullWidth } from './fixtures/open-pool.ts';
 
 // Live Postgres races: first-writer, If-Match, a second
@@ -616,59 +615,37 @@ if (POSTGRES_URL === undefined || POSTGRES_URL === '') {
     async () => {
         const token = await organizationToken();
         const id = generateIdentifier();
-        const holder = connectPostgres(
-            urlWithSearchPath(POSTGRES_URL, schema),
+        const [left, right] = await Promise.all([
+            handleRequest(db, req(
+                'PUT',
+                '/organizations/AjdvjuECVZEgZoFajaIEkg/flows/'
+                    + '' + id, token,
+                flowDocument('A', generateIdentifier()),
+                { 'if-none-match': '*' },
+                generateIdentifier(),
+            )),
+            handleRequest(db, req(
+                'PUT',
+                '/organizations/AjdvjuECVZEgZoFajaIEkg/flows/'
+                    + '' + id, token,
+                flowDocument('B', generateIdentifier()),
+                { 'if-none-match': '*' },
+                generateIdentifier(),
+            )),
+        ]);
+        const statuses = [left.status, right.status];
+        assertStrictEquals(
+            statuses.filter((s) => s === 201).length,
+            1,
         );
-        const documentLockKey = Number(await advisoryKey(
-            'fusion.document.' + FLOW_PREFIX + id,
-        ));
-        let raced: Promise<[Response, Response]>
-            | undefined;
-        try {
-            await holder.begin(async (tx) => {
-                await tx.query`
-                    SELECT pg_advisory_xact_lock(
-                        ${documentLockKey}
-                    )
-                `;
-                raced = Promise.all([
-                    handleRequest(db, req(
-                        'PUT',
-                        '/organizations/AjdvjuECVZEgZoFajaIEkg/flows/'
-                            + '' + id, token,
-                        flowDocument('A', generateIdentifier()),
-                        { 'if-none-match': '*' },
-                        generateIdentifier(),
-                    )),
-                    handleRequest(db, req(
-                        'PUT',
-                        '/organizations/AjdvjuECVZEgZoFajaIEkg/flows/'
-                            + '' + id, token,
-                        flowDocument('B', generateIdentifier()),
-                        { 'if-none-match': '*' },
-                        generateIdentifier(),
-                    )),
-                ]);
-                await delay(300);
-            });
-            assert(raced !== undefined);
-            const [left, right] = await raced;
-            const statuses = [left.status, right.status];
-            assertStrictEquals(
-                statuses.filter((s) => s === 201).length,
-                1,
-            );
-            assertStrictEquals(
-                statuses.filter((s) => s === 412).length,
-                1,
-            );
-            assertStrictEquals(
-                await putHeadsAt(db, FLOW_PREFIX, id),
-                1,
-            );
-        } finally {
-            await holder.end();
-        }
+        assertStrictEquals(
+            statuses.filter((s) => s === 412).length,
+            1,
+        );
+        assertStrictEquals(
+            await putHeadsAt(db, FLOW_PREFIX, id),
+            1,
+        );
     });
 
     Deno.test('If-Match race: one 200, one 412', async () => {

@@ -1,12 +1,8 @@
-// 52-bit pg_advisory_xact_lock keys from SHA-256 of
-// lock-name labels. Labels are UTF-8 text, not Latin-1
-// wire. A collision only serializes unrelated work.
+// Notify channel, payload cap, and pool width. A
+// payload over the cap is a full refresh.
 
-import { sha256Hex } from '../shared/digest.ts';
 import type { NotificationEvent } from
     '../shared/notifications.ts';
-
-export const ADVISORY_KEY_HEX_DIGITS = 13;
 
 export const FUSION_EVENTS_CHANNEL = 'fusion_events';
 
@@ -23,12 +19,4 @@ export function notifyPayload(
         return '{"kind":"full"}';
     }
     return json;
-}
-
-export async function advisoryKey(
-    label: string,
-): Promise<bigint> {
-    const hex = (await sha256Hex(label))
-        .slice(0, ADVISORY_KEY_HEX_DIGITS);
-    return BigInt('0x' + hex);
 }

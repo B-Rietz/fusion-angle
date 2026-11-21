@@ -1,6 +1,5 @@
 // Thin postgres.js wrapper. Application code never imports
-// postgres. begin is one transaction; advisory locks are
-// pg_advisory_xact_lock inside it.
+// postgres. begin is one transaction.
 
 import postgres from 'postgres';
 import { POOL_MAX } from './advisory-lock.ts';

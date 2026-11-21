@@ -68,7 +68,7 @@ code comments cite; specs and plans written before the
   (`compose.yaml:2,8-9,22,24`; `mint_compose_env`,
   `bin/compose-lib:14-15`). Owned names the prefix has
   not reached: the notify channel `fusion_events`
-  (`api/advisory-lock.ts:11`,
+  (`api/advisory-lock.ts:7`,
   `api/ledger-statement-sql.ts:229`), the test schema
   `fusion_test_…` and compose project
   `fusion-test-postgres-$$` (`bin/test-postgres:22`,
@@ -230,9 +230,8 @@ code comments cite; specs and plans written before the
   re-grant). Four
   revokes from PUBLIC need a superuser and only warn for
   the owner (measured): `plpgsql`; large-object creation;
-  the 21 advisory-lock functions, which the product
-  does not call (only `tests/pg-races.test.ts` takes
-  one); and catalog reads,
+  the 21 advisory-lock functions, which nothing in
+  this tree calls; and catalog reads,
   returned to `fa_owner`. With catalog reads gone the
   driver's type lookup at connect is refused and its
   unhandled rejection ends the process, and with
@@ -664,7 +663,7 @@ code comments cite; specs and plans written before the
 - **9.** The bell reaches the browser — every write already
   `pg_notify`s `fusion_events` with a scoped
   `NotificationEvent` (`shared/notifications.ts`;
-  `notifyPayload`, `api/advisory-lock.ts:17-26`, 8000-byte
+  `notifyPayload`, `api/advisory-lock.ts:13-21`, 8000-byte
   cap with a `full` fallback) and nothing LISTENs, so a
   second browser is stale until navigation. Ship the
   other half: one LISTEN connection per process,
@@ -2854,25 +2853,14 @@ Off the critical path; each with its oracle.
   this bullet.
   Oracle: TEST-PLAN I21's probe step and its
   `### Driving notes` twin
-- The advisory-lock module holds no lock the product
-  takes.
-  `api/advisory-lock.ts` holds the notify channel, its
-  payload, and `POOL_MAX`; its `advisoryKey` and
-  `ADVISORY_KEY_HEX_DIGITS` (`:9`, `:28-35`) have no
-  product caller, and 'two first-writers: one 201, not
-  a double insert' (`tests/pg-races.test.ts:622-679`)
-  holds a lock the product never takes, so its hold
-  bites nothing. Oracle: the module's name says what it holds,
-  `advisoryKey` leaves with its tests, and the race test
-  holds only what the product holds
 - The If-Match race holds a row the product never locks.
   'If-Match race: one 200, one 412'
-  (`tests/pg-races.test.ts:681-760`) takes `SELECT … FOR
-  UPDATE` on the flow's live head (`:715-721`), a row no
+  (`tests/pg-races.test.ts:651-730`) takes `SELECT … FOR
+  UPDATE` on the flow's live head (`:685-691`), a row no
   product statement locks — a flow write locks only its
   organization's genesis row, and two writers on one head
   part at the ledger statement — so its hold bites
-  nothing, and `delay(300)` (`:744`) is a timer that only
+  nothing, and `delay(300)` (`:714`) is a timer that only
   hopes both PUTs reach their head read while it holds.
   The one 200 and one 412 come from the ledger statement
   whatever the hold does. Oracle: the pin forces both PUTs
@@ -3436,9 +3424,7 @@ Off the critical path; each with its oracle.
   `tests/api-facade-write-preconditions.test.ts:26`,
   `web-app/app/flow-operations.ts:720`, `:875`);
   `api/request-context.ts:42-45` keeps `requestAt` in
-  a requests row,
-  `api/postgres-client.ts:2-3` taking advisory locks
-  inside `begin`, `api/backend-memory.ts:47` and
+  a requests row, `api/backend-memory.ts:47` and
   `api/store-serializer.ts:7` ordering cross-process by
   advisory locks, and ARCHITECTURE.md:230-235 calling
   reads an open write-gate transaction's; and one
@@ -3463,12 +3449,8 @@ Off the critical path; each with its oracle.
   `lockDocument`, `lockHead`). The table is
   `fa_message_pairs` (`api/schema-postgres.ts:4`)
   and its indexes are `fa_message_pairs_*`
-  (`:262-275`). `advisoryKey` runs only in tests
-  (`tests/advisory-lock.test.ts:42`,
-  `tests/pg-races.test.ts:629`); `begin` takes no
-  lock (`api/postgres-client.ts:66-79`). The
-  comment that says it does is the absent-code
-  bullet's. `## Sequencing` still hands this
+  (`:262-275`). `advisoryKey` is gone, and `begin`
+  takes no lock. `## Sequencing` still hands this
   report's findings to 0f, 6, 9, 11, and 13. Mark
   the report historical, or revise the names and
   drop the locks that left; a finding the code
