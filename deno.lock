@@ -13,7 +13,7 @@
     "jsr:@std/path@^1.1.5": "1.1.6",
     "jsr:@std/path@^1.1.6": "1.1.6",
     "jsr:@std/testing@1.0.21": "1.0.21",
-    "npm:postgres@3.4.9": "3.4.9"
+    "npm:postgres@4.1.1": "4.1.1"
   },
   "jsr": {
     "@std/assert@1.0.19": {
@@ -57,8 +57,8 @@
     }
   },
   "npm": {
-    "postgres@3.4.9": {
-      "integrity": "sha512-GD3qdB0x1z9xgFI6cdRD6xu2Sp2WCOEoe3mtnyB5Ee0XrrL5Pe+e4CCnJrRMnL1zYtRDZmQQVbvOttLnKDLnaw=="
+    "postgres@4.1.1": {
+      "integrity": "sha512-1kJDojqNZC+iTHHXh6eif0J98LUtyLAePe/qkW1GK35eh2JixlsAiIKq3FGI+xqI+SUGTNodzf7TScVeIIyUug=="
     }
   },
   "workspace": {
@@ -67,7 +67,7 @@
       "jsr:@std/fs@1.0.24",
       "jsr:@std/path@1.1.6",
       "jsr:@std/testing@1.0.21",
-      "npm:postgres@3.4.9"
+      "npm:postgres@4.1.1"
     ]
   }
 }

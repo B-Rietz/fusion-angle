@@ -18,10 +18,16 @@ pages and the API on one origin via
 `finished` with the `drainMs` abort. Static
 files stream from `Deno.open`, which reads
 the compiled file system. The site and
-postgres.js 3.4.9 are embedded at compile
+postgres.js 4.1.1 are embedded at compile
 time; the permission covenant (`--allow-net`
 and a scoped `--allow-env`, no
 `--allow-read`) is baked in then too. The
+`--allow-env` list in `bin/build` (mirrored in
+`bin/develop`) must name every variable the
+driver reads: postgres.js reads `PG<OPTION>` for
+each option the caller leaves unset, and an
+unlisted read throws in the binary only, since
+the test runners grant all env. The
 process is `server/boot.ts` behind
 `fusion-angle serve`. The client is a fetch
 facade (`web-app/app/server-core.ts`).
@@ -57,7 +63,7 @@ compose. The Dockerfile `CMD` is
 `cd render-out && exec ./fusion-angle serve`
 with no env copy.
 
-postgres.js 3.4.9 is embedded behind
+postgres.js 4.1.1 is embedded behind
 `api/postgres-client.ts` only (named exception).
 localStorage holds UI preferences only — sidebar, log
 level, active organization id — never data.

@@ -43,7 +43,7 @@ invokes `node` or `npm` (pinned by
 none`. `deno.json` and `deno.lock` are the whole dependency
 surface, and Deno resolves the `node:` and `npm:`
 specifiers in them itself. A `node:` specifier is
-therefore not a `node` process: `npm:postgres@3.4.9`
+therefore not a `node` process: `npm:postgres@4.1.1`
 needs no npm CLI, and a `node:path` import resolves with
 no `node` binary on `PATH` at all.
 

@@ -3914,7 +3914,7 @@ Off the critical path; each with its oracle.
   `./bin/measure --profile` run placing parse/stringify
   above the budgets' noise — the item activates on that
   number, not before.
-- Replace `npm:postgres@3.4.9` with `jsr:@db/postgres`
+- Replace `npm:postgres@4.1.1` with `jsr:@db/postgres`
   behind `api/postgres-client.ts` (spec:
   `docs/superpowers/specs/2026-08-21-deno-postgres-driver-design.md`),
   at `@db/postgres` 1.0 or on measured `./bin/measure`
