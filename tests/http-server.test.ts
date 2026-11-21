@@ -662,7 +662,7 @@ async () => {
     assert(expected !== undefined, 'worktree commit');
     assert(expected.subject !== undefined, 'HEAD subject');
     assert(expected.committedAt !== undefined, 'HEAD time');
-    assert(expected.merges !== undefined, 'HEAD merges');
+    assert(expected.history !== undefined, 'HEAD history');
     // An age is read at the request's own clock: each is
     // checked for its shape, and set aside.
     const unaged = (
@@ -675,24 +675,24 @@ async () => {
         const res = await fetch(base + '/status', JSON_ASK);
         assertStrictEquals(res.status, HTTP_OK);
         const document = await res.json();
-        const merges: Record<string, unknown>[] =
-            document['git-merges'];
+        const history: Record<string, unknown>[] =
+            document['git-history'];
         assertEquals(unaged(document), {
             'git-sha': expected.sha,
             'git-subject': expected.subject,
             'git-committed-at': expected.committedAt,
             up: true,
             components: { api: 'up' },
-            'git-merges': merges,
+            'git-history': history,
         });
         assertEquals(
-            merges.map(unaged),
-            expected.merges?.map((merge) => ({
-                'git-sha': merge.sha,
-                ...(merge.subject !== undefined
-                    ? { 'git-subject': merge.subject }
+            history.map(unaged),
+            expected.history?.map((entry) => ({
+                'git-sha': entry.sha,
+                ...(entry.subject !== undefined
+                    ? { 'git-subject': entry.subject }
                     : {}),
-                'git-committed-at': merge.committedAt,
+                'git-committed-at': entry.committedAt,
             })),
         );
     });
@@ -717,8 +717,8 @@ async () => {
         const page = await fetch(base + '/status');
         assertStringIncludes(
             await page.text(),
-            '<p class="git-subject text-sm">\n'
-            + '&lt;b&gt;&quot;it\'s&quot; \\ ${x} é\n</p>',
+            '<p class="git-subject text-base">'
+            + '&lt;b&gt;&quot;it\'s&quot; \\ ${x} é</p>',
         );
     }, { sha: STATUS_SHA, subject });
 });
@@ -897,7 +897,7 @@ async () => {
         assertHtmlStatus(res, html, HTTP_OK);
         assertStringIncludes(html, STATUS_SHA);
         assertStringIncludes(
-            html, 'class="git-sha font-mono text-sm"',
+            html, 'class="git-sha font-mono text-foreground"',
         );
         assertEquals(html.includes('break-all'), false);
         assertStringIncludes(

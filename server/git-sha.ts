@@ -1,8 +1,8 @@
 // The commit the process is running: its sha, subject, and
-// commit time, and the merges before it on its first-parent
-// line. Every source speaks one commit log: a line per
-// commit, `%H %ct %s`, the running commit first and its
-// merges after, newest first. Callers pass a commit
+// commit time, and its history, the commits before it on
+// its first-parent line. Every source speaks one commit
+// log: a line per commit, `%H %ct %s`, the running commit
+// first and its history after, newest first. Callers pass a commit
 // captured at start. A missing one is read here. The
 // compiled binary has no git and no run permission, so a
 // failed read is absence, not a crash.
@@ -16,7 +16,7 @@ const GIT_SHA = /^[0-9a-f]{40}$/;
 const COMMIT_LINE = /^([0-9a-f]{40}) ([0-9]{1,12}) ?(.*)$/;
 const SECOND_MS = 1_000;
 
-export const MERGES_SHOWN = 10;
+export const HISTORY_SHOWN = 10;
 
 // The shell twin is commit_log in bin/build-lib.
 const LOG_FORMAT = '--format=%H %ct %s';
@@ -63,9 +63,9 @@ function commitOfLine(line: string): Commit | undefined {
 }
 
 // A log whose first line is no commit has none to report.
-// A merge line that is no commit drops the merges: absent
-// beats wrong. The running commit, a merge itself, is not
-// one of its own merges.
+// A history line that is no commit drops the history:
+// absent beats wrong. The second log starts at the running
+// commit, which is not its own history.
 export function commitLogOf(
     text: string,
 ): RunningCommit | undefined {
@@ -74,13 +74,13 @@ export function commitLogOf(
     if (first === undefined) return undefined;
     const head = commitOfLine(first);
     if (head === undefined) return undefined;
-    const merges: Commit[] = [];
+    const history: Commit[] = [];
     for (const line of lines.slice(1)) {
-        const merge = commitOfLine(line);
-        if (merge === undefined) return head;
-        if (merge.sha !== head.sha) merges.push(merge);
+        const entry = commitOfLine(line);
+        if (entry === undefined) return head;
+        if (entry.sha !== head.sha) history.push(entry);
     }
-    return { ...head, merges: merges.slice(0, MERGES_SHOWN) };
+    return { ...head, history: history.slice(0, HISTORY_SHOWN) };
 }
 
 // The build carries the log as base64, so no byte of a
@@ -125,11 +125,11 @@ export async function readWorktreeCommit(): Promise<
     try {
         const head = await gitLog(['-1', 'HEAD']);
         if (head === undefined) return undefined;
-        const merges = await gitLog([
-            '--merges', '--first-parent',
-            '-n', String(MERGES_SHOWN + 1), 'HEAD',
+        const history = await gitLog([
+            '--first-parent',
+            '-n', String(HISTORY_SHOWN + 1), 'HEAD',
         ]);
-        return commitLogOf(head + (merges ?? ''));
+        return commitLogOf(head + (history ?? ''));
     } catch {
         return undefined;
     }
@@ -151,8 +151,8 @@ function judgedCommit(commit: Commit): Commit | undefined {
     };
 }
 
-// A merge that fails judgment drops the merges, as a bad
-// merge line does in the log.
+// An entry that fails judgment drops the history, as a bad
+// history line does in the log.
 export async function runningCommitFor(
     given: RunningCommit | undefined,
 ): Promise<RunningCommit | undefined> {
@@ -160,12 +160,12 @@ export async function runningCommitFor(
     if (commit === undefined) return undefined;
     const head = judgedCommit(commit);
     if (head === undefined) return undefined;
-    if (commit.merges === undefined) return head;
-    const merges: Commit[] = [];
-    for (const candidate of commit.merges) {
-        const merge = judgedCommit(candidate);
-        if (merge === undefined) return head;
-        merges.push(merge);
+    if (commit.history === undefined) return head;
+    const history: Commit[] = [];
+    for (const candidate of commit.history) {
+        const entry = judgedCommit(candidate);
+        if (entry === undefined) return head;
+        history.push(entry);
     }
-    return { ...head, merges: merges.slice(0, MERGES_SHOWN) };
+    return { ...head, history: history.slice(0, HISTORY_SHOWN) };
 }

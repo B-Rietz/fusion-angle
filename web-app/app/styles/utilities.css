@@ -89,6 +89,7 @@
 
 /* Colors */
 .text-foreground { color: hsl(var(--foreground)); }
+.text-soft { color: hsl(var(--soft-foreground)); }
 .text-muted { color: hsl(var(--muted-foreground)); }
 .text-primary { color: hsl(var(--primary)); }
 .text-success { color: hsl(var(--success-text)); }

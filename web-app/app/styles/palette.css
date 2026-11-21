@@ -29,6 +29,9 @@
     /* Semantic: Muted */
     --muted: var(--gray-700);
     --muted-foreground: var(--gray-400);
+    /* Between muted and foreground: the status history's
+       subject. */
+    --soft-foreground: var(--gray-300);
 
     /* Accent variants (tinted backgrounds and text).
         --accent-text on --accent-soft measures 8.76:1

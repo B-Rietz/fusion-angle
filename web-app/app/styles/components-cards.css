@@ -159,3 +159,12 @@
 .status-name:hover {
     text-decoration: underline;
 }
+
+/* The rule takes the card's own border colour, so it
+   tints with each tone. It must be a direct child of
+   .status-card for inherit to reach the card. */
+.status-rule {
+    border: none;
+    border-top: 1px solid;
+    border-top-color: inherit;
+}

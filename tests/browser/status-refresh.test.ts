@@ -22,6 +22,7 @@ const STATUS = {
 };
 const UNCHANGED_MS = 3_000;
 const HELD_MS = 3_000;
+const RELOAD_MS = 10_000;
 
 // The table's first two rungs, and a skew of the page's
 // clock past the first.
@@ -97,6 +98,28 @@ function lastWaitIs(page: Page, waitMs: number): Promise<boolean> {
     );
 }
 
+// A reload destroys the context an evaluate may be
+// in; that one error means "not yet", any other fails.
+async function untilAcrossReload(
+    page: Page, expression: string, label: string,
+): Promise<void> {
+    const deadline = Date.now() + RELOAD_MS;
+    while (Date.now() < deadline) {
+        try {
+            if (await page.evaluate<boolean>(expression)) {
+                return;
+            }
+        } catch (error) {
+            if (!(error instanceof Error)
+                || !/context/i.test(error.message)) {
+                throw error;
+            }
+        }
+        await new Promise((r) => setTimeout(r, 100));
+    }
+    throw new Error(label + ' timed out');
+}
+
 Deno.test('the status card changes without a reload',
 async () => {
     await withStatusPage(async (page, origin) => {
@@ -142,9 +165,39 @@ async () => {
     });
 });
 
+Deno.test('a new status script reloads the page', async () => {
+    await withStatusPage(async (page) => {
+        await cardReads(page, 'success|UP|');
+        await page.evaluate(`(() => {
+            window.kept = true;
+            const send = window.fetch;
+            window.fetch = async (...args) => {
+                const response = await send(...args);
+                const html = await response.text();
+                return new Response(html.replace(
+                    /status-refresh\\.[0-9a-f]+\\.js/,
+                    'status-refresh.0000000000000000.js',
+                ), {
+                    status: response.status,
+                    headers: response.headers,
+                });
+            };
+        })()`);
+        await untilAcrossReload(
+            page,
+            `window.kept === undefined
+                && !!document.getElementById('status-card')`,
+            'the reloaded page',
+        );
+        await page.evaluate('window.settled = true');
+        await stays(page, 'window.settled === true', UNCHANGED_MS);
+    });
+});
+
 Deno.test('no answer shows the timeout card', async () => {
     await withStatusPage(async (page, origin) => {
         await cardReads(page, 'success|UP|');
+        await page.evaluate('window.kept = true');
         await withHeldRequests(
             page, origin.baseUrl + '/status', () => true,
             async (hold) => {
@@ -153,6 +206,10 @@ Deno.test('no answer shows the timeout card', async () => {
                 hold.stopHolding();
                 await cardReads(page, 'success|UP|');
             },
+        );
+        assertEquals(
+            await page.evaluate<boolean>('window.kept === true'),
+            true,
         );
     });
 });
@@ -251,11 +308,11 @@ function agingStatus(): Parameters<typeof startOrigin>[0] {
         commit: {
             ...STATUS.commit,
             committedAt: new Date(committedMs).toISOString(),
-            merges: [{
+            history: [{
                 sha: 'fedcba9876543210fedcba9876543210fedcba98',
-                subject: 'Land the merge before',
+                subject: 'Land the commit before',
                 committedAt: new Date(
-                    committedMs - 60_000,
+                    committedMs - 1_000,
                 ).toISOString(),
             }],
         },
@@ -264,18 +321,27 @@ function agingStatus(): Parameters<typeof startOrigin>[0] {
 
 const AGE = `document.querySelector('#status-card .git-age')
     .textContent`;
+const HISTORY_AGE = `document.querySelector(
+    '#status-card ol .git-age').textContent`;
 
 Deno.test('a ticking age keeps the card and backs off',
 async () => {
     await withStatusPage(async (page) => {
         await cardReads(page, 'success|UP|');
         const first = await page.evaluate<string>(AGE);
+        const firstHistory = await page.evaluate<string>(
+            HISTORY_AGE,
+        );
         await page.evaluate(
             `document.getElementById('status-card').kept = true`,
         );
         await page.until<boolean>(
             `${AGE} !== ${JSON.stringify(first)}`,
             'the age ticks',
+        );
+        await page.until<boolean>(
+            `${HISTORY_AGE} !== ${JSON.stringify(firstHistory)}`,
+            'the history age ticks',
         );
         assertEquals(
             await page.evaluate<boolean>(
@@ -295,21 +361,76 @@ async () => {
     }, agingStatus());
 });
 
-Deno.test('the merges sit below the live card', async () => {
+Deno.test('the history sits inside the live card', async () => {
     await withStatusPage(async (page) => {
         assertEquals(
             await page.evaluate<string>(`(() => {
-                const merges = document
-                    .getElementById('status-merges');
+                const ol = document
+                    .querySelector('#status-card ol');
                 return [
-                    merges.previousElementSibling.id,
-                    merges.querySelector('.git-subject')
-                        .textContent.trim(),
-                    merges.querySelector('.git-age')
-                        .textContent,
+                    !!ol.closest('#status-live'),
+                    ol.querySelector('.git-subject').textContent,
+                    /^\\d+ seconds ago$/.test(
+                        ol.querySelector('.git-age').textContent,
+                    ),
+                    document.getElementById('status-merges')
+                        === null,
                 ].join('|');
             })()`),
-            'status-live|Land the merge before|1 minute ago',
+            'true|Land the commit before|true|true',
+        );
+    }, agingStatus());
+});
+
+// Ten entries make the card taller than a 400px viewport.
+function longHistoryStatus(): Parameters<typeof startOrigin>[0] {
+    return {
+        ...STATUS,
+        commit: {
+            ...STATUS.commit,
+            history: Array.from({ length: 10 }, (_, index) => ({
+                sha: (index + 1).toString(16).padStart(40, '0'),
+                subject: 'Land commit ' + (index + 1),
+            })),
+        },
+    };
+}
+
+Deno.test('the card keeps whitespace at a short height',
+async () => {
+    await withStatusPage(async (page) => {
+        await page.setViewport(1280, 400, false);
+        await page.until<boolean>(`(() => {
+            scrollTo(0, 0);
+            const card = document.getElementById('status-card')
+                .getBoundingClientRect();
+            return [
+                card.height > innerHeight,
+                card.top >= 32,
+                document.documentElement.scrollHeight
+                    - card.bottom >= 32,
+            ].join('|') === 'true|true|true';
+        })()`, 'whitespace around a tall card');
+    }, longHistoryStatus());
+});
+
+Deno.test('each commit line is one line tall', async () => {
+    await withStatusPage(async (page) => {
+        // The card is in the DOM before the stylesheet
+        // applies; measure the styled line.
+        await page.until<boolean>(
+            `document.readyState === 'complete'`,
+            'the styled page',
+        );
+        assertEquals(
+            await page.evaluate<string>(`[
+                ...document.querySelectorAll(
+                    '#status-card p:has(> .git-sha)'),
+            ].map((line) => Math.abs(
+                line.getBoundingClientRect().height
+                - parseFloat(getComputedStyle(line).lineHeight),
+            ) < 0.5).join(',')`),
+            'true,true',
         );
     }, agingStatus());
 });

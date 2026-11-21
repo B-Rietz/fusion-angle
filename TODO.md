@@ -355,7 +355,8 @@ code comments cite; specs and plans written before the
   variable (`RENDER_GIT_COMMIT`), a name that stays at
   the edge (item 0e). Today the build embeds the
   commit log — the sha, subject, and commit time, then
-  the ten merges before it (`embeddedCommit`,
+  the ten commits before it on its first-parent
+  line (`embeddedCommit`,
   `server/git-sha.ts`) — and `/status` and
   `/api/status` report it. How the page bundle
   learns it — embedded at build, or served — is this

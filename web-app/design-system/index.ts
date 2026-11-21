@@ -436,6 +436,10 @@ export function buildDesignSystemPage(): SafeHtml {
                     '--foreground',
                 )}
                 ${buildColorSwatch(
+                    'Soft Foreground',
+                    '--soft-foreground',
+                )}
+                ${buildColorSwatch(
                     'Card', '--card',
                 )}
                 ${buildColorSwatch(
@@ -502,6 +506,11 @@ export function buildDesignSystemPage(): SafeHtml {
                     'text-sm',
                     'Dense body text for '
                     + 'tables and lists',
+                )}
+                ${buildTypographyRow(
+                    'text-xsm',
+                    'text-xsm',
+                    'Status history lines',
                 )}
                 ${buildTypographyRow(
                     'text-xs',

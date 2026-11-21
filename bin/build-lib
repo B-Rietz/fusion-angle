@@ -131,14 +131,13 @@ bundle_client() {
 }
 
 # Print the commit log /status reads, from the repository
-# at DIR: REV's line, then the merges on its first-parent
-# line, newest first, one `%H %ct %s` line each. The
-# eleventh merge covers a REV that is itself a merge;
-# server/git-sha.ts keeps ten.
+# at DIR: REV's line, then REV's first-parent line from
+# REV itself, newest first, one `%H %ct %s` line each;
+# server/git-sha.ts drops REV and keeps ten.
 commit_log() {
     local dir="$1" rev="$2"
     git -C "$dir" log -1 --format='%H %ct %s' "$rev" \
-        && git -C "$dir" log --merges --first-parent -n 11 \
+        && git -C "$dir" log --first-parent -n 11 \
             --format='%H %ct %s' "$rev"
 }
 
@@ -148,7 +147,7 @@ commit_log() {
 # under `if !` runs with set -e off. The scratch
 # repository sits under TMPDIR, outside the source tree,
 # and holds commit objects alone. The shallow fetch keeps
-# the history the log reads; a merge past it is absent.
+# the history the log reads; a commit past it is absent.
 fetched_commit() {
     local url="$1" sha="$2" scratch fetched log
     scratch=$(mktemp -d \

@@ -14,11 +14,11 @@ Deno.test('design-system render is byte-stable',
 async () => {
     const rendered = buildDesignSystemPage().toString();
     const digest = await sha256Hex(rendered);
-    assertStrictEquals(rendered.length, 57912);
+    assertStrictEquals(rendered.length, 58301);
     assertStrictEquals(
         digest,
-        '8be908cf7544f2e4dfca2bd010b240b646de3899'
-        + '3e7abfd4aa3aff44afaf873a',
+        '36cb3e9f27257e288f1bdaa1964b751bc1516861'
+        + '389348ca4ec78d81c43a7d6f',
     );
 });
 
@@ -44,4 +44,26 @@ Deno.test('the showcase shows the organization screens',
         rendered, 'This page is in Wayne Enterprises');
     assertStringIncludes(
         rendered, "You don't have access to this page");
+});
+
+Deno.test('the showcase shows the status history tokens',
+() => {
+    const rendered = buildDesignSystemPage().toString();
+    assertStringIncludes(rendered, '<p class="text-xsm">');
+    assertStringIncludes(
+        rendered,
+        'color-swatch-block bg-soft-foreground',
+    );
+    assertStringIncludes(
+        rendered, '--soft-foreground</code>',
+    );
+    const css = Deno.readTextFileSync(
+        'web-app/app/styles/pages-design-system.css',
+    );
+    assertStringIncludes(
+        css,
+        '.bg-soft-foreground {\n'
+        + '    background-color:'
+        + ' hsl(var(--soft-foreground));\n}',
+    );
 });
