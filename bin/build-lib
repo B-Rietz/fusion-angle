@@ -141,6 +141,30 @@ commit_log() {
             --format='%H %ct %s' "$rev"
 }
 
+# Print the commit log of DIR's HEAD as one line of
+# base64, for a local Docker build: the image gets a
+# worktree's .git, which names a directory on the host,
+# so the build cannot read the log itself.
+host_commit_log_base64() {
+    local dir="$1" log
+    log=$(commit_log "$dir" HEAD) || return 1
+    printf '%s' "$log" | base64 | tr -d '\n'
+}
+
+# Print the log host_commit_log_base64 encoded; print
+# nothing and fail unless its first word is a 40-hex sha.
+decoded_commit_log() {
+    local log sha
+    log=$(printf '%s' "$1" | base64 -d 2>/dev/null) \
+        || return 1
+    sha=${log%% *}
+    case $sha in
+        ''|*[!0-9a-f]*) return 1 ;;
+    esac
+    [ "${#sha}" -eq 40 ] || return 1
+    printf '%s\n' "$log"
+}
+
 # Print SHA's commit log, as fetched from URL with no
 # credential; print nothing and fail when any git call
 # fails or the fetch answers another commit: a caller
