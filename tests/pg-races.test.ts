@@ -38,10 +38,8 @@ import {
     createArchiveDelta,
     createArchiveGraph,
 } from './fixtures/create-archive-graph.ts';
-import {
-    advisoryKey,
-    POOL_MAX,
-} from '../api/advisory-lock.ts';
+import { advisoryKey } from '../api/advisory-lock.ts';
+import { openPoolToFullWidth } from './fixtures/open-pool.ts';
 
 // Live Postgres races: first-writer, If-Match, a second
 // genesis, a seat removal under a flow PUT, a flow PUT
@@ -599,15 +597,7 @@ if (POSTGRES_URL === undefined || POSTGRES_URL === '') {
         );
         await backend.ensureTable();
         await seedAdminSchema(db);
-        // Open the pool to its full width here: a
-        // pooled connection starts a max_lifetime
-        // timer when its socket connects, and the ops
-        // sanitizer blames whichever test first widens
-        // the pool. Every timer must predate test one.
-        await Promise.all(Array.from(
-            { length: POOL_MAX },
-            () => sql.query`SELECT 1`,
-        ));
+        await openPoolToFullWidth(sql);
     });
 
     Deno.test.afterAll(async () => {
