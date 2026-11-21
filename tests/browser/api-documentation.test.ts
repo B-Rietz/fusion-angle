@@ -308,3 +308,57 @@ async () => {
         await closeDocs(origin, page);
     }
 });
+
+const LAPTOP_VIEWPORTS = [
+    { width: 1440, height: 900 },
+    { width: 1280, height: 800 },
+] as const;
+
+// The widest reach of any elevation label past the
+// svg's right edge, or past the viewport's if that is
+// nearer, in CSS pixels; zero or less means it fits.
+const ELEVATION_TEXT_OVERRUN = `(() => {
+    const svg = document.querySelector(
+        '#api-elevation svg');
+    const edge = Math.min(
+        svg.getBoundingClientRect().right, innerWidth);
+    let worst = { overrun: -Infinity, text: '' };
+    for (const text of svg.querySelectorAll('text')) {
+        const overrun =
+            text.getBoundingClientRect().right - edge;
+        if (overrun > worst.overrun) {
+            worst = { overrun, text: text.textContent };
+        }
+    }
+    return worst;
+})()`;
+
+for (const viewport of LAPTOP_VIEWPORTS) {
+    Deno.test(
+        `the elevation fits a ${viewport.width}px laptop`,
+    async () => {
+        const { origin, page } = await openDocs('');
+        try {
+            // Desktop emulation, as a laptop browser
+            // full screen draws it.
+            await page.setViewport(
+                viewport.width, viewport.height, false,
+            );
+            await page.until(
+                `innerWidth === ${viewport.width}`,
+                'laptop viewport width',
+            );
+            const worst = await page.evaluate<{
+                overrun: number;
+                text: string;
+            }>(ELEVATION_TEXT_OVERRUN);
+            assert(
+                worst.overrun <= 0,
+                `"${worst.text}" runs ${worst.overrun}px`
+                + ` past the elevation's right edge`,
+            );
+        } finally {
+            await closeDocs(origin, page);
+        }
+    });
+}
