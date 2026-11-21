@@ -439,6 +439,9 @@ async function seededBound(): Promise<{
         'XXZruirZyAOoRpNxaDnpSA', ORGANIZATION_B,
     );
     await seedFlow(db, adminToken);
+    // Both before the flow's record join below: a work
+    // order created ahead of it is unbound, which
+    // WO_UNBOUND stays.
     await seedWorkOrder(db, adminToken, WO_ID);
     await seedWorkOrder(db, adminToken, WO_UNBOUND);
     await seedLiveType(db, adminToken);

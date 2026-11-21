@@ -320,7 +320,7 @@ not repeat the note in every case.
   finds the inbox already loaded does not call
   `getEntries()` there. They witness the pair once,
   in this order: a claimed-by-me action screen
-  (create still birth-claims, or drag onto
+  (a live create birth-claims and binds, or drag onto
   claimed-by-me first), fill, arm the read, click
   `submit`, and snapshot before the inbox document
   commits (with arming (a), enabled before
@@ -383,18 +383,15 @@ not repeat the note in every case.
   element was hit twice.
 - F70: if the Industry row is not in the open
   panel, DEFERRED on F69.
-- R14: `eOlNZpGQfmCdpSFWXGkzFQ` is unbound;
-  bind-at-creation is later. There is no
-  action-screen picker; do not invent one. No
-  seeded bound Data Capture work order exists;
-  seeded bound WO01 is already Archive. Drive a
-  bound claimed-by-me Data Capture screen only
-  when one exists (seeded bound WO, or
-  create after bind-at-creation). If none exists,
-  BLOCKED naming that. A value-bearing transition
-  while unbound is 400, not 409; 409 is rebind.
-  Create still birth-claims and does not bind.
-  Opening does not claim.
+- R14: create a work order on Customer Onboarding
+  from the Workbox. The create binds a fresh, empty
+  Customer Profile instance and birth-claims, so its
+  action screen is a bound claimed-by-me Data
+  Capture screen. There is no action-screen picker;
+  do not invent one. `eOlNZpGQfmCdpSFWXGkzFQ` stays
+  unbound, and seeded bound WO01 is already Archive.
+  A value-bearing transition while unbound is 400,
+  not 409; 409 is rebind. Opening does not claim.
 - R16: PASS if the Instances section lists at least
   one instance with id + readable values. `Acme Corp`
   and `Walk Co B` are both this walk's instance.
@@ -406,22 +403,18 @@ not repeat the note in every case.
   'chip toggles persist on save and reload (AA9)'
   decides the save. If the chips do not toggle,
   record BLOCKED naming that. Do not FAIL.
-- WB11: from a claimed-by-me action screen (create
-  still birth-claims, or drag onto claimed-by-me
+- WB11: from a claimed-by-me action screen (a live
+  create on Customer Onboarding birth-claims and
+  binds a fresh instance; or drag onto claimed-by-me
   first), fill, submit. Opening inspects; bind is
   gone. Layer 2 pin
   tests/browser/workbox-transition.test.ts
   'fill and submit navigates to the inbox
-  (WB11)' binds a genesis instance via API first,
-  then fills; it decides the inbox navigation.
-  Drive a bound claimed-by-me Data Capture screen
-  when one exists (seeded bound WO, or create after
-  bind-at-creation). A live unbound create + fill +
-  submit that 400s `work order has no instance
-  binding` is BLOCKED, naming unbound create and no
-  bind chrome. One attempt. WB16's read is armed
-  before this `submit`, in the same turn (Driving
-  notes, WB11/WB16).
+  (WB11)' creates through the page, fills, and
+  submits; it decides the inbox navigation. One
+  attempt. WB16's read is armed before this
+  `submit`, in the same turn (Driving notes,
+  WB11/WB16).
 - WB19a/WB19b: drive while the bound WO is still
   Active, before WB14. If WB14 already archived it,
   DEFERRED on WB14, not FAIL. Layer 1 pins decide
@@ -505,11 +498,6 @@ exploratory half (no Layer 1 pin renders the live
 Customer Profile list).
 WB19a/WB19b when the bound WO is already archived:
 DEFERRED on WB14. Layer 1 pins decide the 412.
-A live WB11 or WB16 400 for no instance binding
-is BLOCKED, not FAIL, while those pins are green.
-WB19, WB19a, WB19b, WB14, and WB15 stay DEFERRED
-on WB11 until a bound Active WO exists from
-WB11–WB13.
 I21 skeleton miss without the Fetch pause:
 BLOCKED naming that. A miss with the pause in
 place is FAIL of the exploratory half.
@@ -4577,7 +4565,9 @@ gesture pans instead of dragging, marquee-ing, or connecting.
 
 ### Workbox — Transitions
 
-- [ ] **WB11** On a claimed-by-me action screen, fill
+- [ ] **WB11** On a claimed-by-me action screen (a
+  live create on Customer Onboarding binds a fresh
+  instance and birth-claims), fill
   Company Name and Contact Email, click `submit` →
   Review. PASS: transition POSTs
   `work-orders/:id/transition` (200), work order moves
@@ -4606,9 +4596,8 @@ gesture pans instead of dragging, marquee-ing, or connecting.
   once, per that note. If the transition POST is
   missing because navigation dropped an unarmed
   buffer, record BLOCKED naming that — an honest
-  BLOCKED costs nothing. A missing 200 because the
-  work order is unbound is BLOCKED, same reason as
-  WB11. There is no submit-time binding PUT. PASS:
+  BLOCKED costs nothing. There is no submit-time
+  binding PUT. PASS:
   the transition POST is `work-orders/:id/transition`
   (200) whose body
   is the **instance shape** (`targetState`, `instance_id`,
@@ -7260,30 +7249,35 @@ K30 only describes.
        tests/mock-data-records.test.ts 'the
        gate-violation work order has a current node
        with at least one required attribute with a
-       null stored value'; exploratory — the action
+       null stored value';
+       tests/mock-data-records.test.ts 'seeded work
+       orders are created before their flow's record
+       join, so the gate-violation work order stays
+       unbound'; exploratory — the action
        screen's disabled inputs; no bind prompt
-- [ ] **R14** `eOlNZpGQfmCdpSFWXGkzFQ` is unbound;
-  bind-at-creation is later. There is no
-  action-screen picker; do not invent one.
-  Opening inspects. No seeded bound Data
-  Capture work order exists; seeded bound WO01 is
-  already Archive. Drive a bound claimed-by-me Data
-  Capture screen only when one exists. If none
-  exists, BLOCKED naming that. Fill Company Name +
-  Contact Email and click submit. PASS: transition
-  succeeds; work order advances to Review (does NOT
-  demand Reviewer Notes — that is current-node only
-  when leaving Review). A value-bearing transition
-  while still unbound is refused with 400
-  (`ValidationError` → `HTTP_BAD_REQUEST`), not 409;
-  409 is rebind. Create still birth-claims; it does
-  not bind.
+- [ ] **R14** Create a work order on Customer
+  Onboarding from the Workbox. The create binds a
+  fresh, empty Customer Profile instance and
+  birth-claims. There is no action-screen picker; do
+  not invent one. On its claimed-by-me Data Capture
+  screen, fill Company Name + Contact Email and click
+  submit. PASS: transition succeeds; work order
+  advances to Review (does NOT demand Reviewer Notes
+  — that is current-node only when leaving Review).
+  `eOlNZpGQfmCdpSFWXGkzFQ` stays unbound: a
+  value-bearing transition on an unbound work order
+  is refused with 400 (`ValidationError` →
+  `HTTP_BAD_REQUEST`), not 409; 409 is rebind.
   Pin: tests/adapters-record-transitions.test.ts
        'validateRecordTransition does not require
        TARGET-node attributes when the current node is
-       clean'; exploratory — the live fill and submit
-       on a bound claimed-by-me screen, and the 400
-       on an unbound value-bearing transition
+       clean';
+       tests/api-work-orders-create-instance.test.ts
+       'a create carrying the instance is born bound
+       and submits';
+       tests/api-work-order-transition-instance.test.ts
+       'value-bearing on UNBOUND WO → 400';
+       exploratory — the live create, fill, and submit
 - [ ] **R14a** When a node references a `radio`-typed
   Record attribute, the workbox work-order detail renders
   it as a radio group — one `<input type="radio">` per

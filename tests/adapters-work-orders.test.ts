@@ -67,6 +67,7 @@ import {
 '../client/flow-mutations.ts';
 import {
     generateIdentifier,
+    isIdentifier,
 } from
 '../shared/identifier.ts';
 import {
@@ -580,6 +581,7 @@ Deno.test(
                 ctx, 'ZOousbbnzpqlxJExVAruYQ',
             ),
             position: 42,
+            instance: { kind: 'none' },
         });
         assertStrictEquals(
             (await getWorkOrder(ctx, ids.workOrderId)).position,
@@ -768,6 +770,9 @@ async function setupScopedDb(): Promise<{
     return { db, ctx };
 }
 
+// Called after the work order is created: a work order
+// created before its flow's record join is unbound, so
+// these tests can bind it to the instance seeded here.
 async function seedTypeInstanceAndJoin(
     ctx: RequestContext,
     flowId: string,
@@ -818,8 +823,8 @@ Deno.test(
     async () => {
         const { db, ctx } = await setupScopedDb();
         await seedFlow(db, 'ZOousbbnzpqlxJExVAruYQ', buildLinearGraph());
-        await seedTypeInstanceAndJoin(ctx, 'ZOousbbnzpqlxJExVAruYQ', 'v0');
         const woId = await createWorkOrder(ctx, 'ZOousbbnzpqlxJExVAruYQ');
+        await seedTypeInstanceAndJoin(ctx, 'ZOousbbnzpqlxJExVAruYQ', 'v0');
         await putWorkOrderBinding(
             ctx, await getWorkOrder(ctx, woId), INST_ID, RT_ID,
         );
@@ -852,8 +857,8 @@ Deno.test(
     async () => {
         const { db, ctx } = await setupScopedDb();
         await seedFlow(db, 'ZOousbbnzpqlxJExVAruYQ', buildLinearGraph());
-        await seedTypeInstanceAndJoin(ctx, 'ZOousbbnzpqlxJExVAruYQ', 'v0');
         const woId = await createWorkOrder(ctx, 'ZOousbbnzpqlxJExVAruYQ');
+        await seedTypeInstanceAndJoin(ctx, 'ZOousbbnzpqlxJExVAruYQ', 'v0');
         await putWorkOrderBinding(
             ctx, await getWorkOrder(ctx, woId), INST_ID, RT_ID,
         );
@@ -902,8 +907,8 @@ Deno.test(
     async () => {
         const { db, ctx } = await setupScopedDb();
         await seedFlow(db, 'ZOousbbnzpqlxJExVAruYQ', buildLinearGraph());
-        await seedTypeInstanceAndJoin(ctx, 'ZOousbbnzpqlxJExVAruYQ', 'v0');
         const woId = await createWorkOrder(ctx, 'ZOousbbnzpqlxJExVAruYQ');
+        await seedTypeInstanceAndJoin(ctx, 'ZOousbbnzpqlxJExVAruYQ', 'v0');
         await putWorkOrderBinding(
             ctx, await getWorkOrder(ctx, woId), INST_ID, RT_ID,
         );
@@ -930,8 +935,8 @@ Deno.test(
     async () => {
         const { db, ctx } = await setupScopedDb();
         await seedFlow(db, 'ZOousbbnzpqlxJExVAruYQ', buildLinearGraph());
-        await seedTypeInstanceAndJoin(ctx, 'ZOousbbnzpqlxJExVAruYQ', 'v0');
         const woId = await createWorkOrder(ctx, 'ZOousbbnzpqlxJExVAruYQ');
+        await seedTypeInstanceAndJoin(ctx, 'ZOousbbnzpqlxJExVAruYQ', 'v0');
         await putWorkOrderBinding(
             ctx, await getWorkOrder(ctx, woId), INST_ID, RT_ID,
         );
@@ -971,8 +976,8 @@ Deno.test(
     async () => {
         const { db, ctx } = await setupScopedDb();
         await seedFlow(db, 'ZOousbbnzpqlxJExVAruYQ', buildLinearGraph());
-        await seedTypeInstanceAndJoin(ctx, 'ZOousbbnzpqlxJExVAruYQ');
         const woId = await createWorkOrder(ctx, 'ZOousbbnzpqlxJExVAruYQ');
+        await seedTypeInstanceAndJoin(ctx, 'ZOousbbnzpqlxJExVAruYQ');
         await putWorkOrderBinding(
             ctx, await getWorkOrder(ctx, woId), INST_ID, RT_ID,
         );
@@ -1087,10 +1092,10 @@ Deno.test(
         const { ctx, sent } = recordedContext(
             db, await organizationToken(),
         );
-        await seedTypeInstanceAndJoin(
+        const workOrderId = await createWorkOrder(
             ctx, 'ZOousbbnzpqlxJExVAruYQ',
         );
-        const workOrderId = await createWorkOrder(
+        await seedTypeInstanceAndJoin(
             ctx, 'ZOousbbnzpqlxJExVAruYQ',
         );
         const workOrder = await getWorkOrder(ctx, workOrderId);
@@ -1102,6 +1107,109 @@ Deno.test(
             ['PUT', workOrder.message.query('header.etag').toText()],
         ]);
         assertStrictEquals(bound.instanceId, INST_ID);
+    },
+);
+
+// ── createWorkOrderFromFlow: the instance ──
+
+// The create's one POST, as the client sent it.
+function createPostBody(
+    sent: readonly { method: string, body: string | null }[],
+): Record<string, unknown> {
+    const posts = sent.filter((r) => r.method === 'POST');
+    assertStrictEquals(posts.length, 1);
+    return JSON.parse(posts[0]!.body!) as Record<string, unknown>;
+}
+
+Deno.test(
+    'createWorkOrderFromFlow sends the instance when the'
+    + ' flow names a record type',
+    async () => {
+        const { db } = await setupScopedDb();
+        await seedFlow(
+            db, 'ZOousbbnzpqlxJExVAruYQ', buildLinearGraph(),
+        );
+        const { ctx, sent } = recordedContext(
+            db, await organizationToken(),
+        );
+        await seedTypeInstanceAndJoin(
+            ctx, 'ZOousbbnzpqlxJExVAruYQ',
+        );
+        sent.length = 0;
+        const workOrderId = await createWorkOrder(
+            ctx, 'ZOousbbnzpqlxJExVAruYQ',
+        );
+        const instance = createPostBody(sent)['instance'] as {
+            instance_id: string,
+            record_type_id: string,
+        };
+        assertStrictEquals(instance.record_type_id, RT_ID);
+        assert(isIdentifier(instance.instance_id));
+        // A fresh instance, never one that already exists.
+        assertNotStrictEquals(instance.instance_id, INST_ID);
+        const workOrder = await getWorkOrder(ctx, workOrderId);
+        assertStrictEquals(
+            workOrder.instanceId, instance.instance_id,
+        );
+        assertStrictEquals(workOrder.recordTypeId, RT_ID);
+    },
+);
+
+Deno.test(
+    'createWorkOrderFromFlow omits the instance when the'
+    + ' flow names no record type',
+    async () => {
+        const { db } = await setupScopedDb();
+        await seedFlow(
+            db, 'ZOousbbnzpqlxJExVAruYQ', buildLinearGraph(),
+        );
+        const { ctx, sent } = recordedContext(
+            db, await organizationToken(),
+        );
+        const workOrderId = await createWorkOrder(
+            ctx, 'ZOousbbnzpqlxJExVAruYQ',
+        );
+        assertStrictEquals(
+            'instance' in createPostBody(sent), false,
+        );
+        const workOrder = await getWorkOrder(ctx, workOrderId);
+        assertStrictEquals('instanceId' in workOrder, false);
+        assertStrictEquals('recordTypeId' in workOrder, false);
+    },
+);
+
+// The reporter's path: create from a flow that names a
+// record type, fill an attribute, submit. No bind step.
+Deno.test(
+    'a work order created on a flow that names a record'
+    + ' type fills and submits',
+    async () => {
+        const { db, ctx } = await setupScopedDb();
+        await seedFlow(
+            db, 'ZOousbbnzpqlxJExVAruYQ', buildLinearGraph(),
+        );
+        await seedTypeInstanceAndJoin(
+            ctx, 'ZOousbbnzpqlxJExVAruYQ',
+        );
+        const workOrderId = await createWorkOrder(
+            ctx, 'ZOousbbnzpqlxJExVAruYQ',
+        );
+        const created = await getWorkOrder(ctx, workOrderId);
+        await postWorkOrderTransition(ctx, {
+            workOrder: created,
+            edgeId: EDGE_MIDDLE_FINISH,
+            values: { [ATTR_ID]: 'Acme Corp' },
+        });
+        const instance = await getRecordInstance(
+            ctx, RT_ID, created.instanceId!,
+        );
+        assertStrictEquals(
+            instance.values.get(ATTR_ID), 'Acme Corp',
+        );
+        assertStrictEquals(
+            (await getWorkOrder(ctx, workOrderId)).nodeId,
+            FINISH_NODE,
+        );
     },
 );
 

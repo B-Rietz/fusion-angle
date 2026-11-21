@@ -19,7 +19,10 @@ import {
 } from '../api/routes.ts';
 import {
     deriveFlowRecords,
+    flowRecordsUriPrefix,
+    recordTypeIdsForWorkOrder,
 } from '../api/derive-flow-records.ts';
+import { workOrderHeadFor } from '../api/derive-states.ts';
 import { deriveFlows } from '../api/derive-flows.ts';
 import type {
     RecordEntity,
@@ -341,6 +344,54 @@ Deno.test(
             violations.length > 0,
             'gate WO must trip on at least one'
             + ' required CURRENT attribute',
+        );
+    },
+);
+
+// The create requires an instance once its flow names a
+// record type. The seed creates its work orders in its
+// first wave and lands the flow-record joins in its
+// second, so the gate finds no join and leaves them
+// unbound; R13 needs this one unbound. The seed shares
+// one stamp, so the ledger's order tells which came
+// first, not `response_at`.
+Deno.test(
+    'seeded work orders are created before their flow\'s'
+    + ' record join, so the gate-violation work order'
+    + ' stays unbound',
+    async () => {
+        const db = await seeded();
+        const woId = 'eOlNZpGQfmCdpSFWXGkzFQ';
+        const head = await workOrderHeadFor(
+            db, STARK_ORGANIZATION, woId,
+        );
+        assert(head !== null);
+        assertStrictEquals(head.version.instance_id, undefined);
+        assertStrictEquals(
+            head.version.record_type_id, undefined,
+        );
+        const chain = await recordTypeIdsForWorkOrder(
+            db, STARK_ORGANIZATION, woId,
+        );
+        assert(chain !== null);
+        assertEquals(
+            chain.recordTypeIds, [customerProfileRecordId],
+        );
+        const ledger = await db.messagePairs.getAll();
+        const created = ledger.findIndex(
+            (pair) => pair.name === woId,
+        );
+        const joined = ledger.findIndex(
+            (pair) => pair.path === flowRecordsUriPrefix(
+                STARK_ORGANIZATION, chain.flowId,
+            ),
+        );
+        assert(created >= 0, 'the work order has no pair');
+        assert(joined >= 0, 'the flow has no record join');
+        assert(
+            created < joined,
+            'the work order was created after its flow\'s'
+            + ' record join',
         );
     },
 );

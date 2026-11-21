@@ -3524,6 +3524,15 @@ export function validateIdentityCreateBody(
     return { id, kind };
 }
 
+// The instance a create names for its work order: the
+// key's absence is the unbound create.
+export type WorkOrderCreateInstance =
+    | { readonly kind: 'absent' }
+    | {
+        readonly kind: 'named',
+        readonly binding: WorkOrderBindingBody,
+    };
+
 export interface WorkOrderCreateBody {
     readonly id: string;
     readonly workOrder: Record<string, unknown>;
@@ -3532,11 +3541,16 @@ export interface WorkOrderCreateBody {
     readonly stateEventIds: readonly string[];
     readonly stateEventAts: readonly string[];
     readonly states: readonly string[];
+    readonly instance: WorkOrderCreateInstance;
 }
 
 const WORK_ORDER_CREATE_KEYS: readonly string[] = [
     'id', 'workOrder', 'flowWorkOrderId', 'flowWorkOrder',
     'stateEventIds', 'stateEventAts', 'states',
+];
+
+const WORK_ORDER_CREATE_OPTIONAL_KEYS: readonly string[] = [
+    'instance',
 ];
 
 // The HTTP-body gate for POST /work-orders: the work order,
@@ -3550,12 +3564,15 @@ const WORK_ORDER_CREATE_KEYS: readonly string[] = [
 // states ride parallel arrays, applied IN ORDER; authorship of
 // every event is stamped from the verified caller in the route,
 // never the body. The arrays must be equal length and exactly
-// three — the create's fixed event count.
+// three — the create's fixed event count. `instance` is
+// optional here and carries the binding body's two ids;
+// the route judges it against the flow's record joins.
 export function validateWorkOrderCreateBody(
     body: Record<string, unknown>,
 ): WorkOrderCreateBody {
     assertOnlyKeys(
         body, WORK_ORDER_CREATE_KEYS, 'WorkOrderCreateBody',
+        WORK_ORDER_CREATE_OPTIONAL_KEYS,
     );
     const id = pickIdentifier(body, 'id');
     if (id === '') {
@@ -3630,9 +3647,21 @@ export function validateWorkOrderCreateBody(
             + states.length + ' states',
         );
     }
+    const instance: WorkOrderCreateInstance = 'instance' in body
+        ? {
+            kind: 'named',
+            binding: instanceBindingOf(
+                asObject(
+                    body['instance'],
+                    'WorkOrderCreateBody.instance',
+                ),
+                'WorkOrderCreateBody.instance',
+            ),
+        }
+        : { kind: 'absent' };
     return {
         id, workOrder, flowWorkOrderId, flowWorkOrder,
-        stateEventIds, stateEventAts, states,
+        stateEventIds, stateEventAts, states, instance,
     };
 }
 
@@ -4001,21 +4030,19 @@ export interface WorkOrderBindingBody {
     readonly recordTypeId: string;
 }
 
-// Gate for PUT /work-orders/:id/binding. Two opaque ids only —
-// no timestamps, no event ids. The CURRENT bind is the work
-// order's head; rebind is 409.
-export function validateWorkOrderBindingBody(
+// The two opaque ids that name an instance of a record
+// type. Shared by the binding PUT and the create's
+// `instance` key (same wire shape, same gate); `label`
+// names the body the error reports.
+function instanceBindingOf(
     body: Record<string, unknown>,
+    label: string,
 ): WorkOrderBindingBody {
-    assertOnlyKeys(
-        body, WORK_ORDER_BINDING_KEYS,
-        'WorkOrderBindingBody',
-    );
+    assertOnlyKeys(body, WORK_ORDER_BINDING_KEYS, label);
     const instanceId = pickIdentifier(body, 'instance_id');
     if (instanceId === '') {
         throw new ValidationError(
-            'WorkOrderBindingBody.instance_id'
-            + ' must be non-empty',
+            label + '.instance_id must be non-empty',
         );
     }
     const recordTypeId = pickString(
@@ -4023,11 +4050,19 @@ export function validateWorkOrderBindingBody(
     );
     if (recordTypeId === '') {
         throw new ValidationError(
-            'WorkOrderBindingBody.record_type_id'
-            + ' must be non-empty',
+            label + '.record_type_id must be non-empty',
         );
     }
     return { instanceId, recordTypeId };
+}
+
+// Gate for PUT /work-orders/:id/binding. Two opaque ids only —
+// no timestamps, no event ids. The CURRENT bind is the work
+// order's head; rebind is 409.
+export function validateWorkOrderBindingBody(
+    body: Record<string, unknown>,
+): WorkOrderBindingBody {
+    return instanceBindingOf(body, 'WorkOrderBindingBody');
 }
 
 // The deletion/revival triple validator — eventId and

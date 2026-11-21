@@ -993,6 +993,12 @@ async function postMockDataLoadIn(
                 ),
             ),
         ),
+        // In this wave, before the flow-record joins of
+        // the next: the create requires an instance once
+        // its flow names a record type, so a seeded work
+        // order is born unbound only while no join
+        // exists. WO01 is bound afterwards, through the
+        // live op.
         ...[
             ...mockWorkOrders,
             ...leadToCloseData.workOrders,
