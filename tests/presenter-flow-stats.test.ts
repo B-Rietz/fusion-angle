@@ -312,7 +312,10 @@ Deno.test("long names truncate as the designer's", () => {
         />Quality assurance…</);
     const label = edgeGroup(html, 'e2');
     assertMatch(label, />Send back for ano…</);
-    assertMatch(label, /flow-stats-edge-label-bg"[^>]* width="138"/);
+    assertMatch(
+        label,
+        /flow-stats-edge-label-bg"[^>]* width="120\.80615234375"/,
+    );
     assertNotMatch(html, new RegExp(stateName));
     assertNotMatch(html, new RegExp(transitionName));
 });

@@ -6,9 +6,9 @@ import {
 } from '../app/loading-states.ts';
 import {
     CYCLE_DASH,
-    LABEL_CHAR_WIDTH,
-    LABEL_PADDING,
+    LABEL_FONT,
     LABEL_HEIGHT,
+    computeEdgeLabelWidth,
 } from '../app/flow-graph.ts';
 import {
     html,
@@ -203,8 +203,7 @@ function buildFlowEdgeSvg(
         ? ` stroke-dasharray="${CYCLE_DASH}"`
         : '';
     const mid = (x1 + x2) / 2;
-    const lw = label.length * LABEL_CHAR_WIDTH
-        + LABEL_PADDING;
+    const lw = computeEdgeLabelWidth(label);
     const lh = LABEL_HEIGHT;
     return trusted(
         `<svg width="${w}" height="${h}">`
@@ -232,7 +231,7 @@ function buildFlowEdgeSvg(
         + ` x="${mid}"`
         + ` y="${y + 4}"`
         + ' text-anchor="middle"'
-        + ' font-size="11"'
+        + ` font-size="${LABEL_FONT}"`
         + ` fill="${FLOW_FOREGROUND}">`
         + label + '</text>'
         + '</svg>',

@@ -61,7 +61,9 @@ attribute-level mutation per animation frame (node
 transform, affected edge `d`/label, marquee rect, viewBox
 + grid, connect-preview layer), built from the same pure
 geometry the full rebuild uses (`computeEdgeGeometry`,
-`buildConnectPreview`, `marqueeDrawRect`). The presenter
+`buildConnectPreview`, `marqueeDrawRect`), with each pair's
+return edge found by `findCycleEdgeIds` as the rebuild
+finds it. The presenter
 snapshot stays at the gesture-start state; pointer-up
 lands the final state through the sanctioned seam and a
 full rebuild. With Auto-Fit on, the camera re-fits at
@@ -255,7 +257,7 @@ pieces, so the two cannot drift:
   out. The arrangement is computed once per load; a resize
   never lays out and never fetches.
 - **Edges and labels.** `computeEdgeGeometry` and
-  `computeEdgeAimOffsets` give each edge its path, with
+  `computeEdgeLanes` give each edge its path, with
   waypoints; `computeEdgeLabelWidth`, `truncateEdgeLabel`, and
   `truncateNodeName` size and clip the labels; `NODE_WIDTH`/
   `NODE_HEIGHT` (`flow-layout.ts`) and `NODE_RADIUS`,
@@ -263,7 +265,29 @@ pieces, so the two cannot drift:
   (`flow-graph.ts`) fix the geometry; `findCycleEdgeIds`
   (`flow-cycle-edges.ts`) marks loop-backs as the designer
   does; the alert-triangle and no-entry shapes of `icons.ts`
-  draw the hazards.
+  draw the hazards. A label's box is its text's width plus
+  `LABEL_SIDE_PADDING` each side, never under
+  `LABEL_MIN_WIDTH`. The text's width is the sum of Inter
+  400's advances (`inter-400-advances.ts`) at
+  `LABEL_FONT`: a pure function, so Auto Layout's
+  reservation, both renderers, the in-gesture mutator,
+  and the design-system showcase size a label alike with
+  no DOM. A character outside the table takes the table's
+  widest advance.
+  A two-way pair draws as a lens. `u` is the unit normal
+  of the line between the two centres that points up and
+  to the left; the forward edge takes `u`'s side and the
+  return edge, the pair's loop-back by
+  `findCycleEdgeIds`, the other, so the forward edge is
+  on top of a horizontal pair and on the left of a
+  vertical one whichever way it runs. Each edge runs from
+  where its lane, `LANE_OFFSET` off the centre line,
+  leaves the source to where it enters the target, as one
+  arc bowing outward by `min(chord * BOW_FRAC, BOW_MAX)`.
+  Its label sits `LABEL_GAP` beyond the arc's apex
+  tangent, outside the pair. A routed pair keeps its
+  waypoints between the same lane points. States that
+  touch or overlap draw their pair as one-way edges.
 - **Camera.** `flow-camera.ts` (see `## Camera rules`) owns
   zoom, pan, and resize. `statsFitCamera`
   (`flow-stats-camera.ts`) is the designer's `fitBoxToCanvas`
@@ -287,13 +311,42 @@ boot layout'; 'a locked flow keeps its renderable positions';
 tests/flow-stats-parity.test.ts 'every edge path matches the
 designer'; 'every node transform matches the designer';
 'every transition label matches the designer';
+tests/flow-edge-label-width.test.ts 'the table holds printable
+ASCII and the ellipsis'; 'a character outside the table takes
+the widest advance'; 'a short and a long name both leave the
+side padding each side'; 'eighteen Ws fit their box'; 'a
+one-character name and an empty name get the minimum box'; 'a
+truncated name's box wraps its seventeen characters and the
+ellipsis'; tests/flow-graph-layout.test.ts 'Auto Layout's gap
+between two states in a row follows the label's width';
+tests/design-system-render.test.ts 'the showcase boxes each
+edge label as the designer does'; tests/browser/edge-label-width.test.ts
+'Chrome sets each tabled character at the table's advance'; 'a
+designer label's box clears its text by the side padding';
 tests/flow-stats-camera.test.ts 'statsFitCamera equals
 fitBoxToCanvas with no panel'; 'statsFitCamera shows the whole
 flow where the designer would crop'; 'it spans each port's
 circle'; tests/browser/flow-stats.test.ts 'stats lays the flow
 out as the designer does'; 'with Auto Fit on, stats frames
 the flow as the designer does'; tests/presenter-flow-stats.test.ts
-'the page carries no Auto Layout or Auto Fit control'.
+'the page carries no Auto Layout or Auto Fit control';
+tests/flow-graph-geometry.test.ts 'a one-way edge's path and
+label centre are unchanged'; 'a pair's attachments sit
+LANE_OFFSET either side of the centre line'; 'a label box
+sits LABEL_GAP beyond its arc's apex tangent'; 'a pair's
+labels face each other across the centre line and never
+overlap'; 'the forward label sits above a horizontal pair and
+left of a vertical one'; 'the pair swaps sides across the
+down-right diagonal and across no other'; 'a pair exactly on
+the down-right diagonal puts its forward label up and to the
+right'; 'with equal label widths each edge is the other
+turned half a turn'; 'neither arc enters either state'; 'a
+short pair bows by its chord and a long pair stops at
+BOW_MAX'; 'touching and overlapping states emit finite
+numbers'; 'a routed pair keeps its waypoints and gains the
+outside label'; tests/browser/canvas-gestures.test.ts 'a
+dragged two-way pair draws mid-drag what it draws once
+dropped'.
 
 Pan and zoom exist only with Auto Fit off
 (`flow-stats-pan-zoom.ts`, `bindStatsPanZoom`). A drag pans

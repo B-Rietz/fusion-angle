@@ -7,8 +7,9 @@ import {
 // is anchored via pointAlongPolyline, NOT the cubic bezierAt
 // (which misreads the Q/T control numbers and floats the label
 // off the route). These assert the BASE anchor lies ON the
-// routed polyline — the deliberate two-way perpendicular offset
-// is applied on top of this point, not tested here.
+// routed polyline — a routed two-way pair's label is pushed
+// outward from this point, which
+// tests/flow-graph-geometry.test.ts covers.
 Deno.test('midpoint of a straight waypoint path is on the line',
 () => {
     const p = pointAlongPolyline(
