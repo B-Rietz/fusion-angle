@@ -257,7 +257,7 @@ pieces, so the two cannot drift:
   out. The arrangement is computed once per load; a resize
   never lays out and never fetches.
 - **Edges and labels.** `computeEdgeGeometry` and
-  `computeEdgeAimOffsets` give each edge its path, with
+  `computeEdgeLanes` give each edge its path, with
   waypoints; `computeEdgeLabelWidth`, `truncateEdgeLabel`, and
   `truncateNodeName` size and clip the labels; `NODE_WIDTH`/
   `NODE_HEIGHT` (`flow-layout.ts`) and `NODE_RADIUS`,

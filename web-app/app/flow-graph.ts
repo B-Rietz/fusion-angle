@@ -839,7 +839,7 @@ function laneCrossing(
 export function computeEdgeGeometry(
     fromNode: GraphNode,
     toNode: GraphNode,
-    aimOffset: number,
+    lane: number,
     isCycle: boolean,
     labelWidth: number,
     waypoints: readonly {
@@ -856,7 +856,7 @@ export function computeEdgeGeometry(
         y: toNode.positionY + NODE_HEIGHT / 2,
     };
     const length = Math.hypot(to.x - from.x, to.y - from.y);
-    if (aimOffset === 0 || length === 0) {
+    if (lane === 0 || length === 0) {
         return computeOneWayGeometry(
             fromNode, toNode, from, to, waypoints,
         );
@@ -867,12 +867,12 @@ export function computeEdgeGeometry(
     };
     const u = upperLeftNormal(d);
     const n = isCycle ? { x: -u.x, y: -u.y } : u;
-    const lane = {
+    const lanePoint = {
         x: from.x + n.x * LANE_OFFSET,
         y: from.y + n.y * LANE_OFFSET,
     };
-    const leaveSource = laneCrossing(from, lane, d).leave;
-    const enterTarget = laneCrossing(to, lane, d).enter;
+    const leaveSource = laneCrossing(from, lanePoint, d).leave;
+    const enterTarget = laneCrossing(to, lanePoint, d).enter;
     const chord = enterTarget - leaveSource;
     // Touching or overlapping states: the lane is still
     // inside the source where it reaches the target.
@@ -882,12 +882,12 @@ export function computeEdgeGeometry(
         );
     }
     const start = {
-        x: lane.x + d.x * leaveSource,
-        y: lane.y + d.y * leaveSource,
+        x: lanePoint.x + d.x * leaveSource,
+        y: lanePoint.y + d.y * leaveSource,
     };
     const end = {
-        x: lane.x + d.x * enterTarget,
-        y: lane.y + d.y * enterTarget,
+        x: lanePoint.x + d.x * enterTarget,
+        y: lanePoint.y + d.y * enterTarget,
     };
     // The label box's half-extent along n.
     const h = Math.abs(n.x) * labelWidth / 2
@@ -932,11 +932,11 @@ export function computeEdgeGeometry(
     };
 }
 
-// aimOffset per edge id: 1 when the edge belongs to a
+// lane per edge id: 1 when the edge belongs to a
 // two-way pair (each direction bows to its own side),
 // else 0. One computation feeds both the full rebuild
 // and the narrow in-gesture mutator.
-export function computeEdgeAimOffsets(
+export function computeEdgeLanes(
     edges: readonly GraphEdge[],
 ): Map<string, number> {
     const pairCounts =
@@ -951,19 +951,19 @@ export function computeEdgeAimOffsets(
             (pairCounts.get(k) ?? 0) + 1,
         );
     }
-    const offsets = new Map<string, number>();
+    const lanes = new Map<string, number>();
     for (const edge of edges) {
         const k = canonicalEdgeKey(
             edge.fromNodeId,
             edge.toNodeId,
         );
-        offsets.set(
+        lanes.set(
             edge.id,
             (pairCounts.get(k) ?? 0) >= 2
                 ? 1 : 0,
         );
     }
-    return offsets;
+    return lanes;
 }
 
 function buildEdge(
@@ -971,7 +971,7 @@ function buildEdge(
     fromNode: GraphNode,
     toNode: GraphNode,
     isSelected: boolean,
-    aimOffset: number,
+    lane: number,
     isCycle: boolean,
     waypoints: readonly {
         x: number;
@@ -982,7 +982,7 @@ function buildEdge(
     const labelW =
         computeEdgeLabelWidth(edge.name);
     const geo = computeEdgeGeometry(
-        fromNode, toNode, aimOffset,
+        fromNode, toNode, lane,
         isCycle, labelW, waypoints,
     );
     const pathD = geo.pathD;
@@ -1435,8 +1435,8 @@ export function buildGraphSvg(
 
     const cycleEdgeIds = findCycleEdgeIds(nodes, edges);
 
-    const aimOffsets =
-        computeEdgeAimOffsets(edges);
+    const lanes =
+        computeEdgeLanes(edges);
 
     let edgeMarkup = '';
     for (const edge of edges) {
@@ -1445,8 +1445,8 @@ export function buildGraphSvg(
         const toNode =
             nodeMap.get(edge.toNodeId);
         if (!fromNode || !toNode) continue;
-        const aimOffset =
-            aimOffsets.get(edge.id)!;
+        const lane =
+            lanes.get(edge.id)!;
         const isSelected =
             selection.kind === 'edge'
             && edge.id === selection.edgeId;
@@ -1456,7 +1456,7 @@ export function buildGraphSvg(
                 fromNode,
                 toNode,
                 isSelected,
-                aimOffset,
+                lane,
                 cycleEdgeIds.has(
                     edge.id,
                 ),

@@ -15,7 +15,7 @@ import {
     LANE_OFFSET,
     buildGraphSvg,
     computeEdgeGeometry,
-    computeEdgeAimOffsets,
+    computeEdgeLanes,
     computeEdgeLabelWidth,
     connectionPortOf,
     pointAlongPolyline,
@@ -95,11 +95,11 @@ Deno.test(
             node('b', 300, 120),
         ];
         const edges = [edge('YiJPbufDpkyrZcZCYbUJpg', 'a', 'b')];
-        const offsets =
-            computeEdgeAimOffsets(edges);
+        const lanes =
+            computeEdgeLanes(edges);
         const geo = computeEdgeGeometry(
             nodes[0]!, nodes[1]!,
-            offsets.get('YiJPbufDpkyrZcZCYbUJpg')!,
+            lanes.get('YiJPbufDpkyrZcZCYbUJpg')!,
             false, computeEdgeLabelWidth('go'), [],
         );
         const out = render(
@@ -115,7 +115,7 @@ Deno.test(
 );
 
 Deno.test(
-    'a two-way pair aims both edges off-axis'
+    'a two-way pair gives each edge its own lane'
     + ' and renders both computed paths',
     () => {
         const nodes = [
@@ -126,10 +126,10 @@ Deno.test(
             edge('YiJPbufDpkyrZcZCYbUJpg', 'a', 'b'),
             edge('e2', 'b', 'a'),
         ];
-        const offsets =
-            computeEdgeAimOffsets(edges);
-        assertStrictEquals(offsets.get('YiJPbufDpkyrZcZCYbUJpg'), 1);
-        assertStrictEquals(offsets.get('e2'), 1);
+        const lanes =
+            computeEdgeLanes(edges);
+        assertStrictEquals(lanes.get('YiJPbufDpkyrZcZCYbUJpg'), 1);
+        assertStrictEquals(lanes.get('e2'), 1);
         const g1 = computeEdgeGeometry(
             nodes[0]!, nodes[1]!, 1,
             false, computeEdgeLabelWidth('go'), [],
@@ -152,17 +152,17 @@ Deno.test(
 );
 
 Deno.test(
-    'a lone edge between distinct pairs aims'
-    + ' straight',
+    'a lone edge between distinct pairs keeps'
+    + ' the centre line',
     () => {
         const edges = [
             edge('YiJPbufDpkyrZcZCYbUJpg', 'a', 'b'),
             edge('e2', 'b', 'c'),
         ];
-        const offsets =
-            computeEdgeAimOffsets(edges);
-        assertStrictEquals(offsets.get('YiJPbufDpkyrZcZCYbUJpg'), 0);
-        assertStrictEquals(offsets.get('e2'), 0);
+        const lanes =
+            computeEdgeLanes(edges);
+        assertStrictEquals(lanes.get('YiJPbufDpkyrZcZCYbUJpg'), 0);
+        assertStrictEquals(lanes.get('e2'), 0);
     },
 );
 

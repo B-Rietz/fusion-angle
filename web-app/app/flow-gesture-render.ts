@@ -30,7 +30,7 @@ import {
 } from './flow-interactions.ts';
 import {
     computeEdgeGeometry,
-    computeEdgeAimOffsets,
+    computeEdgeLanes,
     computeEdgeLabelWidth,
     buildConnectPreview,
     LABEL_HEIGHT,
@@ -150,8 +150,8 @@ function renderDragFrame(
             + ')',
         );
     }
-    const aimOffsets =
-        computeEdgeAimOffsets(graph.edges);
+    const lanes =
+        computeEdgeLanes(graph.edges);
     const cycleEdgeIds = findCycleEdgeIds(
         graph.nodes, graph.edges,
     );
@@ -176,7 +176,7 @@ function renderDragFrame(
         );
         const geo = computeEdgeGeometry(
             from, to,
-            aimOffsets.get(edge.id)!,
+            lanes.get(edge.id)!,
             cycleEdgeIds.has(edge.id),
             labelW,
             graph.edgeWaypoints.get(edge.id)
