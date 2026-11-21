@@ -17,7 +17,6 @@ import {
 import { readSample } from '../web-app/api-documentation/shapes.ts';
 import {
     roomHashOf,
-    roomPathOf,
     svgOf,
 } from '../web-app/app/generate-api-documentation.ts';
 import { offeredVerbs, uriOf } from
@@ -42,18 +41,6 @@ Deno.test('a known collection is drawn with /',
     );
 });
 
-Deno.test('filled GET circle hrefs the identities'
-    + ' collection room', () => {
-    const row = routes.find((r) =>
-        uriOf(r) === '/identities/');
-    assert(row);
-    assert(offeredVerbs(row).includes('get'));
-    assertStrictEquals(
-        roomPathOf('get', row.segments),
-        'get/identities/index.html',
-    );
-});
-
 Deno.test('svg draws the /api/ wire prefix',
 () => {
     const svg = svgOf(routes);
@@ -70,28 +57,13 @@ Deno.test('the map names /invitations/ as backing',
     assertMatch(svg, /backing/);
 });
 
-Deno.test('rooms stay a page tree, not an /api/ folder',
-() => {
-    const row = routes.find((r) =>
-        uriOf(r) === '/identities/');
-    assert(row);
-    assertStrictEquals(
-        roomPathOf('get', row.segments),
-        'get/identities/index.html',
-    );
-});
-
-Deno.test('roomHashOf drops the html leaf', () => {
+Deno.test('roomHashOf names the identities room', () => {
     const row = routes.find((r) =>
         uriOf(r) === '/identities/');
     assert(row);
     assertStrictEquals(
         roomHashOf('get', row.segments),
         'get/identities',
-    );
-    assertStrictEquals(
-        roomPathOf('get', row.segments),
-        'get/identities/index.html',
     );
 });
 

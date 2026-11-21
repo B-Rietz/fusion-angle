@@ -89,8 +89,7 @@ const KEPT_ROOT_NAMES = new Set([
 ]);
 const enc = new TextEncoder();
 
-export { roomHashOf, roomPathOf } from
-    './api-documentation-hash.ts';
+export { roomHashOf } from './api-documentation-hash.ts';
 
 function wrapLine(line: string): string[] {
     if (line.length <= LINE_MAX) return [line];
