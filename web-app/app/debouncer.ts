@@ -5,7 +5,7 @@ export class Debouncer {
         typeof setTimeout
     > | undefined = undefined;
     #pending:
-        | (() => void)
+        | { readonly field: string; readonly save: () => void }
         | undefined = undefined;
     readonly #delayMs: number;
     #scheduleCount: number = 0;
@@ -15,7 +15,16 @@ export class Debouncer {
         this.#delayMs = delayMs;
     }
 
-    schedule(fn: () => void): void {
+    // A burst is one field's keystrokes and keeps only
+    // its latest save. A save for another field first
+    // runs the pending one, or that field's edit is lost.
+    schedule(field: string, fn: () => void): void {
+        if (
+            this.#pending !== undefined
+            && this.#pending.field !== field
+        ) {
+            this.flush();
+        }
         if (this.#timer !== undefined) {
             clearTimeout(this.#timer);
         } else {
@@ -24,7 +33,7 @@ export class Debouncer {
                 performance.now();
         }
         this.#scheduleCount += 1;
-        this.#pending = fn;
+        this.#pending = { field, save: fn };
         const startedAt = this.#burstStart;
         const count = this.#scheduleCount;
         this.#timer = setTimeout(
@@ -79,7 +88,7 @@ export class Debouncer {
         if (pending !== undefined) {
             const callStart =
                 performance.now();
-            pending();
+            pending.save();
             const callDurMs =
                 performance.now() - callStart;
             log.info(

@@ -3053,9 +3053,10 @@ rather than looking for the reminders here.
   PASS: after the second press the panel is
   still open, `#prop-node-name`'s `value` is the
   double-clicked node's name, and the canvas has
-  re-centred on it. Every commit replaces the panel,
-  `#prop-node-name`, the node, and `svg.flow-canvas`,
-  and the new panel replays its ~200 ms slide: wait
+  re-centred on it. Every commit but a panel field's
+  own edit replaces the panel, `#prop-node-name`, the
+  node, and `svg.flow-canvas`, and the new panel
+  replays its ~200 ms slide: wait
   250 ms after the second release, then query them
   afresh and read all three clauses. The
   straight-line distance from the node `rect`'s
@@ -3341,7 +3342,9 @@ rather than looking for the reminders here.
 - [ ] **F24** Double-click a node, edit its name in
   the properties panel. PASS: the node label
   updates on the SVG canvas immediately (changes
-  auto-save after 800ms debounce).
+  auto-save after 800ms debounce), and
+  `#prop-node-name` still holds focus a second
+  after the last keystroke.
   Pin: tests/flow-designer-actions.test.ts
        'applyUpdateNode patches matching id' (decides a
        name patch lands on that node and no other);
@@ -3349,7 +3352,11 @@ rather than looking for the reminders here.
        'withNodeNamed(id, name) renames that node even when
        the selection has moved to another' (decides the
        debounced flush is bound to its target rather than
-       to whatever is selected when it fires); exploratory
+       to whatever is selected when it fires);
+       tests/browser/canvas-keyboard.test.ts 'typing in a
+       panel field goes on after its save' (decides a
+       second burst of typing reaches the field, at its
+       caret, once the first has saved); exploratory
        — the immediate canvas repaint and the 800 ms
        debounce
 - [ ] **F25** On Customer Onboarding, double-click the

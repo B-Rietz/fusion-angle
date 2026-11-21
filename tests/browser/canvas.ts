@@ -25,6 +25,7 @@ type FlowRow = { id: string; name: string };
 export type GraphNode = {
     id: string; name: string;
     positionX: number; positionY: number;
+    taskInstructions: string;
 };
 type FlowGraph = {
     is_auto_layout: boolean;

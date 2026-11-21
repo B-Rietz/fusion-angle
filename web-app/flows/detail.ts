@@ -265,7 +265,7 @@ const pageState = new PageState();
 
 function commit(
     next: FlowSnapshot,
-    opts?: { advanceHistory?: boolean },
+    opts?: { advanceHistory?: boolean; keepPanel?: boolean },
 ): void {
     if (opts?.advanceHistory) {
         pageState.setHistory(recordFlowMutation());
@@ -277,7 +277,14 @@ function commit(
         pageState.history(),
     );
     pageState.setPresenter(presenter);
-    update(pageState.container());
+    update(pageState.container(), opts);
+}
+
+// A panel field's own edit. The panel already shows it,
+// so the repaint leaves the panel standing, and the
+// caret in its field.
+function commitPanelEdit(next: FlowSnapshot): void {
+    commit(next, { advanceHistory: true, keepPanel: true });
 }
 
 async function handleAddEdge(
@@ -660,7 +667,10 @@ export function restoreCanvasFocus(
     }
 }
 
-function update(container: HTMLElement): void {
+function update(
+    container: HTMLElement,
+    opts?: { keepPanel?: boolean },
+): void {
     pageState.saveDebouncer().flush();
     const presenter = pageState.presenter();
     const wrap = $(
@@ -671,7 +681,11 @@ function update(container: HTMLElement): void {
         : canvasFocusOf(
             document.activeElement, wrap,
         );
-    presenter.renderUpdate(container);
+    if (opts?.keepPanel) {
+        presenter.renderAroundPanel(container);
+    } else {
+        presenter.renderUpdate(container);
+    }
     if (wrap !== null) {
         withCanvasFocusRestore(wrap, () => {
             restoreCanvasFocus(focus, wrap);
@@ -1332,7 +1346,7 @@ function bindPanelActions(
                     .presenter().selectedNodeId();
                 if (nodeId === null) return;
                 pageState.saveDebouncer().schedule(
-                    () => {
+                    id, () => {
                         const presenter = pageState
                             .presenter();
                         commitDebouncedEdit(
@@ -1340,10 +1354,7 @@ function bindPanelActions(
                             presenter.withNodeNamed(
                                 nodeId, value,
                             ),
-                            next => commit(
-                                next,
-                                { advanceHistory: true },
-                            ),
+                            commitPanelEdit,
                         );
                     },
                 );
@@ -1354,7 +1365,7 @@ function bindPanelActions(
                     .presenter().selectedNodeId();
                 if (nodeId === null) return;
                 pageState.saveDebouncer().schedule(
-                    () => {
+                    id, () => {
                         const presenter = pageState
                             .presenter();
                         commitDebouncedEdit(
@@ -1363,10 +1374,7 @@ function bindPanelActions(
                                 .withNodeTaskInstructions(
                                     nodeId, value,
                                 ),
-                            next => commit(
-                                next,
-                                { advanceHistory: true },
-                            ),
+                            commitPanelEdit,
                         );
                     },
                 );
@@ -1377,7 +1385,7 @@ function bindPanelActions(
                     .presenter().selectedEdgeId();
                 if (edgeId === null) return;
                 pageState.saveDebouncer().schedule(
-                    () => {
+                    id, () => {
                         const presenter = pageState
                             .presenter();
                         commitDebouncedEdit(
@@ -1385,10 +1393,7 @@ function bindPanelActions(
                             presenter.withEdgeNamed(
                                 edgeId, value,
                             ),
-                            next => commit(
-                                next,
-                                { advanceHistory: true },
-                            ),
+                            commitPanelEdit,
                         );
                     },
                 );
@@ -1726,6 +1731,20 @@ function onFlowLoaded(
     });
 }
 
+// A graph's nodes as the echo test weighs them. Auto
+// Layout places the nodes afresh on each side — the
+// read for no canvas, the designer for its own — so
+// there a position is no part of what the flow holds.
+function nodesAsHeld(
+    nodes: readonly GraphNode[],
+    isAutoLayout: boolean,
+): string {
+    if (!isAutoLayout) return JSON.stringify(nodes);
+    return JSON.stringify(nodes.map(({
+        positionX: _x, positionY: _y, ...held
+    }) => held));
+}
+
 // True when the server graph + flags already match the
 // live snapshot — own putFlow echo, or a no-op notify.
 function serverGraphMatchesLive(
@@ -1741,8 +1760,8 @@ function serverGraphMatchesLive(
         && graph.isAutoFit === live.isAutoFit
         && graph.lockTimeout
             === live.lockTimeout
-        && JSON.stringify(graph.nodes)
-            === JSON.stringify(live.nodes)
+        && nodesAsHeld(graph.nodes, graph.isAutoLayout)
+            === nodesAsHeld(live.nodes, live.isAutoLayout)
         && JSON.stringify(graph.edges)
             === JSON.stringify(live.edges);
 }

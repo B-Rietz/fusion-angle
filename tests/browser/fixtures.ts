@@ -333,6 +333,15 @@ export class Page {
         await this.keyUp(name, modifiers);
     }
 
+    // Text into the focused field, at its caret, as an
+    // input method commits it: `input` fires, no key
+    // event does.
+    type(text: string): Promise<unknown> {
+        return this.session.send(
+            'Input.insertText', { text },
+        );
+    }
+
     setViewport(
         width: number, height: number, mobile: boolean,
     ): Promise<unknown> {

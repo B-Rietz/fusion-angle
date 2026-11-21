@@ -597,10 +597,19 @@ Auto Fit</label>
     renderUpdate(
         container: HTMLElement,
     ): void {
+        this.renderAroundPanel(container);
+        this.#updatePanel(container);
+    }
+
+    // The repaint for a panel field's own edit. The panel
+    // already shows what its field holds, and a rebuilt
+    // panel would take that field from under the caret.
+    renderAroundPanel(
+        container: HTMLElement,
+    ): void {
         this.#mutateSwitches(container);
         this.#updateNameHeader(container);
         this.#updateToolbar(container);
-        this.#updatePanel(container);
         this.#updateCanvas(container);
     }
 
