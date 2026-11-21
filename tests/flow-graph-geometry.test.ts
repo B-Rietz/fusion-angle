@@ -185,8 +185,6 @@ Deno.test(
     },
 );
 
-// floor((140 - 12) / 7) = 18: the label's width cap less
-// its padding, in characters.
 Deno.test(
     'truncateEdgeLabel keeps 18 characters and cuts 19 to'
     + ' 17 plus an ellipsis',

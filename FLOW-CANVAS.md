@@ -263,7 +263,15 @@ pieces, so the two cannot drift:
   (`flow-graph.ts`) fix the geometry; `findCycleEdgeIds`
   (`flow-cycle-edges.ts`) marks loop-backs as the designer
   does; the alert-triangle and no-entry shapes of `icons.ts`
-  draw the hazards.
+  draw the hazards. A label's box is its text's width plus
+  `LABEL_SIDE_PADDING` each side, never under
+  `LABEL_MIN_WIDTH`. The text's width is the sum of Inter
+  400's advances (`inter-400-advances.ts`) at
+  `LABEL_FONT`: a pure function, so Auto Layout's
+  reservation, both renderers, the in-gesture mutator,
+  and the design-system showcase size a label alike with
+  no DOM. A character outside the table takes the table's
+  widest advance.
 - **Camera.** `flow-camera.ts` (see `## Camera rules`) owns
   zoom, pan, and resize. `statsFitCamera`
   (`flow-stats-camera.ts`) is the designer's `fitBoxToCanvas`
@@ -287,6 +295,18 @@ boot layout'; 'a locked flow keeps its renderable positions';
 tests/flow-stats-parity.test.ts 'every edge path matches the
 designer'; 'every node transform matches the designer';
 'every transition label matches the designer';
+tests/flow-edge-label-width.test.ts 'the table holds printable
+ASCII and the ellipsis'; 'a character outside the table takes
+the widest advance'; 'a short and a long name both leave the
+side padding each side'; 'eighteen Ws fit their box'; 'a
+one-character name and an empty name get the minimum box'; 'a
+truncated name's box wraps its seventeen characters and the
+ellipsis'; tests/flow-graph-layout.test.ts 'Auto Layout's gap
+between two states in a row follows the label's width';
+tests/design-system-render.test.ts 'the showcase boxes each
+edge label as the designer does'; tests/browser/edge-label-width.test.ts
+'Chrome sets each tabled character at the table's advance'; 'a
+designer label's box clears its text by the side padding';
 tests/flow-stats-camera.test.ts 'statsFitCamera equals
 fitBoxToCanvas with no panel'; 'statsFitCamera shows the whole
 flow where the designer would crop'; 'it spans each port's

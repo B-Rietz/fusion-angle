@@ -349,9 +349,9 @@ when asked.
   oracle test compares the seed against),
   `flow-graph-golden-locked.svg` and
   `flow-graph-golden-unlocked.svg` (the designer's SVG
-  for one flow, locked and unlocked, as it was drawn
-  before its helpers were shared, which the golden test
-  compares the renderer against byte for byte),
+  for one flow, locked and unlocked, re-pinned only
+  where a design changes the drawing, which the golden
+  test compares the renderer against byte for byte),
   `css-declaration.ts` (read one declaration from a
   stylesheet, for tests that pin a CSS rule), and
   `create-archive-graph.ts` (the least graph the flow

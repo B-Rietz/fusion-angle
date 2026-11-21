@@ -6,6 +6,17 @@ import {
     withRenderableLayout,
 } from '../web-app/app/flow-graph-layout.ts';
 import {
+    LABEL_SAFETY_MARGIN,
+    NODE_WIDTH,
+} from '../web-app/app/flow-layout.ts';
+import {
+    LABEL_FONT,
+    LABEL_SIDE_PADDING,
+} from '../web-app/app/flow-graph.ts';
+import {
+    computeInter400TextWidth,
+} from '../web-app/app/inter-400-advances.ts';
+import {
     DEFAULT_LOCK_TIMEOUT,
     storedGraph,
 } from '../shared/types.ts';
@@ -230,6 +241,34 @@ Deno.test(
         assertStrictEquals(distinctPos(r.positions.values()), 5);
         assert(
             r.positions.get('s')!.x < r.positions.get('z')!.x,
+        );
+    },
+);
+
+Deno.test(
+    'Auto Layout\'s gap between two states in a row follows'
+        + ' the label\'s width',
+    () => {
+        const name = 'needs revision';
+        const { positions } = runFlowLayout(
+            [
+                node('s', { isCreate: true }),
+                node('a'),
+                node('b'),
+                node('z', { isArchive: true }),
+            ],
+            [
+                edge('s', 'a'),
+                edge('a', 'b', name),
+                edge('b', 'z'),
+            ],
+        );
+        assertStrictEquals(
+            positions.get('b')!.x - positions.get('a')!.x,
+            NODE_WIDTH
+                + computeInter400TextWidth(name, LABEL_FONT)
+                + 2 * LABEL_SIDE_PADDING
+                + LABEL_SAFETY_MARGIN,
         );
     },
 );

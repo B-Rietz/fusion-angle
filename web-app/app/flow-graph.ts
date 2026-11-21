@@ -19,6 +19,9 @@ import {
     iconAlertTriangle,
     iconNoEntry,
 } from './icons.ts';
+import {
+    computeInter400TextWidth,
+} from './inter-400-advances.ts';
 
 function nodeHasConnections(
     nodeId: string,
@@ -96,7 +99,6 @@ const NODE_LABEL_FONT = 13;
 export const NODE_META_Y = 45;
 const NODE_META_FONT = 11;
 const NODE_MAX_CHARS = 18;
-const LABEL_MAX_WIDTH = 140;
 
 const EDGE_STROKE = 2;
 const HIT_TARGET_WIDTH = 12;
@@ -114,14 +116,14 @@ const BIDI_LABEL_OFFSET = 12;
 // to desynchronize.
 export const CYCLE_DASH = '6 3';
 
-export const LABEL_CHAR_WIDTH = 7;
-export const LABEL_PADDING = 12;
-const LABEL_MIN_WIDTH = 36;
+export const LABEL_SIDE_PADDING = 8;
+export const LABEL_MIN_WIDTH = 36;
+const LABEL_MAX_CHARS = 18;
 export const LABEL_HEIGHT = 20;
 export const LABEL_RADIUS = 4;
 const LABEL_BG_OPACITY = 0.9;
 export const LABEL_TEXT_OFFSET_Y = 4;
-const LABEL_FONT = 11;
+export const LABEL_FONT = 11;
 
 const NODE_ROLE = 'button';
 const EDGE_ROLE = 'button';
@@ -450,24 +452,17 @@ export function truncateNodeName(
 export function truncateEdgeLabel(
     name: string,
 ): string {
-    const maxChars = Math.floor(
-        (LABEL_MAX_WIDTH - LABEL_PADDING)
-        / LABEL_CHAR_WIDTH,
-    );
-    return truncateLabel(name, maxChars);
+    return truncateLabel(name, LABEL_MAX_CHARS);
 }
 
 export function computeEdgeLabelWidth(
     name: string,
 ): number {
-    const trunc = truncateEdgeLabel(name);
-    return Math.min(
-        Math.max(
-            trunc.length * LABEL_CHAR_WIDTH
-                + LABEL_PADDING,
-            LABEL_MIN_WIDTH,
-        ),
-        LABEL_MAX_WIDTH,
+    return Math.max(
+        computeInter400TextWidth(
+            truncateEdgeLabel(name), LABEL_FONT,
+        ) + 2 * LABEL_SIDE_PADDING,
+        LABEL_MIN_WIDTH,
     );
 }
 
