@@ -3,7 +3,6 @@ import {
     assertEquals,
     assertStrictEquals,
 } from '@std/assert';
-import { POOL_MAX } from '../api/advisory-lock.ts';
 import { handleRequest } from '../api/api.ts';
 import { PostgresBackend } from
     '../api/backend-postgres.ts';
@@ -33,6 +32,7 @@ import {
     seedIdentityCredential,
     seedPersonIdentity,
 } from './identity-fixtures.ts';
+import { openPoolToFullWidth } from './fixtures/open-pool.ts';
 import { testHashPassword } from './mock-seed.ts';
 import { organizationToken } from
     './token-fixtures.ts';
@@ -177,10 +177,7 @@ if (POSTGRES_URL === undefined || POSTGRES_URL === '') {
         );
         await backend.ensureTable();
         await seedAdminSchema(db);
-        await Promise.all(Array.from(
-            { length: POOL_MAX },
-            () => sql.query`SELECT 1`,
-        ));
+        await openPoolToFullWidth(sql);
     });
 
     Deno.test.afterAll(async () => {

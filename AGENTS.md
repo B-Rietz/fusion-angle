@@ -334,7 +334,10 @@ when asked.
   `fetch-discarding-body.ts` (a `fetch` that cancels
   the response body so the resource sanitizer does not
   see it as a leak, for tests that assert only status
-  and headers), `recording-fetch.ts` (a `fetch` that
+  and headers), `open-pool.ts` (open a postgres
+  pool to `POOL_MAX` connections in `beforeAll`, so
+  no connection timer starts inside a test),
+  `recording-fetch.ts` (a `fetch` that
   records each request's method, path, preconditions,
   and body, for pins that count requests),
   `response-message.ts` (a JSON `HttpMessage` for a
