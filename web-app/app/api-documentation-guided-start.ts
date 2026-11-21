@@ -13,6 +13,7 @@ import {
     ASSERTION_ALGORITHMS,
     ASSERTION_CLAIMS,
 } from '../../api/client-assertion.ts';
+import { STATUS_ROUTE } from '../../api/request-auth.ts';
 import { routes } from '../../api/routes.ts';
 import {
     base64UrlEncode,
@@ -111,6 +112,10 @@ function authenticationInfoLineOf(
         + " | sed 's/.*" + parameter + '="\\([^"]*\\)".*/\\1/\')';
 }
 
+// The one call the gate answers ahead of its Operation-ID and
+// bearer checks (api/system-status.ts).
+const STATUS_READ = 'GET /api/' + STATUS_ROUTE;
+
 const CODE_LINE = authenticationInfoLineOf('CODE', 'code');
 const TOKEN_LINE = authenticationInfoLineOf('TOKEN', 'access_token');
 // The whole validator, quotes included (plan D9).
@@ -131,15 +136,17 @@ export const STEPS: readonly StepPlan[] = [
                 + ' and the verifier under Basic, and answers your'
                 + ' access token in Authentication-Info and a'
                 + ' refresh cookie.',
-            'Every call needs an Operation-ID of its own: run the'
-                + ' first line before each call. Step 2 says why.',
+            'Each of these calls needs an Operation-ID of its'
+                + ' own: run the first line before each call. Step'
+                + ' 2 says why.',
             'A line that reads an answer reads the call\'s'
                 + ' output, headers included, on its standard'
                 + ' input. Save the output with curl … > answer.txt,'
                 + ' then run the line as { LINE; } < answer.txt.',
-            'Send the token on every other call as'
-                + ' Authorization: Bearer $TOKEN. The answer\'s'
-                + ' expires_in says for how many seconds it serves.',
+            'Send the token on the calls after these as'
+                + ' Authorization: Bearer $TOKEN, all but '
+                + STATUS_READ + '. The answer\'s expires_in says'
+                + ' for how many seconds it serves.',
         ],
         shell: [
             OPERATION_ID_LINE, VERIFIER_LINE, CHALLENGE_LINE, CODE_LINE,
@@ -154,10 +161,12 @@ export const STEPS: readonly StepPlan[] = [
     // which no constant holds.
     {
         slug: 'operation-id',
-        title: 'Every request needs an Operation-ID',
+        title: 'Send an Operation-ID',
         prose: [
-            'Send a fresh Operation-ID on every request: 16'
-                + ' random bytes in base64url, 22 characters. A'
+            'Send a fresh Operation-ID on each request: 16'
+                + ' random bytes in base64url, 22 characters. '
+                + STATUS_READ + ' alone takes neither an'
+                + ' Operation-ID nor a bearer: anyone may read it. A'
                 + ' write that changes a document carries it back'
                 + ' in its answer. A read\'s answer, and a write\'s'
                 + ' that changes nothing, name the Operation-ID of'

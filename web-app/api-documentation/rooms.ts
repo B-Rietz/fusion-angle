@@ -10428,15 +10428,15 @@ export const API_DOC_STEPS: readonly ApiDocStep[] = [
             + 'llenge, and answers a code in Authentication-Info. The second'
             + ' sends the code and the verifier under Basic, and answers you'
             + 'r access token in Authentication-Info and a refresh cookie.',
-            'Every call needs an Operation-ID of its own: run the first line'
-            + ' before each call. Step 2 says why.',
+            'Each of these calls needs an Operation-ID of its own: run the f'
+            + 'irst line before each call. Step 2 says why.',
             'A line that reads an answer reads the call\'s output, headers i'
             + 'ncluded, on its standard input. Save the output with curl '
             + '\u2026 > answer.txt, then run the line as { LINE; } < answer.'
             + 'txt.',
-            'Send the token on every other call as Authorization: Bearer $TO'
-            + 'KEN. The answer\'s expires_in says for how many seconds it se'
-            + 'rves.',
+            'Send the token on the calls after these as Authorization: Beare'
+            + 'r $TOKEN, all but GET /api/status. The answer\'s expires_in s'
+            + 'ays for how many seconds it serves.',
         ],
         shell: [
             'OPERATION_ID=$(openssl rand 16 | openssl base64 -A | tr \'+/\' '
@@ -10457,13 +10457,14 @@ export const API_DOC_STEPS: readonly ApiDocStep[] = [
     },
     {
         hash: 'start/operation-id',
-        title: 'Every request needs an Operation-ID',
+        title: 'Send an Operation-ID',
         prose: [
-            'Send a fresh Operation-ID on every request: 16 random bytes in '
-            + 'base64url, 22 characters. A write that changes a document car'
-            + 'ries it back in its answer. A read\'s answer, and a write\'s '
-            + 'that changes nothing, name the Operation-ID of the write that'
-            + ' made the document.',
+            'Send a fresh Operation-ID on each request: 16 random bytes in b'
+            + 'ase64url, 22 characters. GET /api/status alone takes neither '
+            + 'an Operation-ID nor a bearer: anyone may read it. A write tha'
+            + 't changes a document carries it back in its answer. A read\'s'
+            + ' answer, and a write\'s that changes nothing, name the Operat'
+            + 'ion-ID of the write that made the document.',
             'This call reads the organization your identity opens by default'
             + '; the next step reads it.',
             'A sample shows what the API answered, with the server\'s defaul'

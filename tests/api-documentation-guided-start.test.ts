@@ -3,6 +3,7 @@ import {
     ASSERTION_ALGORITHMS,
     ASSERTION_CLAIMS,
 } from '../api/client-assertion.ts';
+import { STATUS_ROUTE } from '../api/request-auth.ts';
 import { authParam } from '../client/authentication.ts';
 import { bytesToBase64Url } from '../shared/base64url.ts';
 import { sha256Bytes } from '../shared/digest.ts';
@@ -446,3 +447,25 @@ Deno.test("step 1's lines set every variable its curls send",
             );
         }
     });
+
+Deno.test('the guided start names the status read as the one'
+    + ' call without an Operation-ID or a bearer', () => {
+    const statusRead = 'GET /api/' + STATUS_ROUTE;
+    const operationId = STEPS.find(({ slug }) =>
+        slug === 'operation-id')!;
+    assertEquals(
+        operationId.prose.some((paragraph) =>
+            paragraph.includes(statusRead)),
+        true,
+    );
+    const everyClaim = /\bevery (other )?(call|request)\b/i;
+    for (const { title, prose } of STEPS) {
+        for (const text of [title, ...prose]) {
+            assertEquals(
+                everyClaim.test(text) && !text.includes(statusRead),
+                false,
+                text,
+            );
+        }
+    }
+});
