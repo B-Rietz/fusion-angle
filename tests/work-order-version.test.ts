@@ -24,18 +24,22 @@ const T2 = '2026-09-25T10:00:02.000000Z';
 const LOCK = 300;
 const EXPIRES = '2026-09-25T10:05:02.000000Z';
 
+const BIRTH = {
+    id: WORK_ORDER,
+    organization_id: ORGANIZATION,
+    fields: FIELDS,
+    births: [
+        { id: 'e0', state: 'start', at: T0 },
+        { id: 'e1', state: 'node-1', at: T1 },
+        { id: 'e2', state: 'claimed', at: T2 },
+    ],
+    creator: ALICE,
+    lockTimeoutSeconds: LOCK,
+};
+
 function created(): WorkOrderVersion {
     return createdVersion({
-        id: WORK_ORDER,
-        organization_id: ORGANIZATION,
-        fields: FIELDS,
-        births: [
-            { id: 'e0', state: 'start', at: T0 },
-            { id: 'e1', state: 'node-1', at: T1 },
-            { id: 'e2', state: 'claimed', at: T2 },
-        ],
-        creator: ALICE,
-        lockTimeoutSeconds: LOCK,
+        ...BIRTH, binding: { kind: 'unbound' },
     });
 }
 
@@ -58,6 +62,28 @@ Deno.test('a created version holds three births and a claim',
         version.events.map((e) => e.member_id),
         [ALICE, ALICE, ALICE],
     );
+});
+
+Deno.test('a bound birth carries its binding beside its'
+    + ' three births', () => {
+    const version = createdVersion({
+        ...BIRTH,
+        binding: {
+            kind: 'bound',
+            instanceId: 'instance-1',
+            recordTypeId: 'type-1',
+        },
+    });
+    assertEquals(Object.keys(version), [
+        'id', 'organization_id', 'flow_graph', 'position',
+        'state', 'transition', 'instance_id',
+        'record_type_id', 'claim', 'events',
+    ]);
+    assertStrictEquals(version.instance_id, 'instance-1');
+    assertStrictEquals(version.record_type_id, 'type-1');
+    assertEquals(version.events.map((e) => e.state), [
+        'start', 'node-1', 'claimed',
+    ]);
 });
 
 Deno.test('a fields version keeps the facets, no events',

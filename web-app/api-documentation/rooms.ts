@@ -2308,7 +2308,8 @@ export const API_DOC_ROOMS:
             + '   "id",\n    "id"\n  ],\n  "stateEventAts": [\n    "2020-01-'
             + '01T00:00:00.000Z",\n    "2020-01-01T00:00:00.000Z",\n    "202'
             + '0-01-01T00:00:00.000Z"\n  ],\n  "states": [\n    "start",\n  '
-            + '  "active",\n    "claimed"\n  ]\n}',
+            + '  "active",\n    "claimed"\n  ],\n  "instance": {\n    "insta'
+            + 'nce_id": "id",\n    "record_type_id": "id"\n  }\n}',
         headers:
         [
             'Authorization: Bearer …',

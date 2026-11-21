@@ -76,6 +76,7 @@ import {
     validateWorkOrderBindingBody,
     validateWorkOrderClaimBody,
     validateWorkOrderCreateBody,
+    type WorkOrderCreateInstance,
     validateWorkOrderDocumentBody,
     validateWorkOrderTransitionBody,
     validateDefaultOrganizationBody,
@@ -227,6 +228,7 @@ import {
     flowWorkOrdersUriPrefix,
 } from './derive-flow-work-orders.ts';
 import {
+    deriveFlowRecords,
     flowRecordEntityOf,
     flowRecordsUriPrefix,
     recordTypeIdsForWorkOrder,
@@ -265,6 +267,7 @@ import {
     fieldsVersion,
     releasedVersion,
     transitionedVersion,
+    type BirthBinding,
     type WorkOrderVersion,
 } from './work-order-version.ts';
 import {
@@ -1667,11 +1670,42 @@ function requirePair(
     return messagePair;
 }
 
+// The create's gate: a flow that names a record type
+// requires an instance of a joined type, and a flow that
+// names none takes none. Any joined type is accepted, as
+// the binding op accepts it.
+function birthBindingOf(
+    joinedTypeIds: readonly Id[],
+    instance: WorkOrderCreateInstance,
+): BirthBinding {
+    if (instance.kind === 'absent') {
+        if (joinedTypeIds.length > 0) {
+            throw new ValidationError(
+                'WorkOrderCreateBody.instance is required:'
+                + ' the flow names a record type',
+            );
+        }
+        return { kind: 'unbound' };
+    }
+    if (!joinedTypeIds.includes(instance.binding.recordTypeId)) {
+        throw new ValidationError(
+            'record_type_id is not joined to'
+            + ' the work order\'s flow',
+        );
+    }
+    return { kind: 'bound', ...instance.binding };
+}
+
 // Work-order creation (§5): one version carrying its three
-// births (start, post-start, and the creator's claim) and
-// the flow join, in one statement. Both declare their
-// genesis, so a resent create answers 409 and stores
-// nothing. Every event is authored by the verified caller.
+// births (start, post-start, and the creator's claim), the
+// flow join, and — on a flow that names a record type —
+// the empty instance the work order is born bound to, in
+// one statement. Each declares its genesis, so a resent
+// create answers 409 and stores nothing, and so does one
+// whose instance id is already written; a retired
+// instance name stays retired (410). The flow's record
+// joins and the type are read before the statement. Every
+// event is authored by the verified caller.
 export async function postWorkOrderCreationOp(
     db: DbAdapter,
     body: Record<string, unknown>,
@@ -1689,6 +1723,17 @@ export async function postWorkOrderCreationOp(
     );
     validateFlowWorkOrderEntity(b.flowWorkOrder);
     const flowId = pickString(b.flowWorkOrder, 'flow_id');
+    const binding = birthBindingOf(
+        (await deriveFlowRecords(db, org, flowId)).map(
+            (join) => join.record_id,
+        ),
+        b.instance,
+    );
+    if (binding.kind === 'bound') {
+        await requireRecordTypeExists(
+            db, org, binding.recordTypeId,
+        );
+    }
     await runStateWrite(db, {
         kind: 'siblings',
         received: requirePair(messagePair),
@@ -1710,6 +1755,7 @@ export async function postWorkOrderCreationOp(
                     ),
                     creator: actor,
                     lockTimeoutSeconds: graph.lockTimeout,
+                    binding,
                 }),
                 condition: {
                     kind: 'genesis', declarer: 'handler',
@@ -1733,6 +1779,26 @@ export async function postWorkOrderCreationOp(
                     kind: 'genesis', declarer: 'handler',
                 },
             },
+            ...(binding.kind === 'bound'
+                ? [{
+                    method: 'PUT' as const,
+                    path: instancesUriPrefix(
+                        org, binding.recordTypeId,
+                    ),
+                    name: binding.instanceId,
+                    state: instanceStateOf(
+                        org, binding.recordTypeId,
+                        binding.instanceId, [],
+                    ),
+                    // Tombstone-wins, the instance
+                    // family's rule: a retired name
+                    // never comes back.
+                    condition: {
+                        kind: 'never-written' as const,
+                        declarer: 'handler' as const,
+                    },
+                }]
+                : []),
         ],
         reader: { sees: 'whole' },
         answer: { kind: 'created', location: b.id },

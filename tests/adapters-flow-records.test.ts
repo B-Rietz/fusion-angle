@@ -273,6 +273,16 @@ Deno.test(
         const woA = generateIdentifier();
         const woB = generateIdentifier();
         await seedRecord(db, 'rbfHGatkwQzGZJVXKJEeyw');
+        // One work order on each, created before the
+        // flow's record join: a create on a flow that
+        // names a record type must carry its instance.
+        await seedWorkOrder(db, woA, flowA, 1);
+        await seedWorkOrder(db, woB, flowB, 2);
+        // Plus a noise work order on an
+        // unrelated flow.
+        await seedWorkOrder(
+            db, generateIdentifier(), generateIdentifier(), 3,
+        );
         await putFlowRecord(ctx, generateIdentifier(), {
             flow_id: flowA,
             record_id: 'rbfHGatkwQzGZJVXKJEeyw',
@@ -283,14 +293,6 @@ Deno.test(
             record_id: 'rbfHGatkwQzGZJVXKJEeyw',
             at: AT,
         });
-        // One work order on each.
-        await seedWorkOrder(db, woA, flowA, 1);
-        await seedWorkOrder(db, woB, flowB, 2);
-        // Plus a noise work order on an
-        // unrelated flow.
-        await seedWorkOrder(
-            db, generateIdentifier(), generateIdentifier(), 3,
-        );
         const workOrders =
             await getWorkOrdersForRecord(
                 ctx, 'rbfHGatkwQzGZJVXKJEeyw',

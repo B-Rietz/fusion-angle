@@ -717,15 +717,18 @@ async function claimedBoundWorkOrder(
         ['PATCH', typePath + '/instances/' + KEEP_INSTANCE, {
             set: [{ attribute_id: KEEP_ATTRIBUTE, value: 'x' }],
         }, { 'If-None-Match': '*' }],
+        // Before the flow's record join: a work order
+        // created ahead of it is unbound, and the binding
+        // PUT below binds it to the instance above.
+        ['POST', ENTITY_PREFIX, workOrderCreateBody(
+            KEEP_WO, generateIdentifier(), KEEP_FLOW,
+        ), {}],
         ['PUT', '/organizations/AjdvjuECVZEgZoFajaIEkg/flows/'
             + KEEP_FLOW + '/records/' + generateIdentifier(), {
             flow_id: KEEP_FLOW,
             record_id: KEEP_TYPE,
             at,
         }, {}],
-        ['POST', ENTITY_PREFIX, workOrderCreateBody(
-            KEEP_WO, generateIdentifier(), KEEP_FLOW,
-        ), {}],
     ];
     for (const [method, path, body, headers] of writes) {
         const res = await handleRequest(db, apiRequest({

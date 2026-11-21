@@ -428,7 +428,14 @@ objectives, identities, record types, and the
 memberships statement.
 The handler declares each created document's genesis,
 so a resent create answers 409 and stores nothing. The
-201 answers the created document's state. The
+201 answers the created document's state. A work-order
+create on a flow that names a record type carries
+`instance` (`instance_id`, `record_type_id`) and lands
+that empty instance as a third genesis, never-written:
+an instance id already written is 409, a deleted one
+410, and neither lands the work order. Without
+`instance` on such a flow, or with one whose type the
+flow does not join, the create is 400. The
 memberships statement is three handler-declared
 geneses, answers 201 the membership, and Location
 the invitation item

@@ -1,5 +1,7 @@
 import type {
     FlowWithGraph,
+    Id,
+    RecordId,
     WorkOrderEntity,
     WorkOrderFlowGraph,
     StoredGraph,
@@ -68,12 +70,24 @@ export interface WorkOrderCreationInput {
     flowId: string;
 }
 
+// The instance a work order is born bound to: a fresh one
+// the app minted for the flow's record type, or none when
+// the flow names no record type.
+export type WorkOrderCreationInstance =
+    | { readonly kind: 'none' }
+    | {
+        readonly kind: 'minted',
+        readonly instanceId: Id,
+        readonly recordTypeId: RecordId,
+    };
+
 // A creation the app has judged ready, at the position it
 // chose: the flow as read is frozen into the work order.
 export interface WorkOrderCreation
     extends WorkOrderCreationInput {
     readonly flow: HttpMessage<FlowWithGraph>;
     readonly position: number;
+    readonly instance: WorkOrderCreationInstance;
 }
 
 export async function postWorkOrderCreation(
@@ -126,12 +140,14 @@ export async function postWorkOrderCreation(
         storedWorkOrderFlowGraph(flowGraph);
     // The work-order row, its flow-link join row, and the three
     // initial state events (start, post-start, claimed) write as
-    // ONE named operation. The work-order body OMITS
+    // ONE named operation, and so does the empty instance a
+    // work order is born bound to when its flow names a record
+    // type. The work-order body OMITS
     // organization_id — the org fence stamps it from the verified
     // token; the join row derives org from its flow. The three
-    // event ids are minted client-side so a retry hits the same
-    // rows; their authorship is stamped server-side from the
-    // token, never the body.
+    // event ids and the instance id are minted client-side so a
+    // retry hits the same rows; their authorship is stamped
+    // server-side from the token, never the body.
     await ctx.POST(
         organizationCollection(ctx, 'work-orders'),
         {
@@ -160,6 +176,15 @@ export async function postWorkOrderCreation(
             postStartNodeId,
             'claimed',
         ],
+        ...(creation.instance.kind === 'minted'
+            ? {
+                instance: {
+                    instance_id: creation.instance.instanceId,
+                    record_type_id:
+                        creation.instance.recordTypeId,
+                },
+            }
+            : {}),
     });
 
     workOrderChanges.notify();

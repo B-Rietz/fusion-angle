@@ -976,21 +976,6 @@ Off the critical path; each with its oracle.
   defect) —
   `web-app/workbox/detail.ts:598-616`,
   `shared/types.ts:1087`
-- Bind the record instance at work order creation.
-  The action-screen Bind instance control is gone
-  (`WorkboxDetailPresenter` has no `#bindButton`;
-  WB10a PASS); create still posts unbound
-  (`createWorkOrderFromFlow` →
-  `postWorkOrderCreation`). The Layer 2 WB11 pin's
-  `bindGenesisInstance` is a stopgap until this
-  item; walk `62291ec` BLOCKED WB11, WB16, and R14
-  on that unbound create. Oracle: creating a work
-  order requires the instance when the flow names a
-  record type; the action screen has no bind
-  control. Once create binds, drop
-  `bindGenesisInstance` from
-  `tests/browser/workbox-transition.test.ts`.
-  The gate-violation work order stays unbound.
 - Class the ideas-list drop indicator. Walk `62291ec`
   D37 BLOCKED: `buildIndicator`
   (`web-app/app/drag-reorder.ts`) returns an unclassed
@@ -1002,18 +987,15 @@ Off the critical path; each with its oracle.
   later brainstorm picks another); a Layer 1 pin
   asserts that class; a later walk can witness D37's
   live flip.
-- Seed one bound Data Capture work order. Until
-  bind-at-creation, live create is unbound, WO01 is
-  Archive, and R14/WB11 have no seeded bound Data
-  Capture subject. Oracle: the mock seed includes one
-  bound Customer Onboarding work order at Data
+- Seed one bound Data Capture work order. A live
+  create binds, but the one seeded bound work order,
+  WO01, is Archive, so R14/WB11 have no seeded bound
+  Data Capture subject. Oracle: the mock seed includes
+  one bound Customer Onboarding work order at Data
   Capture that a claim-drag (or a birth-claimed seed
   row) can open; a later walk can fill Company
   Name and Contact Email and submit; the
   gate-violation work order stays unbound.
-  Bind-at-creation consumes the live-create
-  half of this item and does not remove the
-  gate-violation work order.
 - A latched write aligned to RFC 9110 §13.1.1. When
   its `If-Match` fails, the RFC lets the origin answer
   2xx if it can verify that the requested state change

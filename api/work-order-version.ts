@@ -41,6 +41,16 @@ export type WorkOrderVersion = WorkOrderFields & {
     readonly events: readonly WorkOrderEventEntity[],
 };
 
+// What a work order is born bound to: the instance its
+// create wrote beside it, or nothing.
+export type BirthBinding =
+    | { readonly kind: 'unbound' }
+    | {
+        readonly kind: 'bound',
+        readonly instanceId: Id,
+        readonly recordTypeId: Id,
+    };
+
 export type ClaimChange =
     | {
         readonly kind: 'claimed',
@@ -118,6 +128,7 @@ export function createdVersion(input: {
     }[],
     readonly creator: Id,
     readonly lockTimeoutSeconds: number,
+    readonly binding: BirthBinding,
 }): WorkOrderVersion {
     const node = input.births[1]!;
     const claimed = input.births[2]!;
@@ -127,6 +138,12 @@ export function createdVersion(input: {
         ...input.fields,
         state: node.state,
         transition: { member_id: input.creator, at: node.at },
+        ...(input.binding.kind === 'bound'
+            ? {
+                instance_id: input.binding.instanceId,
+                record_type_id: input.binding.recordTypeId,
+            }
+            : {}),
         claim: {
             member_id: input.creator,
             at: claimed.at,

@@ -401,6 +401,7 @@ const WRITE_EXAMPLES = new Map<string, unknown>([
             stateEventIds: ['id', 'id', 'id'],
             stateEventAts: [AT, AT, AT],
             states: ['start', 'active', 'claimed'],
+            instance: { instance_id: 'id', record_type_id: 'id' },
         },
     ),
     writeExample(

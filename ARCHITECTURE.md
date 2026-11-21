@@ -426,7 +426,12 @@ former, answering the work order's state:
 - **Create** (`POST work-orders/`): a genesis version
   whose `events` are three births — the start node,
   the post-start node, and the creator's claim —
-  beside the flow's join document.
+  beside the flow's join document. A flow that names
+  a record type requires the body's `instance`
+  (`instance_id`, `record_type_id`): the same
+  statement lands that fresh, empty instance, and
+  the version is born bound to it. A flow that names
+  none takes none; either mismatch is 400.
 - **Claim** (`PUT …/claim`): `claim` becomes the
   requester. A lapsed prior claim is recorded first as
   `claim_expired`, authored by its holder. A live claim
