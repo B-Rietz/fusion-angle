@@ -2,20 +2,26 @@
 # do not exec. Run from the repository root, where
 # compose.yaml lives.
 
+# shellcheck source=build-lib
+. ./bin/build-lib
+
 # Mint the stack's secrets and export them, with PORT
 # ($1) and the URL a host process reaches compose's
 # postgres by. An ambient POSTGRES_URL is never read: it
 # could name a database compose does not run. Compose
 # parses every service, so PORT is required even where
-# nothing binds it.
+# nothing binds it. The host's commit log rides along
+# for the image builds, whose .git may be a worktree's
+# pointer to a directory the image lacks.
 mint_compose_env() {
     POSTGRES_PASSWORD="$(openssl rand -hex 16)"
     JWT_HMAC_SIGNING_KEY="$(openssl rand -hex 32)"
     POSTGRES_URL="postgres://fusion:${POSTGRES_PASSWORD}"
     POSTGRES_URL="${POSTGRES_URL}@127.0.0.1:5432/fusion"
     PORT="$1"
+    FUSION_COMMIT_LOG_BASE64="$(host_commit_log_base64 .)"
     export POSTGRES_PASSWORD JWT_HMAC_SIGNING_KEY
-    export POSTGRES_URL PORT
+    export POSTGRES_URL PORT FUSION_COMMIT_LOG_BASE64
 }
 
 # Take the stack down once, however many traps fire.

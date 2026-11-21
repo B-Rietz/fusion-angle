@@ -86,7 +86,12 @@ builder stage declares `ARG RENDER_GIT_COMMIT` and
 `ARG RENDER_GIT_REPO_SLUG`, fetches that one commit
 from the public GitHub repository with no credential,
 reads its sha and subject from it, and sees no
-secrets. The runtime stage
+secrets. A local compose build declares a third,
+`ARG FUSION_COMMIT_LOG_BASE64`: `mint_compose_env`
+encodes the host's commit log into it, because a
+worktree's `.git` is a pointer the image cannot follow,
+so `./bin/measure` and `./deploy --local` build from a
+worktree with no Render argument. The runtime stage
 declares no `ARG`, unlike the retired native build,
 whose `./validate` step saw the build-time
 `POSTGRES_URL`.

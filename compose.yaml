@@ -30,6 +30,8 @@ services:
         build:
             context: .
             target: runtime
+            args:
+                FUSION_COMMIT_LOG_BASE64: ${FUSION_COMMIT_LOG_BASE64:-}
         depends_on:
             postgres:
                 condition: service_healthy
@@ -60,6 +62,8 @@ services:
         build:
             context: .
             target: runtime
+            args:
+                FUSION_COMMIT_LOG_BASE64: ${FUSION_COMMIT_LOG_BASE64:-}
         profiles:
             - seed
         depends_on:
@@ -75,6 +79,8 @@ services:
         build:
             context: .
             target: runtime
+            args:
+                FUSION_COMMIT_LOG_BASE64: ${FUSION_COMMIT_LOG_BASE64:-}
         profiles:
             - wipe
         depends_on:
