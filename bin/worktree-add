@@ -1,0 +1,43 @@
+#!/bin/bash
+set -euo pipefail
+
+# The one way a spec's worktree is made, so it is the one
+# command the agent settings let run without a prompt:
+# a slug that cannot carry a path or an option, a fixed
+# location under .worktrees/, and no hooks or fsmonitor.
+
+usage() {
+    cat <<'USAGE'
+Usage: ./bin/worktree-add SLUG
+  SLUG   lowercase letters, digits, and inner hyphens
+  Creates .worktrees/SLUG on a new branch SLUG from HEAD.
+USAGE
+}
+
+if [ $# -eq 1 ] && { [ "$1" = "--help" ] \
+    || [ "$1" = "-h" ]; }; then
+    usage
+    exit 0
+fi
+
+if [ $# -ne 1 ]; then
+    usage >&2
+    exit 1
+fi
+
+SLUG=$1
+if ! [[ "$SLUG" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
+    echo "Error: SLUG must be lowercase letters," \
+        "digits, and inner hyphens" >&2
+    usage >&2
+    exit 1
+fi
+
+COMMON_DIR=$(git rev-parse --path-format=absolute \
+    --git-common-dir)
+ROOT=$(dirname "$COMMON_DIR")
+
+exec git -c core.hooksPath=/dev/null \
+    -c core.fsmonitor=false \
+    -C "$ROOT" worktree add \
+    "$ROOT/.worktrees/$SLUG" -b "$SLUG"
