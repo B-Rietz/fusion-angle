@@ -356,10 +356,14 @@ when asked.
   where a design changes the drawing, which the golden
   test compares the renderer against byte for byte),
   `css-declaration.ts` (read one declaration from a
-  stylesheet, for tests that pin a CSS rule), and
+  stylesheet, for tests that pin a CSS rule),
   `create-archive-graph.ts` (the least graph the flow
   gate accepts, one Create node and one Archive node,
-  and the delta a flow is born with);
+  and the delta a flow is born with), and
+  `api-documentation-pane.ts` (the API documentation's
+  message pane at the side-by-side width, which the
+  pane-height test derives from and the browser
+  checks);
   `client-init.ts` (the test composition
   root) and `in-page-facade.ts` (the in-process
   transport)

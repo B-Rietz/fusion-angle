@@ -10716,3 +10716,12 @@ export const API_DOC_CURL_ADDS: readonly string[] = [
     'accept',
     'content-length',
 ];
+
+export const API_DOC_PROVIDED_HEADERS: readonly string[] = [
+    'etag',
+    'last-modified',
+    'location',
+    'content-location',
+    'operation-id',
+    'request-id',
+];

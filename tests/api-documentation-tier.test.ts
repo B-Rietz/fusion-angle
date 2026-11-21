@@ -1,9 +1,14 @@
 import { assertEquals } from '@std/assert';
 import { routes } from '../api/routes.ts';
 import { routePatternOf } from '../api/route-surface.ts';
+import { API_DOC_ROOMS } from '../web-app/api-documentation/rooms.ts';
 import type {
     ApiDocTier,
 } from '../web-app/api-documentation/shapes.ts';
+import {
+    API_DOC_TIER_LABELS,
+} from '../web-app/api-documentation/shapes.ts';
+import { svgOf } from '../web-app/app/generate-api-documentation.ts';
 import {
     openReplayStage,
     type RecordedResponse,
@@ -160,4 +165,34 @@ Deno.test('each tier agrees with who gets past authorization',
             }
         }
         assertEquals(disagreements, []);
+    });
+
+// A grid link: its shape, then the title that names it.
+const GRID_LINK = new RegExp(
+    '<a href="#([^"]+)" data-tier="([^"]+)">\\s*<(?:circle|polygon)'
+        + ' [^>]*/>\\s*<title>([^<]*)</title>\\s*</a>',
+    'g',
+);
+const LINK_OPEN = /<a href="#/g;
+const EM_DASH_REFERENCE = '&#x2014;';
+
+Deno.test('each grid link is named by its endpoint and its tier',
+    () => {
+        const svg = svgOf(routes);
+        const links = [...svg.matchAll(GRID_LINK)];
+        assertEquals(links.length, [...svg.matchAll(LINK_OPEN)].length);
+        assertEquals(links.length, API_DOC_ROOMS.length);
+        for (const [, hash, tier, name] of links) {
+            const room = API_DOC_ROOMS.find(
+                (candidate) => candidate.hash === hash,
+            );
+            if (room === undefined) throw new Error('no room ' + hash);
+            assertEquals(tier, room.tier, hash);
+            assertEquals(
+                name,
+                room.verb + ' ' + room.uri + ' ' + EM_DASH_REFERENCE + ' '
+                    + API_DOC_TIER_LABELS[room.tier],
+                hash,
+            );
+        }
     });

@@ -535,7 +535,7 @@ limit that note already names.
 | A. Build & Setup | 5 |
 | AA. Data Entry Workflow | 46 |
 | B. Entry Pages | 30 |
-| C. Core: Dashboard | 7 |
+| C. Core: Dashboard | 9 |
 | D. Core: Ideas Workflow | 38 |
 | E. Core: Projects | 12 |
 | F. Tools | 73 |
@@ -548,7 +548,7 @@ limit that note already names.
 | R. Records | 26 |
 | J. Teardown | 3 |
 | SV. Server (Deno + Postgres) | 9 |
-| **Total** | **392** |
+| **Total** | **394** |
 
 A3 **is** SV1 — counted once, in A. The explorer
 skips SV1. F is 73 (F1–F75 less F4–F6 and F41–F44,
@@ -556,7 +556,7 @@ plus F37a, F37b, F38a, F38b, F57a).
 
 ### Combined Totals (CLI + Browser)
 
-The per-section table above counts 392 distinct
+The per-section table above counts 394 distinct
 TEST-PLAN cases (A3 is SV1; not counted twice). The
 CLI count is the most recent `./test` (AT2)
 report — the main `tests/*.test.ts` suite plus the
@@ -597,7 +597,7 @@ any AT red.
   Pin: exploratory — the command is its own witness
 - [ ] **AT2** Run `./test` (delegates to `TZ=UTC deno test --frozen --parallel --no-check --sanitize-ops --sanitize-resources tests/*.test.ts` for the main `Deno.test` suite, written against `@std/assert`, then `TZ=Pacific/Honolulu deno test --frozen --parallel --no-check --sanitize-ops --sanitize-resources tests/tz/*.test.ts` for the timezone suite; both carry the named permissions and four preloads — the HMAC key, the `localStorage` stub, the `sessionStorage` stub, the per-worker prefix on `BroadcastChannel` and `navigator.locks` names). PASS: exits 0; each pass reports `ok | N passed | 0 failed`, on 8 Oct `./test` printed `ok | 4152 passed | 0 failed | 11 ignored` for the main suite and `ok | 8 passed | 0 failed` for the timezone suite. The 11 ignored are the live-Postgres placeholders, which skip without `POSTGRES_URL`; AT4 runs the eleven files `bin/test-postgres` names: `tests/pg-acceptance.test.ts`, `tests/pg-races.test.ts`, `tests/pg-message-plane.test.ts`, `tests/pg-boot.test.ts`, `tests/pg-seed.test.ts`, `tests/pg-explain.test.ts`, `tests/pg-identifier-order.test.ts`, `tests/pg-standalone-read.test.ts`, `tests/schema-lifecycle.test.ts`, `tests/pg-ledger-store.test.ts`, and `tests/pg-ledger-seed.test.ts`.
   Pin: exploratory — the command is its own witness
-- [ ] **AT3** Run `./test validate`. PASS: exits 0 (composes AT1's `deno check --frozen api client shared server tests web-app` and AT2 plus the 78-char awk lint over `api/`, `client/`, `web-app/`, `tests/`, `shared/`, `server/` `*.ts|html|css` with `compose.ts` exempt, and the root scripts `test`, `deploy`, plus `bin/build`, `bin/build-lib`, `bin/serve`, `bin/test-postgres`, `bin/test-browser`, `bin/generate-schema-svg`, `bin/generate-api-documentation`, `bin/measure`, `bin/postgres-wipe`, `bin/postgres-lib`, `bin/postgres-seed`, and `bin/compose-lib`, plus `deno.json`, `Dockerfile`, `compose.yaml`, `.dockerignore`; the org-abbreviation identifier lint over `api/`, `client/`, `web-app/`, `tests/`, `shared/`, `server/` `*.ts|html|css` with `compose.ts` exempt — reject `org` camel/Pascal/ORG_ identifier forms in favor of `organization`; then the `generate-schema-svg --check` SCHEMA.svg-drift gate; then the `generate-api-documentation --check` API.svg/room-drift gate). Any long-line violation prints `FILE:LINE: N chars` to stderr and fails the script; any org-abbreviation hit prints `FILE:LINE:` and fails.
+- [ ] **AT3** Run `./test validate`. PASS: exits 0 (composes AT1's `deno check --frozen api client shared server tests web-app` and AT2 plus the 78-char awk lint over `api/`, `client/`, `web-app/`, `tests/`, `shared/`, `server/` `*.ts|html|css` with `compose.ts` exempt, and the root scripts `test`, `deploy`, plus `bin/build`, `bin/build-lib`, `bin/serve`, `bin/test-postgres`, `bin/test-browser`, `bin/generate-schema-svg`, `bin/generate-api-documentation`, `bin/measure`, `bin/postgres-wipe`, `bin/postgres-lib`, `bin/postgres-seed`, and `bin/compose-lib`, plus `deno.json`, `Dockerfile`, `compose.yaml`, `.dockerignore`; the org-abbreviation identifier lint over `api/`, `client/`, `web-app/`, `tests/`, `shared/`, `server/` `*.ts|html|css` with `compose.ts` exempt — reject `org` camel/Pascal/ORG_ identifier forms in favor of `organization`; then the `generate-schema-svg --check` SCHEMA.svg-drift gate; then `generate-api-documentation --check`, the API documentation drift gate (catalog, samples, grid)). Any long-line violation prints `FILE:LINE: N chars` to stderr and fails the script; any org-abbreviation hit prints `FILE:LINE:` and fails.
   Pin: exploratory — the command is its own witness
 - [ ] **AT4** Run `./test postgres`. It
   owns its own Docker Postgres, not the
@@ -641,11 +641,12 @@ any AT red.
 - [ ] **A1** Run `./bin/build` from a clean working directory. PASS: exits 0, prints no errors, creates `~/Desktop/fusion-angle-${SHA}.zip`.
   Pin: exploratory — the exit code and the ZIP
        file appearing on disk
-- [ ] **A2** Unzip the A1 ZIP (or run `./bin/build --no-zip /tmp/fusion-test/`). PASS: the temp dir contains the `fusion-angle` executable and `site/` with content-hashed assets — `assets/app.<hash>.js` (plus its code-split chunks), `assets/styles.<hash>.css`, the `pages-*.<hash>.css` bundles, and the `*.<hash>.woff2` fonts, where each `<hash>` is sixteen lowercase hex digits that change with the file's content, so read a build's names from its `site/asset-manifest.json` rather than expecting fixed ones — 18 page directories (`api-documentation`, `auth`, `billing`, `dashboard`, `design-system`, `flows`, `ideas`, `identities`, `identity-providers`, `identity-tokens`, `invitations`, `landing`, `members`, `not-found`, `organization`, `projects`, `records`, `workbox`) with 29 HTML page files (including `api-documentation/index.html`, `flows/stats.html`, `records/detail.html`, `identities/index.html`, `identities/detail.html`, `identity-providers/index.html`, `identity-tokens/index.html`, and `invitations/index.html`), plus root `index.html`. Verb/status rooms under `api-documentation/` are generated, not PAGE_REGISTRY pages — do not count them as the 29.
+- [ ] **A2** Unzip the A1 ZIP (or run `./bin/build --no-zip /tmp/fusion-test/`). PASS: the temp dir contains the `fusion-angle` executable and `site/` with content-hashed assets — `assets/app.<hash>.js` (plus its code-split chunks), `assets/styles.<hash>.css`, the `pages-*.<hash>.css` bundles, and the `*.<hash>.woff2` fonts, where each `<hash>` is sixteen lowercase hex digits that change with the file's content, so read a build's names from its `site/asset-manifest.json` rather than expecting fixed ones — 18 page directories (`api-documentation`, `auth`, `billing`, `dashboard`, `design-system`, `flows`, `ideas`, `identities`, `identity-providers`, `identity-tokens`, `invitations`, `landing`, `members`, `not-found`, `organization`, `projects`, `records`, `workbox`) with 29 HTML page files (including `api-documentation/index.html`, `flows/stats.html`, `records/detail.html`, `identities/index.html`, `identities/detail.html`, `identity-providers/index.html`, `identity-tokens/index.html`, and `invitations/index.html`), plus root `index.html`. The samples under `api-documentation/samples/` are generated JSON, not PAGE_REGISTRY pages — do not count them as the 29.
   The 29 are the `PAGE_REGISTRY` HTML files; do
   **not** count root `index.html` inside the 29
   (it stays the separate "plus root `index.html`");
-  do **not** count verb/status rooms.
+  do **not** count the samples under
+  `api-documentation/samples/`.
   Pin: tests/page-registry.test.ts 'PAGE_REGISTRY is 29
        HTML page files including the api-documentation
        index'; exploratory — that a real `./bin/build` run
@@ -654,7 +655,8 @@ any AT red.
        directories, the `fusion-angle` executable,
        the hashed `site/assets/app.<hash>.js` and
        `site/assets/styles.<hash>.css`, the fonts, and
-       the generated verb/status rooms
+       the generated samples under
+       `site/api-documentation/samples/`
 - [ ] **A3** `./deploy --local 8080 --postgres
   mock-data`. Deploy validates, mints secrets,
   starts compose postgres and server, wipes,
@@ -1831,11 +1833,65 @@ the second organization.
   Pin: exploratory — the rendered order and
        styling of the 12 links
 - [ ] **C2a** Open API from the sidebar. PASS: the
-  elevation SVG is visible in `#api-elevation`. Click
-  a filled circle. PASS: `#api-room h1` is visible and
-  non-empty; the pane is not blank.
+  view-as switch (Everyone chosen), the search box, the
+  Start here card, and the elevation SVG in
+  `#api-elevation` are all visible. Click the grid's
+  first endpoint (an open circle: no token). PASS:
+  `#api-room h1` is visible and non-empty; the pane is
+  not blank. Click Back, then type `/`. PASS: focus is
+  in the search box. Type `flows`. PASS: the Start here
+  card and the grid hide, a count reads `N matches`,
+  and every hit names a flow URI. Press Enter. PASS:
+  the first hit opens. Click Back, empty the box. PASS:
+  the hits and the count are gone and the grid
+  returns. Choose Member. PASS: every diamond
+  (organization admin only) on the grid dims while the
+  circles, filled and open, stay lit, each keeping its
+  shape; type `identities` and the diamond hits dim
+  too, each still reading "organization admin only".
+  Choose Organization admin. PASS: nothing is dimmed.
   Pin: tests/browser/api-documentation.test.ts
-       'circle click paints a room'
+       'circle click paints a room'; same file, 'typing
+       in search narrows to a known endpoint; Enter
+       opens it; / focuses the box', 'Enter typed
+       straight after a narrowing query opens the first
+       hit', 'emptying the search clears its hits and
+       leaves ArrowDown to the box', and 'choosing
+       Member dims an organization-admin-only endpoint
+       and leaves a member one lit';
+       tests/api-documentation-search.test.ts "'flows'
+       finds the flow URIs"; exploratory — the live
+       look of the dimmed grid in both themes
+- [ ] **C2b** Walk the guided start against the walk
+  origin, in a POSIX shell with `openssl`. In API, click
+  Start here's **Sign in**. PASS: `#api-room h1` reads
+  `Sign in`; five shell lines and two exchanges show,
+  each with a Copy button, and each curl names this
+  origin, never `$ORIGIN`. In the shell, set `USERNAME`
+  and `PASSWORD` to one of the seeded sign-ins the
+  deploy printed; never paste either, or any code,
+  token, or cookie, into the scorecard. Copy step 1's
+  `OPERATION_ID` line and run it before each call.
+  Copy and run its `VERIFIER` and `CHALLENGE` lines.
+  Copy the first curl, run it with
+  `> answer.txt` appended, then run the `CODE` line as
+  `{ LINE; } < answer.txt`. PASS: the answer's status
+  is 200, it carries `authentication-info: code=…`,
+  and `$CODE` is set. Copy the second curl and run it
+  the same way, then the `TOKEN` line. PASS: the
+  answer's status is 200, it carries
+  `authentication-info: access_token=…` and a
+  `set-cookie: refresh_token=…`, and `$TOKEN` is set.
+  Score by status and presence alone.
+  Pin: tests/api-documentation-guided-start.test.ts
+       'the sign-in lines sign the member in' and 'the
+       OPERATION_ID line mints an identifier', and
+       "step 1's lines set every variable its curls
+       send"; tests/browser/api-documentation.test.ts 'every
+       step hash paints its title' and 'opening an
+       endpoint shows its sample with $ORIGIN replaced';
+       exploratory — the copied lines and calls,
+       pasted, sign in against a real origin
 - [ ] **C3** Header shows search bar and company
   stats as structured tiles (org name as a
   `header-stat-label`, then per-stat value +

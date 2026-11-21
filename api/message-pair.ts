@@ -68,6 +68,7 @@ export {
     IF_MATCH_HEADER,
     IF_NONE_MATCH_HEADER,
 } from './request-header-names.ts';
+import { RESPONSE_HEADERS } from './response-header-names.ts';
 import { notifyPayload } from './advisory-lock.ts';
 import { sortJsonKeys } from
     '../shared/http-message/canonical.ts';
@@ -331,9 +332,15 @@ function formedResponse(input: {
 } {
     const split = splitCredentials([
         { name: 'date', value: DATE_PLACEHOLDER },
-        { name: 'etag', value: strongEtagOf(input.etag) },
-        { name: 'operation-id', value: input.operationId },
-        { name: 'request-id', value: input.requestId },
+        {
+            name: RESPONSE_HEADERS.etag,
+            value: strongEtagOf(input.etag),
+        },
+        {
+            name: RESPONSE_HEADERS.operationId,
+            value: input.operationId,
+        },
+        { name: RESPONSE_HEADERS.requestId, value: input.requestId },
         ...input.fields,
     ]);
     return {
@@ -617,7 +624,7 @@ export function strongEtagOf(tag: string): string {
 export function attachEtag(
     response: Response, tag: string,
 ): Response {
-    response.headers.set('ETag', strongEtagOf(tag));
+    response.headers.set(RESPONSE_HEADERS.etag, strongEtagOf(tag));
     return response;
 }
 
@@ -1061,7 +1068,7 @@ export async function formStateWrite(
             etag: receivedEtag(write.siblings[0], pairs[0]!.id),
             fields: write.answer.kind === 'created'
                 ? [{
-                    name: 'location',
+                    name: RESPONSE_HEADERS.location,
                     value: write.answer.location,
                 }]
                 : [],
@@ -1390,7 +1397,7 @@ function landedWire(
     const model = parseWire(stored);
     const fields = placedLines(model.fields, [
         {
-            name: 'last-modified',
+            name: RESPONSE_HEADERS.lastModified,
             value: imfFixdate(envelope.responseAt),
         },
         {
@@ -1512,7 +1519,7 @@ function currentRequestId(
     }
     const model = parseWire(latin1(ownResponse));
     for (const field of model.fields) {
-        if (field.name === 'request-id') {
+        if (field.name === RESPONSE_HEADERS.requestId) {
             return field.value;
         }
     }

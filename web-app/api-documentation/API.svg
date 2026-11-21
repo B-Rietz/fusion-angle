@@ -40,6 +40,7 @@
   <rect class="empty" x="109" y="105" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#post/authentication/authorize" data-tier="none">
     <circle class="tier-none" fill="hsl(var(--background))" stroke="hsl(var(--success))" stroke-width="1.5" cx="154" cy="110" r="5"/>
+    <title>POST /api/authentication/authorize &#x2014; no token</title>
   </a>
   <rect class="empty" x="189" y="105" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="229" y="105" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -49,6 +50,7 @@
   <rect class="empty" x="109" y="123" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#post/authentication/token" data-tier="none">
     <circle class="tier-none" fill="hsl(var(--background))" stroke="hsl(var(--success))" stroke-width="1.5" cx="154" cy="128" r="5"/>
+    <title>POST /api/authentication/token &#x2014; no token</title>
   </a>
   <rect class="empty" x="189" y="123" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="229" y="123" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -56,21 +58,25 @@
   <text class="wing" fill="hsl(var(--foreground))" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12" font-weight="700" x="16" y="160">identities</text>
   <a href="#get/identities" data-tier="admin">
     <polygon class="tier-admin" fill="hsl(var(--accent))" points="34,170 40,176 34,182 28,176"/>
+    <title>GET /api/identities/ &#x2014; organization admin only</title>
   </a>
   <rect class="empty" x="69" y="171" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="171" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#post/identities" data-tier="admin">
     <polygon class="tier-admin" fill="hsl(var(--accent))" points="154,170 160,176 154,182 148,176"/>
+    <title>POST /api/identities/ &#x2014; organization admin only</title>
   </a>
   <rect class="empty" x="189" y="171" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="229" y="171" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="179">/api/identities/</text>
   <a href="#get/identities/id" data-tier="admin">
     <polygon class="tier-admin" fill="hsl(var(--accent))" points="34,188 40,194 34,200 28,194"/>
+    <title>GET /api/identities/:id &#x2014; organization admin only</title>
   </a>
   <rect class="empty" x="69" y="189" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#put/identities/id" data-tier="admin">
     <polygon class="tier-admin" fill="hsl(var(--accent))" points="114,188 120,194 114,200 108,194"/>
+    <title>PUT /api/identities/:id &#x2014; organization admin only</title>
   </a>
   <rect class="empty" x="149" y="189" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="189" y="189" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -78,6 +84,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="197">/api/identities/:id</text>
   <a href="#get/identities/id/credentials" data-tier="admin">
     <polygon class="tier-admin" fill="hsl(var(--accent))" points="34,206 40,212 34,218 28,212"/>
+    <title>GET /api/identities/:id/credentials/ &#x2014; organization admin only</title>
   </a>
   <rect class="empty" x="69" y="207" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="207" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -87,10 +94,12 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="215">/api/identities/:id/credentials/</text>
   <a href="#get/identities/id/credentials/cid" data-tier="admin">
     <polygon class="tier-admin" fill="hsl(var(--accent))" points="34,224 40,230 34,236 28,230"/>
+    <title>GET /api/identities/:id/credentials/:cid &#x2014; organization admin only</title>
   </a>
   <rect class="empty" x="69" y="225" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#put/identities/id/credentials/cid" data-tier="admin">
     <polygon class="tier-admin" fill="hsl(var(--accent))" points="114,224 120,230 114,236 108,230"/>
+    <title>PUT /api/identities/:id/credentials/:cid &#x2014; organization admin only</title>
   </a>
   <rect class="empty" x="149" y="225" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="189" y="225" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -98,10 +107,12 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="233">/api/identities/:id/credentials/:cid</text>
   <a href="#get/identities/id/default-organization" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="248" r="5"/>
+    <title>GET /api/identities/:id/default-organization &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="243" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#put/identities/id/default-organization" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="114" cy="248" r="5"/>
+    <title>PUT /api/identities/:id/default-organization &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="149" y="243" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="189" y="243" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -109,6 +120,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="251">/api/identities/:id/default-organization</text>
   <a href="#get/identities/id/invitations" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="266" r="5"/>
+    <title>GET /api/identities/:id/invitations/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="261" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="261" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -118,10 +130,12 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="269">/api/identities/:id/invitations/</text>
   <a href="#get/identities/id/invitations/membership-id" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="284" r="5"/>
+    <title>GET /api/identities/:id/invitations/:membership-id &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="279" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#put/identities/id/invitations/membership-id" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="114" cy="284" r="5"/>
+    <title>PUT /api/identities/:id/invitations/:membership-id &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="149" y="279" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="189" y="279" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -129,6 +143,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="287">/api/identities/:id/invitations/:membership-id</text>
   <a href="#get/identities/id/invitations/membership-id/versions" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="302" r="5"/>
+    <title>GET /api/identities/:id/invitations/:membership-id/versions/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="297" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="297" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -138,6 +153,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="305">/api/identities/:id/invitations/:membership-id/versions/</text>
   <a href="#get/identities/id/invitations/membership-id/versions/etag" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="320" r="5"/>
+    <title>GET /api/identities/:id/invitations/:membership-id/versions/:etag &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="315" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="315" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -147,6 +163,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="323">/api/identities/:id/invitations/:membership-id/versions/:etag</text>
   <a href="#get/identities/id/organizations" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="338" r="5"/>
+    <title>GET /api/identities/:id/organizations/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="333" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="333" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -156,19 +173,23 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="341">/api/identities/:id/organizations/</text>
   <a href="#get/identities/id/pii" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="356" r="5"/>
+    <title>GET /api/identities/:id/pii &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="351" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#put/identities/id/pii" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="114" cy="356" r="5"/>
+    <title>PUT /api/identities/:id/pii &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="149" y="351" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="189" y="351" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#delete/identities/id/pii" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="234" cy="356" r="5"/>
+    <title>DELETE /api/identities/:id/pii &#x2014; member and organization admin</title>
   </a>
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="359">/api/identities/:id/pii</text>
   <a href="#get/identities/id/providers" data-tier="admin">
     <polygon class="tier-admin" fill="hsl(var(--accent))" points="34,368 40,374 34,380 28,374"/>
+    <title>GET /api/identities/:id/providers/ &#x2014; organization admin only</title>
   </a>
   <rect class="empty" x="69" y="369" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="369" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -178,10 +199,12 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="377">/api/identities/:id/providers/</text>
   <a href="#get/identities/id/providers/eid" data-tier="admin">
     <polygon class="tier-admin" fill="hsl(var(--accent))" points="34,386 40,392 34,398 28,392"/>
+    <title>GET /api/identities/:id/providers/:eid &#x2014; organization admin only</title>
   </a>
   <rect class="empty" x="69" y="387" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#put/identities/id/providers/eid" data-tier="admin">
     <polygon class="tier-admin" fill="hsl(var(--accent))" points="114,386 120,392 114,398 108,392"/>
+    <title>PUT /api/identities/:id/providers/:eid &#x2014; organization admin only</title>
   </a>
   <rect class="empty" x="149" y="387" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="189" y="387" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -189,23 +212,28 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="395">/api/identities/:id/providers/:eid</text>
   <a href="#get/identities/id/registration" data-tier="admin">
     <polygon class="tier-admin" fill="hsl(var(--accent))" points="34,404 40,410 34,416 28,410"/>
+    <title>GET /api/identities/:id/registration &#x2014; organization admin only</title>
   </a>
   <rect class="empty" x="69" y="405" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#put/identities/id/registration" data-tier="admin">
     <polygon class="tier-admin" fill="hsl(var(--accent))" points="114,404 120,410 114,416 108,410"/>
+    <title>PUT /api/identities/:id/registration &#x2014; organization admin only</title>
   </a>
   <rect class="empty" x="149" y="405" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="189" y="405" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#delete/identities/id/registration" data-tier="admin">
     <polygon class="tier-admin" fill="hsl(var(--accent))" points="234,404 240,410 234,416 228,410"/>
+    <title>DELETE /api/identities/:id/registration &#x2014; organization admin only</title>
   </a>
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="413">/api/identities/:id/registration</text>
   <a href="#get/identities/id/token-revocations/rid" data-tier="admin">
     <polygon class="tier-admin" fill="hsl(var(--accent))" points="34,422 40,428 34,434 28,428"/>
+    <title>GET /api/identities/:id/token-revocations/:rid &#x2014; organization admin only</title>
   </a>
   <rect class="empty" x="69" y="423" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#put/identities/id/token-revocations/rid" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="114" cy="428" r="5"/>
+    <title>PUT /api/identities/:id/token-revocations/:rid &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="149" y="423" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="189" y="423" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -213,6 +241,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="431">/api/identities/:id/token-revocations/:rid</text>
   <a href="#get/identities/id/tokens" data-tier="admin">
     <polygon class="tier-admin" fill="hsl(var(--accent))" points="34,440 40,446 34,452 28,446"/>
+    <title>GET /api/identities/:id/tokens/ &#x2014; organization admin only</title>
   </a>
   <rect class="empty" x="69" y="441" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="441" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -222,10 +251,12 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="449">/api/identities/:id/tokens/</text>
   <a href="#get/identities/id/tokens/jti" data-tier="admin">
     <polygon class="tier-admin" fill="hsl(var(--accent))" points="34,458 40,464 34,470 28,464"/>
+    <title>GET /api/identities/:id/tokens/:jti &#x2014; organization admin only</title>
   </a>
   <rect class="empty" x="69" y="459" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#put/identities/id/tokens/jti" data-tier="admin">
     <polygon class="tier-admin" fill="hsl(var(--accent))" points="114,458 120,464 114,470 108,464"/>
+    <title>PUT /api/identities/:id/tokens/:jti &#x2014; organization admin only</title>
   </a>
   <rect class="empty" x="149" y="459" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="189" y="459" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -236,6 +267,7 @@
   <rect class="empty" x="109" y="477" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#post/identities/id/tokens/jti/revocation" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="154" cy="482" r="5"/>
+    <title>POST /api/identities/:id/tokens/:jti/revocation &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="189" y="477" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="229" y="477" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -245,12 +277,14 @@
   <rect class="empty" x="109" y="495" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#post/identities/id/tokens/jti/rotation" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="154" cy="500" r="5"/>
+    <title>POST /api/identities/:id/tokens/:jti/rotation &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="189" y="495" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="229" y="495" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="503">/api/identities/:id/tokens/:jti/rotation</text>
   <a href="#get/identities/id/versions" data-tier="admin">
     <polygon class="tier-admin" fill="hsl(var(--accent))" points="34,512 40,518 34,524 28,518"/>
+    <title>GET /api/identities/:id/versions/ &#x2014; organization admin only</title>
   </a>
   <rect class="empty" x="69" y="513" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="513" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -260,6 +294,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="521">/api/identities/:id/versions/</text>
   <a href="#get/identities/id/versions/etag" data-tier="admin">
     <polygon class="tier-admin" fill="hsl(var(--accent))" points="34,530 40,536 34,542 28,536"/>
+    <title>GET /api/identities/:id/versions/:etag &#x2014; organization admin only</title>
   </a>
   <rect class="empty" x="69" y="531" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="531" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -270,12 +305,15 @@
   <text class="wing" fill="hsl(var(--foreground))" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12" font-weight="700" x="16" y="568">organizations</text>
   <a href="#get/organizations/id" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="584" r="5"/>
+    <title>GET /api/organizations/:id &#x2014; member and organization admin</title>
   </a>
   <a href="#query/organizations/id" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="74" cy="584" r="5"/>
+    <title>QUERY /api/organizations/:id &#x2014; member and organization admin</title>
   </a>
   <a href="#put/organizations/id" data-tier="admin">
     <polygon class="tier-admin" fill="hsl(var(--accent))" points="114,578 120,584 114,590 108,584"/>
+    <title>PUT /api/organizations/:id &#x2014; organization admin only</title>
   </a>
   <rect class="empty" x="149" y="579" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="189" y="579" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -283,6 +321,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="587">/api/organizations/:id</text>
   <a href="#get/organizations/id/ai-agents" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="602" r="5"/>
+    <title>GET /api/organizations/:id/ai-agents/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="597" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="597" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -292,10 +331,12 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="605">/api/organizations/:id/ai-agents/</text>
   <a href="#get/organizations/id/ai-agents/id" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="620" r="5"/>
+    <title>GET /api/organizations/:id/ai-agents/:id &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="615" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#put/organizations/id/ai-agents/id" data-tier="admin">
     <polygon class="tier-admin" fill="hsl(var(--accent))" points="114,614 120,620 114,626 108,620"/>
+    <title>PUT /api/organizations/:id/ai-agents/:id &#x2014; organization admin only</title>
   </a>
   <rect class="empty" x="149" y="615" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="189" y="615" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -303,6 +344,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="623">/api/organizations/:id/ai-agents/:id</text>
   <a href="#get/organizations/id/ai-agents/id/versions" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="638" r="5"/>
+    <title>GET /api/organizations/:id/ai-agents/:id/versions/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="633" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="633" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -312,6 +354,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="641">/api/organizations/:id/ai-agents/:id/versions/</text>
   <a href="#get/organizations/id/ai-agents/id/versions/etag" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="656" r="5"/>
+    <title>GET /api/organizations/:id/ai-agents/:id/versions/:etag &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="651" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="651" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -321,21 +364,25 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="659">/api/organizations/:id/ai-agents/:id/versions/:etag</text>
   <a href="#get/organizations/id/flows" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="674" r="5"/>
+    <title>GET /api/organizations/:id/flows/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="669" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="669" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#post/organizations/id/flows" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="154" cy="674" r="5"/>
+    <title>POST /api/organizations/:id/flows/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="189" y="669" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="229" y="669" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="677">/api/organizations/:id/flows/</text>
   <a href="#get/organizations/id/flows/id" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="692" r="5"/>
+    <title>GET /api/organizations/:id/flows/:id &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="687" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#put/organizations/id/flows/id" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="114" cy="692" r="5"/>
+    <title>PUT /api/organizations/:id/flows/:id &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="149" y="687" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="189" y="687" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -343,6 +390,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="695">/api/organizations/:id/flows/:id</text>
   <a href="#get/organizations/id/flows/id/records" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="710" r="5"/>
+    <title>GET /api/organizations/:id/flows/:id/records/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="705" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="705" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -352,28 +400,34 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="713">/api/organizations/:id/flows/:id/records/</text>
   <a href="#get/organizations/id/flows/id/records/frid" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="728" r="5"/>
+    <title>GET /api/organizations/:id/flows/:id/records/:frid &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="723" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#put/organizations/id/flows/id/records/frid" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="114" cy="728" r="5"/>
+    <title>PUT /api/organizations/:id/flows/:id/records/:frid &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="149" y="723" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="189" y="723" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#delete/organizations/id/flows/id/records/frid" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="234" cy="728" r="5"/>
+    <title>DELETE /api/organizations/:id/flows/:id/records/:frid &#x2014; member and organization admin</title>
   </a>
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="731">/api/organizations/:id/flows/:id/records/:frid</text>
   <a href="#get/organizations/id/flows/id/tags/name" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="746" r="5"/>
+    <title>GET /api/organizations/:id/flows/:id/tags/:name &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="741" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#put/organizations/id/flows/id/tags/name" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="114" cy="746" r="5"/>
+    <title>PUT /api/organizations/:id/flows/:id/tags/:name &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="149" y="741" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="189" y="741" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#delete/organizations/id/flows/id/tags/name" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="234" cy="746" r="5"/>
+    <title>DELETE /api/organizations/:id/flows/:id/tags/:name &#x2014; member and organization admin</title>
   </a>
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="749">/api/organizations/:id/flows/:id/tags/:name</text>
   <rect class="empty" x="29" y="759" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -381,12 +435,14 @@
   <rect class="empty" x="109" y="759" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#post/organizations/id/flows/id/undo" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="154" cy="764" r="5"/>
+    <title>POST /api/organizations/:id/flows/:id/undo &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="189" y="759" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="229" y="759" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="767">/api/organizations/:id/flows/:id/undo</text>
   <a href="#get/organizations/id/flows/id/versions" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="782" r="5"/>
+    <title>GET /api/organizations/:id/flows/:id/versions/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="777" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="777" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -396,6 +452,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="785">/api/organizations/:id/flows/:id/versions/</text>
   <a href="#get/organizations/id/flows/id/versions/etag" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="800" r="5"/>
+    <title>GET /api/organizations/:id/flows/:id/versions/:etag &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="795" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="795" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -405,6 +462,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="803">/api/organizations/:id/flows/:id/versions/:etag</text>
   <a href="#get/organizations/id/flows/id/work-orders" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="818" r="5"/>
+    <title>GET /api/organizations/:id/flows/:id/work-orders/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="813" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="813" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -416,6 +474,7 @@
   <rect class="empty" x="69" y="831" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#put/organizations/id/flows/id/work-orders/woid" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="114" cy="836" r="5"/>
+    <title>PUT /api/organizations/:id/flows/:id/work-orders/:woid &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="149" y="831" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="189" y="831" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -423,6 +482,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="839">/api/organizations/:id/flows/:id/work-orders/:woid</text>
   <a href="#get/organizations/id/ideas" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="854" r="5"/>
+    <title>GET /api/organizations/:id/ideas/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="849" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="849" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -432,10 +492,12 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="857">/api/organizations/:id/ideas/</text>
   <a href="#get/organizations/id/ideas/id" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="872" r="5"/>
+    <title>GET /api/organizations/:id/ideas/:id &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="867" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#put/organizations/id/ideas/id" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="114" cy="872" r="5"/>
+    <title>PUT /api/organizations/:id/ideas/:id &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="149" y="867" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="189" y="867" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -446,12 +508,14 @@
   <rect class="empty" x="109" y="885" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#post/organizations/id/ideas/id/conversion" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="154" cy="890" r="5"/>
+    <title>POST /api/organizations/:id/ideas/:id/conversion &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="189" y="885" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="229" y="885" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="893">/api/organizations/:id/ideas/:id/conversion</text>
   <a href="#get/organizations/id/ideas/id/submissions" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="908" r="5"/>
+    <title>GET /api/organizations/:id/ideas/:id/submissions/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="903" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="903" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -463,6 +527,7 @@
   <rect class="empty" x="69" y="921" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#put/organizations/id/ideas/id/submissions/sid" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="114" cy="926" r="5"/>
+    <title>PUT /api/organizations/:id/ideas/:id/submissions/:sid &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="149" y="921" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="189" y="921" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -470,6 +535,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="929">/api/organizations/:id/ideas/:id/submissions/:sid</text>
   <a href="#get/organizations/id/ideas/id/versions" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="944" r="5"/>
+    <title>GET /api/organizations/:id/ideas/:id/versions/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="939" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="939" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -479,6 +545,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="947">/api/organizations/:id/ideas/:id/versions/</text>
   <a href="#get/organizations/id/ideas/id/versions/etag" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="962" r="5"/>
+    <title>GET /api/organizations/:id/ideas/:id/versions/:etag &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="957" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="957" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -488,21 +555,25 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="965">/api/organizations/:id/ideas/:id/versions/:etag</text>
   <a href="#get/organizations/id/invitations" data-tier="admin">
     <polygon class="tier-admin" fill="hsl(var(--accent))" points="34,974 40,980 34,986 28,980"/>
+    <title>GET /api/organizations/:id/invitations/ &#x2014; organization admin only</title>
   </a>
   <rect class="empty" x="69" y="975" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="975" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#post/organizations/id/invitations" data-tier="admin">
     <polygon class="tier-admin" fill="hsl(var(--accent))" points="154,974 160,980 154,986 148,980"/>
+    <title>POST /api/organizations/:id/invitations/ &#x2014; organization admin only</title>
   </a>
   <rect class="empty" x="189" y="975" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="229" y="975" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="983">/api/organizations/:id/invitations/</text>
   <a href="#get/organizations/id/invitations/membership-id" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="998" r="5"/>
+    <title>GET /api/organizations/:id/invitations/:membership-id &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="993" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#put/organizations/id/invitations/membership-id" data-tier="admin">
     <polygon class="tier-admin" fill="hsl(var(--accent))" points="114,992 120,998 114,1004 108,998"/>
+    <title>PUT /api/organizations/:id/invitations/:membership-id &#x2014; organization admin only</title>
   </a>
   <rect class="empty" x="149" y="993" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="189" y="993" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -510,6 +581,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1001">/api/organizations/:id/invitations/:membership-id</text>
   <a href="#get/organizations/id/invitations/membership-id/versions" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1016" r="5"/>
+    <title>GET /api/organizations/:id/invitations/:membership-id/versions/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="1011" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="1011" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -519,6 +591,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1019">/api/organizations/:id/invitations/:membership-id/versions/</text>
   <a href="#get/organizations/id/invitations/membership-id/versions/etag" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1034" r="5"/>
+    <title>GET /api/organizations/:id/invitations/:membership-id/versions/:etag &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="1029" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="1029" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -528,34 +601,41 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1037">/api/organizations/:id/invitations/:membership-id/versions/:etag</text>
   <a href="#get/organizations/id/memberships" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1052" r="5"/>
+    <title>GET /api/organizations/:id/memberships/ &#x2014; member and organization admin</title>
   </a>
   <a href="#query/organizations/id/memberships" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="74" cy="1052" r="5"/>
+    <title>QUERY /api/organizations/:id/memberships/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="109" y="1047" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#post/organizations/id/memberships" data-tier="admin">
     <polygon class="tier-admin" fill="hsl(var(--accent))" points="154,1046 160,1052 154,1058 148,1052"/>
+    <title>POST /api/organizations/:id/memberships/ &#x2014; organization admin only</title>
   </a>
   <rect class="empty" x="189" y="1047" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="229" y="1047" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1055">/api/organizations/:id/memberships/</text>
   <a href="#get/organizations/id/objectives" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1070" r="5"/>
+    <title>GET /api/organizations/:id/objectives/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="1065" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="1065" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#post/organizations/id/objectives" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="154" cy="1070" r="5"/>
+    <title>POST /api/organizations/:id/objectives/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="189" y="1065" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="229" y="1065" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1073">/api/organizations/:id/objectives/</text>
   <a href="#get/organizations/id/objectives/id" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1088" r="5"/>
+    <title>GET /api/organizations/:id/objectives/:id &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="1083" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#put/organizations/id/objectives/id" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="114" cy="1088" r="5"/>
+    <title>PUT /api/organizations/:id/objectives/:id &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="149" y="1083" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="189" y="1083" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -563,6 +643,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1091">/api/organizations/:id/objectives/:id</text>
   <a href="#get/organizations/id/objectives/id/revisions" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1106" r="5"/>
+    <title>GET /api/organizations/:id/objectives/:id/revisions/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="1101" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="1101" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -574,6 +655,7 @@
   <rect class="empty" x="69" y="1119" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#put/organizations/id/objectives/id/revisions/rid" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="114" cy="1124" r="5"/>
+    <title>PUT /api/organizations/:id/objectives/:id/revisions/:rid &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="149" y="1119" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="189" y="1119" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -581,6 +663,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1127">/api/organizations/:id/objectives/:id/revisions/:rid</text>
   <a href="#get/organizations/id/objectives/id/versions" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1142" r="5"/>
+    <title>GET /api/organizations/:id/objectives/:id/versions/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="1137" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="1137" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -590,6 +673,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1145">/api/organizations/:id/objectives/:id/versions/</text>
   <a href="#get/organizations/id/objectives/id/versions/etag" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1160" r="5"/>
+    <title>GET /api/organizations/:id/objectives/:id/versions/:etag &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="1155" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="1155" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -599,6 +683,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1163">/api/organizations/:id/objectives/:id/versions/:etag</text>
   <a href="#get/organizations/id/projects" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1178" r="5"/>
+    <title>GET /api/organizations/:id/projects/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="1173" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="1173" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -608,10 +693,12 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1181">/api/organizations/:id/projects/</text>
   <a href="#get/organizations/id/projects/id" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1196" r="5"/>
+    <title>GET /api/organizations/:id/projects/:id &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="1191" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#put/organizations/id/projects/id" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="114" cy="1196" r="5"/>
+    <title>PUT /api/organizations/:id/projects/:id &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="149" y="1191" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="189" y="1191" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -619,6 +706,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1199">/api/organizations/:id/projects/:id</text>
   <a href="#get/organizations/id/projects/id/flows" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1214" r="5"/>
+    <title>GET /api/organizations/:id/projects/:id/flows/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="1209" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="1209" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -630,15 +718,18 @@
   <rect class="empty" x="69" y="1227" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#put/organizations/id/projects/id/flows/pfid" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="114" cy="1232" r="5"/>
+    <title>PUT /api/organizations/:id/projects/:id/flows/:pfid &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="149" y="1227" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="189" y="1227" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#delete/organizations/id/projects/id/flows/pfid" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="234" cy="1232" r="5"/>
+    <title>DELETE /api/organizations/:id/projects/:id/flows/:pfid &#x2014; member and organization admin</title>
   </a>
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1235">/api/organizations/:id/projects/:id/flows/:pfid</text>
   <a href="#get/organizations/id/projects/id/objective-actual-scores" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1250" r="5"/>
+    <title>GET /api/organizations/:id/projects/:id/objective-actual-scores/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="1245" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="1245" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -650,6 +741,7 @@
   <rect class="empty" x="69" y="1263" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#put/organizations/id/projects/id/objective-actual-scores/sid" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="114" cy="1268" r="5"/>
+    <title>PUT /api/organizations/:id/projects/:id/objective-actual-scores/:sid &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="149" y="1263" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="189" y="1263" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -657,6 +749,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1271">/api/organizations/:id/projects/:id/objective-actual-scores/:sid</text>
   <a href="#get/organizations/id/projects/id/objective-baseline-scores" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1286" r="5"/>
+    <title>GET /api/organizations/:id/projects/:id/objective-baseline-scores/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="1281" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="1281" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -668,6 +761,7 @@
   <rect class="empty" x="69" y="1299" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#put/organizations/id/projects/id/objective-baseline-scores/sid" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="114" cy="1304" r="5"/>
+    <title>PUT /api/organizations/:id/projects/:id/objective-baseline-scores/:sid &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="149" y="1299" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="189" y="1299" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -675,6 +769,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1307">/api/organizations/:id/projects/:id/objective-baseline-scores/:sid</text>
   <a href="#get/organizations/id/projects/id/versions" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1322" r="5"/>
+    <title>GET /api/organizations/:id/projects/:id/versions/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="1317" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="1317" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -684,6 +779,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1325">/api/organizations/:id/projects/:id/versions/</text>
   <a href="#get/organizations/id/projects/id/versions/etag" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1340" r="5"/>
+    <title>GET /api/organizations/:id/projects/:id/versions/:etag &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="1335" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="1335" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -693,6 +789,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1343">/api/organizations/:id/projects/:id/versions/:etag</text>
   <a href="#get/organizations/id/services" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1358" r="5"/>
+    <title>GET /api/organizations/:id/services/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="1353" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="1353" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -702,10 +799,12 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1361">/api/organizations/:id/services/</text>
   <a href="#get/organizations/id/services/id" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1376" r="5"/>
+    <title>GET /api/organizations/:id/services/:id &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="1371" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#put/organizations/id/services/id" data-tier="admin">
     <polygon class="tier-admin" fill="hsl(var(--accent))" points="114,1370 120,1376 114,1382 108,1376"/>
+    <title>PUT /api/organizations/:id/services/:id &#x2014; organization admin only</title>
   </a>
   <rect class="empty" x="149" y="1371" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="189" y="1371" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -713,6 +812,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1379">/api/organizations/:id/services/:id</text>
   <a href="#get/organizations/id/services/id/versions" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1394" r="5"/>
+    <title>GET /api/organizations/:id/services/:id/versions/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="1389" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="1389" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -722,6 +822,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1397">/api/organizations/:id/services/:id/versions/</text>
   <a href="#get/organizations/id/services/id/versions/etag" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1412" r="5"/>
+    <title>GET /api/organizations/:id/services/:id/versions/:etag &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="1407" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="1407" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -731,6 +832,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1415">/api/organizations/:id/services/:id/versions/:etag</text>
   <a href="#get/organizations/id/versions" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1430" r="5"/>
+    <title>GET /api/organizations/:id/versions/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="1425" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="1425" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -740,6 +842,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1433">/api/organizations/:id/versions/</text>
   <a href="#get/organizations/id/versions/etag" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1448" r="5"/>
+    <title>GET /api/organizations/:id/versions/:etag &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="1443" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="1443" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -749,23 +852,28 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1451">/api/organizations/:id/versions/:etag</text>
   <a href="#get/organizations/id/work-orders" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1466" r="5"/>
+    <title>GET /api/organizations/:id/work-orders/ &#x2014; member and organization admin</title>
   </a>
   <a href="#query/organizations/id/work-orders" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="74" cy="1466" r="5"/>
+    <title>QUERY /api/organizations/:id/work-orders/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="109" y="1461" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#post/organizations/id/work-orders" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="154" cy="1466" r="5"/>
+    <title>POST /api/organizations/:id/work-orders/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="189" y="1461" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="229" y="1461" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1469">/api/organizations/:id/work-orders/</text>
   <a href="#get/organizations/id/work-orders/id" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1484" r="5"/>
+    <title>GET /api/organizations/:id/work-orders/:id &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="1479" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#put/organizations/id/work-orders/id" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="114" cy="1484" r="5"/>
+    <title>PUT /api/organizations/:id/work-orders/:id &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="149" y="1479" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="189" y="1479" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -775,6 +883,7 @@
   <rect class="empty" x="69" y="1497" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#put/organizations/id/work-orders/id/binding" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="114" cy="1502" r="5"/>
+    <title>PUT /api/organizations/:id/work-orders/:id/binding &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="149" y="1497" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="189" y="1497" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -784,11 +893,13 @@
   <rect class="empty" x="69" y="1515" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#put/organizations/id/work-orders/id/claim" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="114" cy="1520" r="5"/>
+    <title>PUT /api/organizations/:id/work-orders/:id/claim &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="149" y="1515" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="189" y="1515" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#delete/organizations/id/work-orders/id/claim" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="234" cy="1520" r="5"/>
+    <title>DELETE /api/organizations/:id/work-orders/:id/claim &#x2014; member and organization admin</title>
   </a>
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1523">/api/organizations/:id/work-orders/:id/claim</text>
   <rect class="empty" x="29" y="1533" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -796,12 +907,14 @@
   <rect class="empty" x="109" y="1533" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#post/organizations/id/work-orders/id/transition" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="154" cy="1538" r="5"/>
+    <title>POST /api/organizations/:id/work-orders/:id/transition &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="189" y="1533" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="229" y="1533" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1541">/api/organizations/:id/work-orders/:id/transition</text>
   <a href="#get/organizations/id/work-orders/id/versions" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1556" r="5"/>
+    <title>GET /api/organizations/:id/work-orders/:id/versions/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="1551" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="1551" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -811,6 +924,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1559">/api/organizations/:id/work-orders/:id/versions/</text>
   <a href="#get/organizations/id/work-orders/id/versions/etag" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1574" r="5"/>
+    <title>GET /api/organizations/:id/work-orders/:id/versions/:etag &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="1569" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="1569" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -820,30 +934,36 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1577">/api/organizations/:id/work-orders/:id/versions/:etag</text>
   <a href="#get/organizations/organization-id/record-types" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1592" r="5"/>
+    <title>GET /api/organizations/:organization-id/record-types/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="1587" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="1587" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#post/organizations/organization-id/record-types" data-tier="admin">
     <polygon class="tier-admin" fill="hsl(var(--accent))" points="154,1586 160,1592 154,1598 148,1592"/>
+    <title>POST /api/organizations/:organization-id/record-types/ &#x2014; organization admin only</title>
   </a>
   <rect class="empty" x="189" y="1587" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="229" y="1587" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1595">/api/organizations/:organization-id/record-types/</text>
   <a href="#get/organizations/organization-id/record-types/record-type-id" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1610" r="5"/>
+    <title>GET /api/organizations/:organization-id/record-types/:record-type-id &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="1605" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#put/organizations/organization-id/record-types/record-type-id" data-tier="admin">
     <polygon class="tier-admin" fill="hsl(var(--accent))" points="114,1604 120,1610 114,1616 108,1610"/>
+    <title>PUT /api/organizations/:organization-id/record-types/:record-type-id &#x2014; organization admin only</title>
   </a>
   <rect class="empty" x="149" y="1605" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="189" y="1605" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#delete/organizations/organization-id/record-types/record-type-id" data-tier="admin">
     <polygon class="tier-admin" fill="hsl(var(--accent))" points="234,1604 240,1610 234,1616 228,1610"/>
+    <title>DELETE /api/organizations/:organization-id/record-types/:record-type-id &#x2014; organization admin only</title>
   </a>
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1613">/api/organizations/:organization-id/record-types/:record-type-id</text>
   <a href="#get/organizations/organization-id/record-types/record-type-id/attributes" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1628" r="5"/>
+    <title>GET /api/organizations/:organization-id/record-types/:record-type-id/attributes/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="1623" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="1623" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -853,19 +973,23 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1631">/api/organizations/:organization-id/record-types/:record-type-id/attributes/</text>
   <a href="#get/organizations/organization-id/record-types/record-type-id/attributes/attribute-id" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1646" r="5"/>
+    <title>GET /api/organizations/:organization-id/record-types/:record-type-id/attributes/:attribute-id &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="1641" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#put/organizations/organization-id/record-types/record-type-id/attributes/attribute-id" data-tier="admin">
     <polygon class="tier-admin" fill="hsl(var(--accent))" points="114,1640 120,1646 114,1652 108,1646"/>
+    <title>PUT /api/organizations/:organization-id/record-types/:record-type-id/attributes/:attribute-id &#x2014; organization admin only</title>
   </a>
   <rect class="empty" x="149" y="1641" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="189" y="1641" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#delete/organizations/organization-id/record-types/record-type-id/attributes/attribute-id" data-tier="admin">
     <polygon class="tier-admin" fill="hsl(var(--accent))" points="234,1640 240,1646 234,1652 228,1646"/>
+    <title>DELETE /api/organizations/:organization-id/record-types/:record-type-id/attributes/:attribute-id &#x2014; organization admin only</title>
   </a>
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1649">/api/organizations/:organization-id/record-types/:record-type-id/attributes/:attribute-id</text>
   <a href="#get/organizations/organization-id/record-types/record-type-id/instances" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1664" r="5"/>
+    <title>GET /api/organizations/:organization-id/record-types/:record-type-id/instances/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="1659" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="1659" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -875,19 +999,23 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1667">/api/organizations/:organization-id/record-types/:record-type-id/instances/</text>
   <a href="#get/organizations/organization-id/record-types/record-type-id/instances/instance-id" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1682" r="5"/>
+    <title>GET /api/organizations/:organization-id/record-types/:record-type-id/instances/:instance-id &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="1677" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="1677" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="149" y="1677" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <a href="#patch/organizations/organization-id/record-types/record-type-id/instances/instance-id" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="194" cy="1682" r="5"/>
+    <title>PATCH /api/organizations/:organization-id/record-types/:record-type-id/instances/:instance-id &#x2014; member and organization admin</title>
   </a>
   <a href="#delete/organizations/organization-id/record-types/record-type-id/instances/instance-id" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="234" cy="1682" r="5"/>
+    <title>DELETE /api/organizations/:organization-id/record-types/:record-type-id/instances/:instance-id &#x2014; member and organization admin</title>
   </a>
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1685">/api/organizations/:organization-id/record-types/:record-type-id/instances/:instance-id</text>
   <a href="#get/organizations/organization-id/record-types/record-type-id/instances/instance-id/versions" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1700" r="5"/>
+    <title>GET /api/organizations/:organization-id/record-types/:record-type-id/instances/:instance-id/versions/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="1695" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="1695" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -897,6 +1025,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1703">/api/organizations/:organization-id/record-types/:record-type-id/instances/:instance-id/versions/</text>
   <a href="#get/organizations/organization-id/record-types/record-type-id/instances/instance-id/versions/etag" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1718" r="5"/>
+    <title>GET /api/organizations/:organization-id/record-types/:record-type-id/instances/:instance-id/versions/:etag &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="1713" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="1713" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -906,6 +1035,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1721">/api/organizations/:organization-id/record-types/:record-type-id/instances/:instance-id/versions/:etag</text>
   <a href="#get/organizations/organization-id/record-types/record-type-id/versions" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1736" r="5"/>
+    <title>GET /api/organizations/:organization-id/record-types/:record-type-id/versions/ &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="1731" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="1731" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -915,6 +1045,7 @@
   <text class="uri" fill="hsl(var(--foreground))" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8.5" x="264" y="1739">/api/organizations/:organization-id/record-types/:record-type-id/versions/</text>
   <a href="#get/organizations/organization-id/record-types/record-type-id/versions/etag" data-tier="member">
     <circle class="tier-member" fill="hsl(var(--primary))" cx="34" cy="1754" r="5"/>
+    <title>GET /api/organizations/:organization-id/record-types/:record-type-id/versions/:etag &#x2014; member and organization admin</title>
   </a>
   <rect class="empty" x="69" y="1749" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="1749" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
@@ -925,6 +1056,7 @@
   <text class="wing" fill="hsl(var(--foreground))" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12" font-weight="700" x="16" y="1786">status</text>
   <a href="#get/status" data-tier="none">
     <circle class="tier-none" fill="hsl(var(--background))" stroke="hsl(var(--success))" stroke-width="1.5" cx="34" cy="1802" r="5"/>
+    <title>GET /api/status &#x2014; no token</title>
   </a>
   <rect class="empty" x="69" y="1797" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>
   <rect class="empty" x="109" y="1797" width="10" height="10" fill="none" stroke="hsl(var(--muted-foreground))"/>

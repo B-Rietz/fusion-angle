@@ -13,6 +13,37 @@ const TIERS = ['member', 'admin', 'none'] as const;
 // bearer.
 export type ApiDocTier = (typeof TIERS)[number];
 
+const MEMBER = 'member';
+const ORGANIZATION_ADMIN = 'organization admin';
+const NO_TOKEN = 'no token';
+
+// Who may call at each tier, one name each: an endpoint
+// paints a chip per name.
+export const API_DOC_TIER_ROLES: Readonly<
+    Record<ApiDocTier, readonly string[]>
+> = {
+    member: [MEMBER, ORGANIZATION_ADMIN],
+    admin: [ORGANIZATION_ADMIN],
+    none: [NO_TOKEN],
+};
+
+// The role a caller holds, by name: the page's role
+// switch offers each.
+export const API_DOC_ROLE_NAMES: Readonly<
+    Record<Exclude<ApiDocTier, 'none'>, string>
+> = {
+    member: MEMBER,
+    admin: ORGANIZATION_ADMIN,
+};
+
+// Who may call at each tier, in the words the grid's
+// legend prints, and an endpoint's chips are named by.
+export const API_DOC_TIER_LABELS: Readonly<Record<ApiDocTier, string>> = {
+    member: MEMBER + ' and ' + ORGANIZATION_ADMIN,
+    admin: ORGANIZATION_ADMIN + ' only',
+    none: NO_TOKEN,
+};
+
 // `alternative`: one of the header's alternatives must
 // be sent.
 export type ApiDocHeaderState =

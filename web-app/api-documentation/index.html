@@ -1,4 +1,24 @@
 <div class="api-documentation">
+    <div id="api-tools" class="api-doc-tools">
+        <div id="api-view-as"></div>
+        <div class="api-doc-search">
+            <label for="api-search" class="sr-only">Search endpoints,
+                verbs, status codes, and headers</label>
+            <input id="api-search" type="search"
+                class="input api-doc-search-input"
+                placeholder="Search endpoints, verbs, status codes"
+                autocomplete="off" aria-keyshortcuts="/"
+                aria-controls="api-search-hits" />
+            <kbd class="api-doc-search-key" aria-hidden="true">/</kbd>
+        </div>
+        <p id="api-search-count" class="api-doc-search-count"
+            role="status"></p>
+        <div id="api-search-results" hidden>
+            <ul id="api-search-hits" class="api-doc-hits"></ul>
+        </div>
+    </div>
+    <div id="api-start"></div>
     <div id="api-elevation"></div>
     <div id="api-room" hidden></div>
+    <p id="api-sample-status" class="sr-only" role="status"></p>
 </div>

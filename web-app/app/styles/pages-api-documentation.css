@@ -31,3 +31,436 @@
     color: hsl(var(--primary));
     text-decoration: underline;
 }
+
+.api-doc-title {
+    overflow-wrap: anywhere;
+}
+
+/* A role chip: the tier's shape on the grid, then its
+    words. */
+.api-doc-role {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-3);
+    font-size: var(--text-sm);
+    color: hsl(var(--foreground));
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius-full);
+}
+
+.api-doc-role-shape {
+    flex: none;
+    box-sizing: border-box;
+    width: var(--space-2);
+    height: var(--space-2);
+}
+
+.api-doc-role-member .api-doc-role-shape {
+    background: hsl(var(--primary));
+    border-radius: var(--radius-full);
+}
+
+.api-doc-role-admin .api-doc-role-shape {
+    background: hsl(var(--accent));
+    transform: rotate(45deg);
+}
+
+.api-doc-role-none .api-doc-role-shape {
+    border: 2px solid hsl(var(--success));
+    border-radius: var(--radius-full);
+}
+
+/* One column below lg: the facts, then the sample. An
+    endpoint and a step of the guided start share it. */
+.api-doc-beside {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-8);
+    /* layout.css's sticky .top-header, from md up. */
+    --api-doc-top-header: 4rem;
+}
+
+/* A shell line keeps its breaks and scrolls inside its
+    block, so a long one never widens the page. */
+.api-doc-shell {
+    white-space: pre;
+}
+
+.api-doc-message {
+    overflow-wrap: anywhere;
+    /* Room for a highlight's shape before its line. */
+    padding-left: var(--space-6);
+}
+
+/* A header line the page highlights: a band in its kind's
+    colours, its shape, and its name for a reader who sees
+    neither. Text on its band measures 6.74:1 essential
+    and 7.59:1 provided (>= 4.5:1); the shape, in the
+    text's colour on a block's --muted, 3.80:1 and 5.12:1
+    (>= 3:1 for a graphic). The band is positioned so its
+    name, laid out apart from the line, scrolls with it. */
+.api-doc-highlight {
+    position: relative;
+    padding: 0 var(--space-1);
+    border-radius: var(--radius-sm);
+}
+
+.api-doc-highlight-essential {
+    color: hsl(var(--info-text));
+    background: hsl(var(--info-soft));
+}
+
+.api-doc-highlight-provided {
+    color: hsl(var(--success-text));
+    background: hsl(var(--success-soft));
+}
+
+/* Essential is a square; provided, a triangle. */
+.api-doc-highlight-shape {
+    display: inline-block;
+    width: var(--space-2);
+    height: var(--space-2);
+    margin-right: var(--space-2);
+    vertical-align: middle;
+    background: currentColor;
+}
+
+.api-doc-highlight-provided .api-doc-highlight-shape {
+    clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+
+/* In a message a highlighted line's text starts where a
+    plain line's does: the band's padding and the shape
+    both stand in the block's left padding. */
+.api-doc-message .api-doc-highlight {
+    margin: 0 calc(-1 * var(--space-1));
+}
+
+.api-doc-message .api-doc-highlight-shape {
+    margin-left: calc(-1 * var(--space-4));
+}
+
+/* The legend, on a block's own surface, so each highlight
+    looks as it does in a message. */
+.api-doc-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-6);
+    margin-top: var(--space-4);
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--text-sm);
+    color: hsl(var(--foreground));
+    background: hsl(var(--muted));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+}
+
+.api-doc-exchange + .api-doc-exchange {
+    margin-top: var(--space-6);
+    padding-top: var(--space-6);
+    border-top: 1px solid hsl(var(--border));
+}
+
+.api-doc-path-id {
+    padding: 0 var(--space-1);
+    font-family: var(--font-mono);
+    color: hsl(var(--accent-text));
+    background: hsl(var(--accent-soft));
+    border-radius: var(--radius-sm);
+}
+
+/* The guided start's steps, in order, on the landing. */
+.api-doc-steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-top: var(--space-4);
+}
+
+.api-doc-step-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-3);
+    font-size: var(--text-sm);
+    color: hsl(var(--foreground));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius-full);
+}
+
+.api-doc-step-link:hover {
+    color: hsl(var(--primary));
+    border-color: hsl(var(--primary));
+}
+
+.api-doc-step-number {
+    font-family: var(--font-mono);
+    color: hsl(var(--muted-foreground));
+}
+
+/* A shell line beside its copy button; the line scrolls
+    inside its block. */
+.api-doc-shell-line {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.api-doc-shell-line .api-doc-pre {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin-top: 0;
+}
+
+/* From lg up the sample sits beside the facts. Below
+    1440 px it stays in view while they scroll, scrolling
+    itself when it is the taller. */
+@media (min-width: 1024px) {
+    .api-doc-beside {
+        grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+        align-items: start;
+    }
+
+    .api-doc-sample {
+        position: sticky;
+        top: calc(var(--api-doc-top-header) + var(--space-4));
+        max-height: calc(
+            100vh - var(--api-doc-top-header) - var(--space-8)
+        );
+        overflow-y: auto;
+    }
+}
+
+/* The height of a message pane, from 1440 px up: the
+    blocks' rendered heights h, every request and response
+    of every sample at the 1440 px pane, give
+    exp(mean(ln h) + sd(ln h)). A taller block scrolls
+    inside its pane. tests/api-documentation-pane-height
+    derives it again from the samples. */
+.api-doc-panes {
+    --api-doc-pane-height: 835px;
+}
+
+/* From 1440 px up each exchange's request and response
+    sit side by side in a row across the room, in panes of
+    one height. An endpoint keeps its curl beside its
+    facts: the facts float at the beside grid's 2fr, the
+    curl takes the rest, and the legend and the panes
+    clear both. A step stands in one column, each exchange
+    under its prose. */
+@media (min-width: 1440px) {
+    /* Its width is the room's, never its sample's: a
+        curl line or a body's widest run would otherwise
+        widen the page through .main-content's flex item.
+        The grid's minmax(0, ...) tracks did that below. */
+    .api-doc-beside-endpoint {
+        display: flow-root;
+        contain: inline-size;
+    }
+
+    .api-doc-beside-endpoint .api-doc-facts {
+        float: left;
+        width: calc((100% - var(--space-8)) * 2 / 5);
+        margin: 0 var(--space-8) var(--space-4) 0;
+    }
+
+    .api-doc-beside-endpoint
+        :is(.api-doc-legend, .api-doc-panes) {
+        clear: both;
+    }
+
+    .api-doc-beside-step {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .api-doc-sample {
+        position: static;
+        max-height: none;
+        overflow-y: visible;
+    }
+
+    .api-doc-panes {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--space-4);
+    }
+
+    .api-doc-panes .api-doc-message {
+        height: var(--api-doc-pane-height);
+    }
+}
+
+/* The landing's tools, above the guided start. */
+.api-doc-tools {
+    margin-bottom: var(--space-6);
+}
+
+/* The role switch: its legend floats, so it lays out
+    inline with the radios rather than on the border. */
+.api-doc-view-as {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-4);
+    min-inline-size: 0;
+    margin: 0 0 var(--space-4);
+    padding: 0;
+    border: 0;
+}
+
+.api-doc-view-as-legend {
+    float: left;
+    padding: 0;
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+}
+
+.api-doc-view-as-option {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+    color: hsl(var(--foreground));
+    cursor: pointer;
+}
+
+.api-doc-view-as-option input {
+    accent-color: hsl(var(--primary));
+}
+
+/* A role's view dims what that role cannot call, in the
+    grid and in the hits; each keeps its shape and words,
+    and lights again under the pointer or focus. At 0.5 on
+    --background the accent diamond measures 3.66:1 (>=
+    3:1 for a graphic) and a hit's foreground words
+    4.61:1 (>= 4.5:1). */
+.api-documentation {
+    --api-doc-dimmed: 0.5;
+}
+
+.api-documentation[data-view-as="member"]
+    :is(#api-elevation a, .api-doc-hit)[data-tier="admin"] {
+    opacity: var(--api-doc-dimmed);
+}
+
+.api-documentation[data-view-as="member"] #api-elevation
+    a[data-tier="admin"]:is(:hover, :focus-visible),
+.api-documentation[data-view-as="member"]
+    .api-doc-hit[data-tier="admin"]:is(:hover, :focus-visible) {
+    opacity: 1;
+}
+
+/* The search box, its shortcut shown at its end. */
+.api-doc-search {
+    position: relative;
+    max-width: 36rem;
+}
+
+.api-doc-search-input {
+    padding-inline-end: calc(var(--space-3) + 1.5rem);
+}
+
+/* A text field shows focus whenever it holds it; the ring
+    every other control on the page draws marks the box
+    too, over the input's own glow. */
+.api-doc-search-input:focus-visible {
+    outline: var(--focus-ring-width) solid hsl(var(--focus-ring-color));
+    outline-offset: var(--focus-ring-offset);
+}
+
+.api-doc-search-key {
+    position: absolute;
+    top: 50%;
+    right: var(--space-3);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.25rem;
+    height: 1.25rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: hsl(var(--muted-foreground));
+    background: hsl(var(--muted));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius-sm);
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+
+.api-doc-search-count {
+    margin-top: var(--space-4);
+    font-size: var(--text-sm);
+    color: hsl(var(--muted-foreground));
+}
+
+.api-doc-hits {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin-top: var(--space-2);
+}
+
+/* A hit: the tier's shape, the label, then the tier's
+    words, which wrap under the label on a phone. Every
+    word is the foreground, so a dimmed hit still reads. */
+.api-doc-hit {
+    display: grid;
+    grid-template-columns: var(--space-2) minmax(0, 1fr);
+    align-items: center;
+    column-gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    color: hsl(var(--foreground));
+    border-radius: var(--radius);
+}
+
+.api-doc-hit:hover {
+    background: hsl(var(--muted));
+}
+
+.api-doc-hit-label {
+    grid-column: 2;
+    font-size: var(--text-sm);
+    overflow-wrap: anywhere;
+}
+
+.api-doc-hit-tier {
+    grid-column: 2;
+    font-size: var(--text-xs);
+}
+
+@media (min-width: 640px) {
+    .api-doc-hit {
+        grid-template-columns: var(--space-2) minmax(0, 1fr) auto;
+    }
+
+    .api-doc-hit-tier {
+        grid-column: 3;
+    }
+}
+
+/* A sample's tokens, from the palette. On the block's
+    --muted each measures at least 4.5:1: a key 8.14:1,
+    punctuation 5.75:1, a string 5.12:1, a number, a
+    literal, and a flag 4.98:1, and a placeholder 5.90:1,
+    in the path id's gold as the reader's to set. */
+.api-doc-pre .tok-key {
+    color: hsl(var(--foreground));
+}
+
+.api-doc-pre .tok-punct {
+    color: hsl(var(--gray-300));
+}
+
+.api-doc-pre .tok-string {
+    color: hsl(var(--success-text));
+}
+
+.api-doc-pre :is(.tok-number, .tok-literal, .tok-flag) {
+    color: hsl(var(--warning-text));
+}
+
+.api-doc-pre .tok-var {
+    color: hsl(var(--accent-text));
+}

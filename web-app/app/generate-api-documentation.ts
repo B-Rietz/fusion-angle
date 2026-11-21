@@ -20,6 +20,8 @@ import { FAMILY_REGISTRY } from
     '../../api/family-registry.ts';
 import { INVITATION_STATES } from
     '../../shared/types.ts';
+import { RESPONSE_HEADERS } from
+    '../../api/response-header-names.ts';
 import { credentialFindingsOf } from
     './api-documentation-credentials.ts';
 import {
@@ -60,25 +62,30 @@ import {
     queryParametersOf,
     relatedOf,
 } from './api-documentation-related.ts';
-import type {
-    ApiDocAnswer,
-    ApiDocHeaderSet,
-    ApiDocQueryParameter,
-    ApiDocRoom,
-    ApiDocSample,
-    ApiDocSampleRef,
-    ApiDocStatus,
-    ApiDocStep,
-    ApiDocTier,
+import {
+    API_DOC_TIER_LABELS,
+    type ApiDocAnswer,
+    type ApiDocHeaderSet,
+    type ApiDocQueryParameter,
+    type ApiDocRoom,
+    type ApiDocSample,
+    type ApiDocSampleRef,
+    type ApiDocStatus,
+    type ApiDocStep,
+    type ApiDocTier,
 } from '../api-documentation/shapes.ts';
 
 const OUT_ROOT = 'web-app/api-documentation';
 const LINE_MAX = 78;
 const KEPT_ROOT_NAMES = new Set([
+    'highlights.ts',
     'index.html',
     'index.ts',
     'presenter.ts',
+    'sample-source.ts',
+    'search.ts',
     'shapes.ts',
+    'syntax.ts',
 ]);
 const enc = new TextEncoder();
 
@@ -219,24 +226,20 @@ function backingRowText(family: string): string {
 interface TierPaint {
     readonly paint: string;
     readonly glyph: string;
-    readonly label: string;
 }
 
 const TIER_PAINTS: Readonly<Record<ApiDocTier, TierPaint>> = {
     member: {
         paint: 'hsl(var(--primary))',
         glyph: '&#x25CF;',
-        label: 'member and organization admin',
     },
     admin: {
         paint: 'hsl(var(--accent))',
         glyph: '&#x25C6;',
-        label: 'organization admin only',
     },
     none: {
         paint: 'hsl(var(--success))',
         glyph: '&#x25CB;',
-        label: 'no token',
     },
 };
 
@@ -277,11 +280,26 @@ function tierShapeOf(
     }
 }
 
+// A link that wraps only a shape has no name of its own:
+// a title after the shape names the endpoint and who may
+// call it, for a reader who sees neither the row nor the
+// shape. The shape stays the first child, the one the page
+// paints and dims.
+// The dash is a character reference, so the SVG stays
+// ASCII.
+const NAME_DASH = '&#x2014;';
+
+function linkTitleOf(verb: string, uri: string, tier: ApiDocTier): string {
+    return '<title>' + escapeXml(verb.toUpperCase() + ' ' + uri) + ' '
+        + NAME_DASH + ' ' + escapeXml(API_DOC_TIER_LABELS[tier])
+        + '</title>';
+}
+
 function tierLegendOf(): string {
     return TIERS.map((tier) => {
-        const { paint, glyph, label } = TIER_PAINTS[tier];
+        const { paint, glyph } = TIER_PAINTS[tier];
         return '<tspan fill="' + paint + '">' + glyph
-            + '</tspan> ' + escapeXml(label);
+            + '</tspan> ' + escapeXml(API_DOC_TIER_LABELS[tier]);
     }).join(' ');
 }
 
@@ -381,6 +399,7 @@ export function svgOf(rows: readonly Route[]): string {
                         '    ' + tierShapeOf(
                             tier, cx, cy, surface,
                         ),
+                        '    ' + linkTitleOf(verb, uri, tier),
                         '  </a>',
                     );
                 } else {
@@ -706,7 +725,9 @@ function emitConstant(
     ];
 }
 
-// Everything rooms.ts holds, by the constant that holds it.
+// What a run states in rooms.ts, by the constant that
+// holds it. PROVIDED_HEADERS is emitted beside it: the
+// product declares those names, and no run changes them.
 export interface Catalog {
     readonly rooms: readonly ApiDocRoom[];
     readonly statuses: readonly ApiDocStatus[];
@@ -729,6 +750,12 @@ function catalogOf(
         curlAdds: CURL_ADDS,
     };
 }
+
+// The response headers the product sets for a reader to
+// use. The page highlights them on the answers it shows
+// and never imports api/, so rooms.ts carries the names.
+const PROVIDED_HEADERS: readonly string[] =
+    Object.values(RESPONSE_HEADERS);
 
 export function roomsTsOf(catalog: Catalog): string {
     const types = CATALOG_TYPES.map((name) => INDENT + name + ',');
@@ -755,6 +782,9 @@ export function roomsTsOf(catalog: Catalog): string {
         ),
         ...emitConstant(
             'API_DOC_CURL_ADDS', 'string', catalog.curlAdds,
+        ),
+        ...emitConstant(
+            'API_DOC_PROVIDED_HEADERS', 'string', PROVIDED_HEADERS,
         ),
     ].join('\n');
 }
@@ -1011,16 +1041,15 @@ function textsOf(value: unknown): readonly string[] {
 }
 
 // rooms.ts folds long text at LINE_MAX, and a fold can cut
-// a credential in two, past guardTree. So the catalog's
-// texts are searched whole, before they are folded.
+// a credential in two, past guardTree. So every text
+// rooms.ts holds, the catalog's and the provided header
+// names, is searched whole, before it is folded.
 export function guardCatalog(
     catalog: Catalog,
     known: readonly string[],
 ): void {
-    guardTree(
-        new Map([[ROOMS_TS, textsOf(catalog).join('\n')]]),
-        known,
-    );
+    const texts = [...textsOf(catalog), ...PROVIDED_HEADERS];
+    guardTree(new Map([[ROOMS_TS, texts.join('\n')]]), known);
 }
 
 const CHECK_FLAG = '--check';

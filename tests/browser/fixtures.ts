@@ -136,6 +136,7 @@ const KEY_CODES: Record<string, [string, number]> = {
     '-': ['Minus', 189],
     Shift: ['ShiftLeft', 16],
     ' ': ['Space', 32],
+    '/': ['Slash', 191],
 };
 
 // Input.dispatch*Event's modifier bits.

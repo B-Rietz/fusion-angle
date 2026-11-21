@@ -9,6 +9,7 @@ import type { StatementBind }
 import { Octets } from
     '../shared/http-message/octets.ts';
 import { notifyPayload } from './advisory-lock.ts';
+import { RESPONSE_HEADERS } from './response-header-names.ts';
 
 export const DATE_PLACEHOLDER =
     'Thu, 01 Jan 1970 00:00:00 GMT';
@@ -29,8 +30,8 @@ export function rootBind(
     const wire = 'HTTP/1.1 201 \r\n'
         + 'content-length: 64\r\n'
         + 'date: ' + DATE_PLACEHOLDER + '\r\n'
-        + 'etag: "' + NIL_IDENTIFIER + '"\r\n'
-        + 'operation-id: ' + operationId + '\r\n'
+        + RESPONSE_HEADERS.etag + ': "' + NIL_IDENTIFIER + '"\r\n'
+        + RESPONSE_HEADERS.operationId + ': ' + operationId + '\r\n'
         + '\r\n'
         + ZERO_SHA;
     const mark = '\r\ndate: ';
