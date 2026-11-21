@@ -1,0 +1,97 @@
+{
+  "hash": "put/organizations/id",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "admin",
+      "request": {
+        "method": "PUT",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "if-match",
+            "\"aOytvPhzPSV5_QTjrIbX6Q\""
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "content-length",
+            "147"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"name\":\"Stark Industries\",\"domain\":\"acmecorp.com\",\"next_billing\":\"2020-10-27T00:00:00.000000Z\",\"seats\":200,\"projects_limit\":50,\"ideas_limit\":1000}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "177"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "etag",
+            "\"aOytvPhzPSV5_QTjrIbX6Q\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "operation-id",
+            "DfmM3LtjAjah7tI0Yr7ZSQ"
+          ],
+          [
+            "request-id",
+            "wjmjuW_H-Q1FgZOXmAHREA"
+          ],
+          [
+            "requester-identity-id",
+            "AAAAAAAAAAAAAAAAAAAAAA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:01.628000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"domain\":\"acmecorp.com\",\"id\":\"AjdvjuECVZEgZoFajaIEkg\",\"ideas_limit\":1000,\"name\":\"Stark Industries\",\"next_billing\":\"2020-10-27T00:00:00.000000Z\",\"projects_limit\":50,\"seats\":200}"
+        }
+      },
+      "curl": "curl -i -X PUT \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"content-type: application/json\" \\\n  -H \"if-match: $ETAG\" \\\n  -H \"operation-id: $OPERATION_ID\" \\\n  -d '{\"name\":\"Stark Industries\",\"domain\":\"acmecorp.com\",\"next_billing\":\"2020-10-27T00:00:00.000000Z\",\"seats\":200,\"projects_limit\":50,\"ideas_limit\":1000}'"
+    }
+  ]
+}

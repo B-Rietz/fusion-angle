@@ -1,0 +1,88 @@
+{
+  "hash": "get/organizations/id/services/id",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    },
+    {
+      "name": ":id",
+      "value": "1dwsxM4yfKncTpnLXUAVqg",
+      "source": "post/organizations/id/memberships"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "GET",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/services/1dwsxM4yfKncTpnLXUAVqg",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "102"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "etag",
+            "\"dERjgEKwW_WLjCXp8dosTg\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "operation-id",
+            "EsvCQQJvsAzq2lUrLo8SkQ"
+          ],
+          [
+            "request-id",
+            "c_4hSAQVG4p5ysf_nc6V1w"
+          ],
+          [
+            "requester-identity-id",
+            "XXZruirZyAOoRpNxaDnpSA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:01.992000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"description\":\"Exports the day's work orders.\",\"id\":\"1dwsxM4yfKncTpnLXUAVqg\",\"name\":\"Nightly export\"}"
+        }
+      },
+      "curl": "curl -i -X GET \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/services/1dwsxM4yfKncTpnLXUAVqg\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

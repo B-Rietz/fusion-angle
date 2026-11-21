@@ -1,0 +1,97 @@
+{
+  "hash": "post/organizations/organization-id/record-types",
+  "pathIds": [
+    {
+      "name": ":organization-id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "admin",
+      "request": {
+        "method": "POST",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/record-types/",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "content-length",
+            "2501"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"kind\":\"create\",\"id\":\"VieoXpeEGxKz76MzubvghA\",\"record\":{\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"name\":\"Customer Profile\",\"description\":\"Company-side facts captured during onboarding and sales pursuits.\",\"position\":1},\"attributes\":[{\"id\":\"Mpxt4addlQ9XGRwgTLHjxQ\",\"record_id\":\"VieoXpeEGxKz76MzubvghA\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"name\":\"Company Name\",\"attribute_type\":\"text\",\"sort_order\":1,\"options\":[],\"constraints\":[]},{\"id\":\"iX2HylKt_4N4Ge-8mOXGpw\",\"record_id\":\"VieoXpeEGxKz76MzubvghA\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"name\":\"Contact Email\",\"attribute_type\":\"text\",\"sort_order\":2,\"options\":[],\"constraints\":[{\"kind\":\"regex\",\"pattern\":\"^[^@\\\\s]+@[^@\\\\s]+\\\\.[^@\\\\s]+$\"}]},{\"id\":\"YtzOFSOTHQb_ikw7NsF06A\",\"record_id\":\"VieoXpeEGxKz76MzubvghA\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"name\":\"Contact Phone\",\"attribute_type\":\"text\",\"sort_order\":3,\"options\":[],\"constraints\":[]},{\"id\":\"_xoVehpdGPAneNeMDpCmGQ\",\"record_id\":\"VieoXpeEGxKz76MzubvghA\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"name\":\"Industry\",\"attribute_type\":\"select\",\"sort_order\":4,\"options\":[\"Technology\",\"Finance\",\"Healthcare\",\"Retail\",\"Manufacturing\"],\"constraints\":[]},{\"id\":\"fY5Bv3pOQ1-8sg7nEGh8Gg\",\"record_id\":\"VieoXpeEGxKz76MzubvghA\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"name\":\"Annual Revenue\",\"attribute_type\":\"number\",\"sort_order\":5,\"options\":[],\"constraints\":[{\"kind\":\"range_min\",\"min\":\"0\"}]},{\"id\":\"T1a6eLZBBnxurisyPf4vuw\",\"record_id\":\"VieoXpeEGxKz76MzubvghA\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"name\":\"Number of Employees\",\"attribute_type\":\"number\",\"sort_order\":6,\"options\":[],\"constraints\":[]},{\"id\":\"afXn2UwfEs6R74AyKN0pwQ\",\"record_id\":\"VieoXpeEGxKz76MzubvghA\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"name\":\"Founded On\",\"attribute_type\":\"date\",\"sort_order\":7,\"options\":[],\"constraints\":[{\"kind\":\"range_max\",\"max\":\"2099-12-31\"}]},{\"id\":\"rq0Yq_htC2viujnQUKPUCw\",\"record_id\":\"VieoXpeEGxKz76MzubvghA\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"name\":\"Company Logo\",\"attribute_type\":\"text\",\"sort_order\":8,\"options\":[],\"constraints\":[]},{\"id\":\"b31jaIhPHf6-62CqlXb5VQ\",\"record_id\":\"VieoXpeEGxKz76MzubvghA\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"name\":\"Supporting Documents\",\"attribute_type\":\"text\",\"sort_order\":9,\"options\":[],\"constraints\":[]},{\"id\":\"AItWHvt_6ynRopOEFaz26Q\",\"record_id\":\"VieoXpeEGxKz76MzubvghA\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"name\":\"Reviewer Notes\",\"attribute_type\":\"text\",\"sort_order\":10,\"options\":[],\"constraints\":[]}],\"initialState\":\"active\"}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "212"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "etag",
+            "\"NZ0uUVHyh9NXUnWUSATK-Q\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "location",
+            "VieoXpeEGxKz76MzubvghA"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "request-id",
+            "4Z0sNAkrjVWfHGLtB9fEcA"
+          ],
+          [
+            "requester-identity-id",
+            "XXZruirZyAOoRpNxaDnpSA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:02.152000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"description\":\"Company-side facts captured during onboarding and sales pursuits.\",\"id\":\"VieoXpeEGxKz76MzubvghA\",\"name\":\"Customer Profile\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"position\":1,\"state\":\"active\"}"
+        }
+      },
+      "curl": "curl -i -X POST \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/record-types/\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"content-type: application/json\" \\\n  -H \"operation-id: $OPERATION_ID\" \\\n  -d '{\"kind\":\"create\",\"id\":\"VieoXpeEGxKz76MzubvghA\",\"record\":{\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"name\":\"Customer Profile\",\"description\":\"Company-side facts captured during onboarding and sales pursuits.\",\"position\":1},\"attributes\":[{\"id\":\"Mpxt4addlQ9XGRwgTLHjxQ\",\"record_id\":\"VieoXpeEGxKz76MzubvghA\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"name\":\"Company Name\",\"attribute_type\":\"text\",\"sort_order\":1,\"options\":[],\"constraints\":[]},{\"id\":\"iX2HylKt_4N4Ge-8mOXGpw\",\"record_id\":\"VieoXpeEGxKz76MzubvghA\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"name\":\"Contact Email\",\"attribute_type\":\"text\",\"sort_order\":2,\"options\":[],\"constraints\":[{\"kind\":\"regex\",\"pattern\":\"^[^@\\\\s]+@[^@\\\\s]+\\\\.[^@\\\\s]+$\"}]},{\"id\":\"YtzOFSOTHQb_ikw7NsF06A\",\"record_id\":\"VieoXpeEGxKz76MzubvghA\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"name\":\"Contact Phone\",\"attribute_type\":\"text\",\"sort_order\":3,\"options\":[],\"constraints\":[]},{\"id\":\"_xoVehpdGPAneNeMDpCmGQ\",\"record_id\":\"VieoXpeEGxKz76MzubvghA\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"name\":\"Industry\",\"attribute_type\":\"select\",\"sort_order\":4,\"options\":[\"Technology\",\"Finance\",\"Healthcare\",\"Retail\",\"Manufacturing\"],\"constraints\":[]},{\"id\":\"fY5Bv3pOQ1-8sg7nEGh8Gg\",\"record_id\":\"VieoXpeEGxKz76MzubvghA\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"name\":\"Annual Revenue\",\"attribute_type\":\"number\",\"sort_order\":5,\"options\":[],\"constraints\":[{\"kind\":\"range_min\",\"min\":\"0\"}]},{\"id\":\"T1a6eLZBBnxurisyPf4vuw\",\"record_id\":\"VieoXpeEGxKz76MzubvghA\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"name\":\"Number of Employees\",\"attribute_type\":\"number\",\"sort_order\":6,\"options\":[],\"constraints\":[]},{\"id\":\"afXn2UwfEs6R74AyKN0pwQ\",\"record_id\":\"VieoXpeEGxKz76MzubvghA\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"name\":\"Founded On\",\"attribute_type\":\"date\",\"sort_order\":7,\"options\":[],\"constraints\":[{\"kind\":\"range_max\",\"max\":\"2099-12-31\"}]},{\"id\":\"rq0Yq_htC2viujnQUKPUCw\",\"record_id\":\"VieoXpeEGxKz76MzubvghA\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"name\":\"Company Logo\",\"attribute_type\":\"text\",\"sort_order\":8,\"options\":[],\"constraints\":[]},{\"id\":\"b31jaIhPHf6-62CqlXb5VQ\",\"record_id\":\"VieoXpeEGxKz76MzubvghA\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"name\":\"Supporting Documents\",\"attribute_type\":\"text\",\"sort_order\":9,\"options\":[],\"constraints\":[]},{\"id\":\"AItWHvt_6ynRopOEFaz26Q\",\"record_id\":\"VieoXpeEGxKz76MzubvghA\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"name\":\"Reviewer Notes\",\"attribute_type\":\"text\",\"sort_order\":10,\"options\":[],\"constraints\":[]}],\"initialState\":\"active\"}'"
+    }
+  ]
+}

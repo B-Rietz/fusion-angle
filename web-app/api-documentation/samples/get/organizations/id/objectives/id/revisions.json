@@ -1,0 +1,116 @@
+{
+  "hash": "get/organizations/id/objectives/id/revisions",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    },
+    {
+      "name": ":id",
+      "value": "VhxqyRIQytSnUArslwxyog",
+      "source": "get/organizations/id/objectives"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "GET",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/objectives/VhxqyRIQytSnUArslwxyog/revisions/",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "712"
+          ],
+          [
+            "content-type",
+            "multipart/mixed; boundary=28f227fb-b9e3-4ca9-9cfa-309c8d5e04ef"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "request-id",
+            "hA0jK22x5hgIt6UX6hLYiQ"
+          ]
+        ],
+        "body": {
+          "kind": "multipart",
+          "boundary": "28f227fb-b9e3-4ca9-9cfa-309c8d5e04ef",
+          "parts": [
+            {
+              "status": 200,
+              "headers": [
+                [
+                  "content-length",
+                  "230"
+                ],
+                [
+                  "content-type",
+                  "application/json"
+                ],
+                [
+                  "date",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "etag",
+                  "\"Uh9xXf9j961bxJxwUNrt6g\""
+                ],
+                [
+                  "last-modified",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "operation-id",
+                  "hGJKpSlXSMqf-A_Vsb-daQ"
+                ],
+                [
+                  "request-id",
+                  "hA0jK22x5hgIt6UX6hLYiQ"
+                ],
+                [
+                  "requester-identity-id",
+                  "MQFcPtrZPIGjMCRAXtZUnA"
+                ],
+                [
+                  "response-at",
+                  "2020-01-01T00:00:01.628000Z"
+                ]
+              ],
+              "body": {
+                "kind": "text",
+                "mediaType": "application/json",
+                "text": "{\"at\":\"2026-01-01T00:00:00.000000Z\",\"description\":\"Lift Net Promoter Score across the journey\",\"id\":\"VPjYyVwmD_Hc8d7UBKKV-Q\",\"member_id\":\"MQFcPtrZPIGjMCRAXtZUnA\",\"name\":\"Raise customer NPS\",\"objective_id\":\"VhxqyRIQytSnUArslwxyog\"}"
+              }
+            }
+          ],
+          "more": 0
+        }
+      },
+      "curl": "curl -i -X GET \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/objectives/VhxqyRIQytSnUArslwxyog/revisions/\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

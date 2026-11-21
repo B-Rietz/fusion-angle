@@ -1,14 +1,19 @@
-import { systemStatusOf } from '../shared/system-status.ts';
+import {
+    type RunningCommit,
+    systemStatusOf,
+} from '../shared/system-status.ts';
 
 export interface StatusDocument {
     readonly code: number;
     readonly body: unknown | null;
 }
 
-// The commit the 503 example names, sha and subject.
-const EXAMPLE_GIT_SHA =
-    '0123456789abcdef0123456789abcdef01234567';
-const EXAMPLE_GIT_SUBJECT = 'Answer system status at /api/status';
+// The commit the 503 example names, sha and subject, and
+// the one the documentation's replay reports.
+export const EXAMPLE_COMMIT: RunningCommit = {
+    sha: '0123456789abcdef0123456789abcdef01234567',
+    subject: 'Answer system status at /api/status',
+};
 
 // body: null means empty (204) or "the verb room
 // shows the success representation."
@@ -54,18 +59,24 @@ export const STATUS_DOCUMENTS: readonly
         body: { error: 'Gone: table/id' },
     },
     {
+        code: 411,
+        body: {
+            error: 'A request body requires Content-Length',
+        },
+    },
+    {
         code: 412,
         body: { error: 'precondition failed' },
+    },
+    {
+        code: 413,
+        body: { error: 'payload too large' },
     },
     {
         code: 415,
         body: {
             error: 'QUERY /path takes application/json',
         },
-    },
-    {
-        code: 422,
-        body: { error: 'unprocessable message' },
     },
     {
         code: 428,
@@ -80,13 +91,20 @@ export const STATUS_DOCUMENTS: readonly
         body: { error: 'git sha unavailable' },
     },
     {
+        code: 501,
+        body: {
+            error: 'passkey auth is a server-tier seam',
+        },
+    },
+    {
         code: 503,
         body: systemStatusOf(
-            {
-                sha: EXAMPLE_GIT_SHA,
-                subject: EXAMPLE_GIT_SUBJECT,
-            },
+            EXAMPLE_COMMIT,
             { postgres: 'down' },
         ),
+    },
+    {
+        code: 504,
+        body: { error: 'gateway timeout' },
     },
 ];

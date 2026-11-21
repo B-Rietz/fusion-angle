@@ -877,6 +877,11 @@ export function refusalOfRow(
                 : HTTP_PRECONDITION_FAILED,
         );
     }
+    return staleIfMatchRefusal(document);
+}
+
+// An If-Match that names no current head of `document`.
+export function staleIfMatchRefusal(document: string): Response {
     return errorJson(
         'If-Match does not match the current document at '
             + document,

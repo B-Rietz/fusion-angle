@@ -1,0 +1,53 @@
+{
+  "hash": "get/organizations/id/services",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "GET",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/services/",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 204,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "request-id",
+            "bn3_A6ejC2aYGZZdio8PSg"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "curl": "curl -i -X GET \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/services/\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

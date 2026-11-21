@@ -1,0 +1,102 @@
+{
+  "hash": "post/organizations/id/ideas/id/conversion",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    },
+    {
+      "name": ":id",
+      "value": "eizcntIrQMWrajcGkQZvUA",
+      "source": "get/organizations/id/ideas"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "POST",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/ideas/eizcntIrQMWrajcGkQZvUA/conversion",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "if-match",
+            "\"AgNpqsbGKcv-mN6NXoTvhg\""
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "content-length",
+            "1879"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"projectId\":\"ZAng-0J0UqNPF5JWMlMEmw\",\"project\":{\"title\":\"AI-Powered Customer Segmentation\",\"description\":\"Machine-learning model that segments customers in real time from behavior, purchase history, and engagement.\",\"progress\":67,\"start_date\":\"2019-11-02\",\"target_end_date\":\"2020-01-31\",\"estimated_cost\":88000,\"actual_cost\":51000,\"position\":1},\"idea\":{\"title\":\"Sustainability Dashboard for Operations\",\"position\":9,\"problem_statement\":\"No centralized view of energy, water, and waste metrics across facilities.\",\"target_users\":\"\",\"proposed_solution\":\"Build a dashboard that aggregates utility data and tracks ESG goals in real time.\",\"expected_outcome\":\"Achieve 15% reduction in energy costs and meet annual ESG reporting requirements.\",\"success_metrics\":\"15% energy cost reduction, ESG report delivery on schedule\"},\"ideaStateEventId\":\"42shPW16_RuVhqAiLMo1fA\",\"ideaState\":\"promoted\",\"ideaStateAt\":\"2020-01-01T00:00:02.121000Z\",\"projectStateEventId\":\"FDp1a-9dzEq3d0rvSSoklg\",\"projectState\":\"approved\",\"projectStateAt\":\"2020-01-01T00:00:02.122000Z\",\"baselines\":[{\"id\":\"H3zNfrhjkPirIARow-I3bg\",\"fields\":{\"project_id\":\"ZAng-0J0UqNPF5JWMlMEmw\",\"objective_id\":\"JobGWBxUTEBusPcVhYEKtA\",\"score\":13,\"member_id\":\"XXZruirZyAOoRpNxaDnpSA\",\"at\":\"2019-11-02T00:00:00.000000Z\"}},{\"id\":\"dLWW3-gMPi4ZHMwb_nehkQ\",\"fields\":{\"project_id\":\"ZAng-0J0UqNPF5JWMlMEmw\",\"objective_id\":\"QVZjTYvKwffyfGpYILwkOA\",\"score\":36,\"member_id\":\"XXZruirZyAOoRpNxaDnpSA\",\"at\":\"2019-11-02T00:00:01.000000Z\"}},{\"id\":\"ceKDVPcUdzFjPdqu2BKzxw\",\"fields\":{\"project_id\":\"ZAng-0J0UqNPF5JWMlMEmw\",\"objective_id\":\"VhxqyRIQytSnUArslwxyog\",\"score\":99,\"member_id\":\"RPzLGrWcstxLaHoBcViPLQ\",\"at\":\"2019-11-02T00:00:02.000000Z\"}},{\"id\":\"rEXgGEZ97BpkC9o93xJg6g\",\"fields\":{\"project_id\":\"ZAng-0J0UqNPF5JWMlMEmw\",\"objective_id\":\"GNRUyOMVpjoeEQWrZkRMkQ\",\"score\":51,\"member_id\":\"XXZruirZyAOoRpNxaDnpSA\",\"at\":\"2019-11-02T00:00:03.000000Z\"}}]}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "557"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "etag",
+            "\"cPGENoUB_r0icx3E3sVZJQ\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "request-id",
+            "vMbLcXIElCqfPljpmpL-Pw"
+          ],
+          [
+            "requester-identity-id",
+            "MQFcPtrZPIGjMCRAXtZUnA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:02.128000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"expected_outcome\":\"Achieve 15% reduction in energy costs and meet annual ESG reporting requirements.\",\"id\":\"eizcntIrQMWrajcGkQZvUA\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"position\":9,\"problem_statement\":\"No centralized view of energy, water, and waste metrics across facilities.\",\"proposed_solution\":\"Build a dashboard that aggregates utility data and tracks ESG goals in real time.\",\"state\":\"promoted\",\"success_metrics\":\"15% energy cost reduction, ESG report delivery on schedule\",\"target_users\":\"\",\"title\":\"Sustainability Dashboard for Operations\"}"
+        }
+      },
+      "curl": "curl -i -X POST \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/ideas/eizcntIrQMWrajcGkQZvUA/conversion\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"content-type: application/json\" \\\n  -H \"if-match: $ETAG\" \\\n  -H \"operation-id: $OPERATION_ID\" \\\n  -d '{\"projectId\":\"ZAng-0J0UqNPF5JWMlMEmw\",\"project\":{\"title\":\"AI-Powered Customer Segmentation\",\"description\":\"Machine-learning model that segments customers in real time from behavior, purchase history, and engagement.\",\"progress\":67,\"start_date\":\"2019-11-02\",\"target_end_date\":\"2020-01-31\",\"estimated_cost\":88000,\"actual_cost\":51000,\"position\":1},\"idea\":{\"title\":\"Sustainability Dashboard for Operations\",\"position\":9,\"problem_statement\":\"No centralized view of energy, water, and waste metrics across facilities.\",\"target_users\":\"\",\"proposed_solution\":\"Build a dashboard that aggregates utility data and tracks ESG goals in real time.\",\"expected_outcome\":\"Achieve 15% reduction in energy costs and meet annual ESG reporting requirements.\",\"success_metrics\":\"15% energy cost reduction, ESG report delivery on schedule\"},\"ideaStateEventId\":\"42shPW16_RuVhqAiLMo1fA\",\"ideaState\":\"promoted\",\"ideaStateAt\":\"2020-01-01T00:00:02.121000Z\",\"projectStateEventId\":\"FDp1a-9dzEq3d0rvSSoklg\",\"projectState\":\"approved\",\"projectStateAt\":\"2020-01-01T00:00:02.122000Z\",\"baselines\":[{\"id\":\"H3zNfrhjkPirIARow-I3bg\",\"fields\":{\"project_id\":\"ZAng-0J0UqNPF5JWMlMEmw\",\"objective_id\":\"JobGWBxUTEBusPcVhYEKtA\",\"score\":13,\"member_id\":\"XXZruirZyAOoRpNxaDnpSA\",\"at\":\"2019-11-02T00:00:00.000000Z\"}},{\"id\":\"dLWW3-gMPi4ZHMwb_nehkQ\",\"fields\":{\"project_id\":\"ZAng-0J0UqNPF5JWMlMEmw\",\"objective_id\":\"QVZjTYvKwffyfGpYILwkOA\",\"score\":36,\"member_id\":\"XXZruirZyAOoRpNxaDnpSA\",\"at\":\"2019-11-02T00:00:01.000000Z\"}},{\"id\":\"ceKDVPcUdzFjPdqu2BKzxw\",\"fields\":{\"project_id\":\"ZAng-0J0UqNPF5JWMlMEmw\",\"objective_id\":\"VhxqyRIQytSnUArslwxyog\",\"score\":99,\"member_id\":\"RPzLGrWcstxLaHoBcViPLQ\",\"at\":\"2019-11-02T00:00:02.000000Z\"}},{\"id\":\"rEXgGEZ97BpkC9o93xJg6g\",\"fields\":{\"project_id\":\"ZAng-0J0UqNPF5JWMlMEmw\",\"objective_id\":\"GNRUyOMVpjoeEQWrZkRMkQ\",\"score\":51,\"member_id\":\"XXZruirZyAOoRpNxaDnpSA\",\"at\":\"2019-11-02T00:00:03.000000Z\"}}]}'"
+    }
+  ]
+}

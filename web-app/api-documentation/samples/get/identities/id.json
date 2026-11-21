@@ -1,0 +1,83 @@
+{
+  "hash": "get/identities/id",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "XXZruirZyAOoRpNxaDnpSA",
+      "source": ""
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "admin",
+      "request": {
+        "method": "GET",
+        "target": "/api/identities/XXZruirZyAOoRpNxaDnpSA",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "239"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "etag",
+            "\"L7es0mvUZ81eXL_KRBSlBw\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "operation-id",
+            "G8cjgZuk28HfWVscj89wmw"
+          ],
+          [
+            "request-id",
+            "8OZUchWn2D-IQ3hMDFAlxQ"
+          ],
+          [
+            "requester-identity-id",
+            "AAAAAAAAAAAAAAAAAAAAAA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:01.628000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"department\":\"Product\",\"id\":\"XXZruirZyAOoRpNxaDnpSA\",\"kind\":\"person\",\"strengths\":[\"Strategic Planning\",\"Data Analysis\",\"Stakeholder Management\"],\"team_dimensions\":{\"amiable\":80,\"analytical\":80,\"driver\":80,\"expressive\":80},\"title\":\"Admin\"}"
+        }
+      },
+      "curl": "curl -i -X GET \"$ORIGIN/api/identities/XXZruirZyAOoRpNxaDnpSA\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

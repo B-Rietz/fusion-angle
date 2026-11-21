@@ -1,0 +1,116 @@
+{
+  "hash": "get/organizations/id/projects/id/versions",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    },
+    {
+      "name": ":id",
+      "value": "wqGTTFdYUGnmBxWCppmkOQ",
+      "source": "get/organizations/id/projects"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "GET",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/projects/wqGTTFdYUGnmBxWCppmkOQ/versions/",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "870"
+          ],
+          [
+            "content-type",
+            "multipart/mixed; boundary=3f29a319-dd18-4aec-bd04-3c4faca6db3b"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "request-id",
+            "WYTwK2SFDFS0gaxQ2V7W0w"
+          ]
+        ],
+        "body": {
+          "kind": "multipart",
+          "boundary": "3f29a319-dd18-4aec-bd04-3c4faca6db3b",
+          "parts": [
+            {
+              "status": 200,
+              "headers": [
+                [
+                  "content-length",
+                  "388"
+                ],
+                [
+                  "content-type",
+                  "application/json"
+                ],
+                [
+                  "date",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "etag",
+                  "\"YJUh5uYbMkXhwJXPhb-yhg\""
+                ],
+                [
+                  "last-modified",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "operation-id",
+                  "TKeO2R8eg6HfeFOKG6VVTA"
+                ],
+                [
+                  "request-id",
+                  "WYTwK2SFDFS0gaxQ2V7W0w"
+                ],
+                [
+                  "requester-identity-id",
+                  "AAAAAAAAAAAAAAAAAAAAAA"
+                ],
+                [
+                  "response-at",
+                  "2020-01-01T00:00:01.628000Z"
+                ]
+              ],
+              "body": {
+                "kind": "text",
+                "mediaType": "application/json",
+                "text": "{\"actual_cost\":51000,\"description\":\"Machine-learning model that segments customers in real time from behavior, purchase history, and engagement.\",\"estimated_cost\":88000,\"id\":\"wqGTTFdYUGnmBxWCppmkOQ\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"position\":1,\"progress\":67,\"start_date\":\"2019-11-02\",\"state\":\"approved\",\"target_end_date\":\"2020-01-31\",\"title\":\"AI-Powered Customer Segmentation\"}"
+              }
+            }
+          ],
+          "more": 0
+        }
+      },
+      "curl": "curl -i -X GET \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/projects/wqGTTFdYUGnmBxWCppmkOQ/versions/\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

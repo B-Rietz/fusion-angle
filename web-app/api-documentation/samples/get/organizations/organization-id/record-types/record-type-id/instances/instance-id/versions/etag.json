@@ -1,0 +1,98 @@
+{
+  "hash": "get/organizations/organization-id/record-types/record-type-id/instances/instance-id/versions/etag",
+  "pathIds": [
+    {
+      "name": ":organization-id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    },
+    {
+      "name": ":record-type-id",
+      "value": "sJxkGGTrPegHqFbQAkXnjw",
+      "source": "get/organizations/organization-id/record-types"
+    },
+    {
+      "name": ":instance-id",
+      "value": "RUvEF1xhBZdYhz3igwrThA",
+      "source": "get/organizations/organization-id/record-types/record-type-id/instances"
+    },
+    {
+      "name": ":etag",
+      "value": "Cg6A4Wr7ZugPvX_W4PEXGg",
+      "source": "get/organizations/organization-id/record-types/record-type-id/instances/instance-id/versions"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "GET",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/record-types/sJxkGGTrPegHqFbQAkXnjw/instances/RUvEF1xhBZdYhz3igwrThA/versions/Cg6A4Wr7ZugPvX_W4PEXGg",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "128"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "etag",
+            "\"Cg6A4Wr7ZugPvX_W4PEXGg\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "operation-id",
+            "M1n1JpqEvDetdt1CibUcbQ"
+          ],
+          [
+            "request-id",
+            "5PVSZ3NLIwR1p-7E1eEBEA"
+          ],
+          [
+            "requester-identity-id",
+            "AAAAAAAAAAAAAAAAAAAAAA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:01.628000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"id\":\"RUvEF1xhBZdYhz3igwrThA\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"record_type_id\":\"sJxkGGTrPegHqFbQAkXnjw\",\"values\":[]}"
+        }
+      },
+      "curl": "curl -i -X GET \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/record-types/sJxkGGTrPegHqFbQAkXnjw/instances/RUvEF1xhBZdYhz3igwrThA/versions/Cg6A4Wr7ZugPvX_W4PEXGg\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

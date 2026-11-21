@@ -2056,8 +2056,8 @@ Off the critical path; each with its oracle.
     content-hashed `assets/app.<hash>.js`,
     `styles.<hash>.css`, and `pages-*.<hash>.css`,
     `site/asset-manifest.json`, the woff2 fonts, the 18
-    page directories, and the verb/status rooms generated
-    separately from `PAGE_REGISTRY` (A1, A2, J3) — Layer
+    page directories, and the API documentation's catalog and
+    samples generated separately from `PAGE_REGISTRY` (A1, A2, J3) — Layer
     1, an integration test in the shape of
     `tests/deploy-cli.test.ts` that spawns `./bin/build
     --no-zip` into a temp dir; today the 29 is pinned in
@@ -4011,6 +4011,28 @@ Off the critical path; each with its oracle.
   the lens, its cycle dash) can swap then. Oracle:
   `findCycleEdgeIds` orders its inputs by id itself,
   and one pin shuffles both arrays to the same result.
+- Declare and prove handler role narrowing. Each rule
+  that narrows a tier (self only; invitee or
+  organization admin) is declared beside its route, a
+  test proves it by calling as the wrong person, and
+  the API documentation page shows it. The header unit
+  (`declared-request-headers`) is the pattern. Oracle:
+  every narrowing rule has a declaration beside its
+  route, a test that is red when the wrong person is
+  admitted, and a line on the page.
+- A machine-readable OpenAPI file, once body shapes
+  exist as schemas. The documentation's catalog names
+  routes, statuses and headers but not body shapes.
+  Oracle: a generated OpenAPI file validates against
+  the OpenAPI schema and names every catalog route.
+- Mark uncacheable what carries a reader's credential.
+  When the documentation page fills a signed-in
+  reader's real credentials into a sample (the live
+  layer), every response and every page rendering that
+  can carry that credential is marked uncacheable with
+  standard caching headers (`Cache-Control: no-store`).
+  Oracle: a test fetches each such response and page
+  and asserts the header, red when one lacks it.
 
 ## Sequencing
 

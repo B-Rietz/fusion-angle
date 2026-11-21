@@ -1,0 +1,82 @@
+{
+  "hash": "delete/organizations/organization-id/record-types/record-type-id",
+  "pathIds": [
+    {
+      "name": ":organization-id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    },
+    {
+      "name": ":record-type-id",
+      "value": "Rg6xazqERAW7VbItGcGlhw",
+      "source": "post/organizations/organization-id/record-types"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "admin",
+      "request": {
+        "method": "DELETE",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/record-types/Rg6xazqERAW7VbItGcGlhw",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "if-match",
+            "\"hVnb1nBJnwCoiJbfyXLy3g\""
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 204,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "etag",
+            "\"VWd7Xr0dqmBTKqhA4nyv-Q\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "request-id",
+            "w-BDzC7FILtsyS_TzdFJag"
+          ],
+          [
+            "requester-identity-id",
+            "XXZruirZyAOoRpNxaDnpSA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:01.725000Z"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "curl": "curl -i -X DELETE \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/record-types/Rg6xazqERAW7VbItGcGlhw\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"if-match: $ETAG\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

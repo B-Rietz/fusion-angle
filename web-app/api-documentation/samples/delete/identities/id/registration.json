@@ -1,0 +1,77 @@
+{
+  "hash": "delete/identities/id/registration",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "szt_6tf7IqwbLVSY4D8fow",
+      "source": "post/organizations/id/memberships"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "admin",
+      "request": {
+        "method": "DELETE",
+        "target": "/api/identities/szt_6tf7IqwbLVSY4D8fow/registration",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "if-match",
+            "\"o2I99ffsTHTee53TDTA24A\""
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 204,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "etag",
+            "\"EKzrcCR6XKio3AXEYI-MjQ\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "request-id",
+            "S31vEqgWCkWnvT38A3SmOg"
+          ],
+          [
+            "requester-identity-id",
+            "XXZruirZyAOoRpNxaDnpSA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:01.675000Z"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "curl": "curl -i -X DELETE \"$ORIGIN/api/identities/szt_6tf7IqwbLVSY4D8fow/registration\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"if-match: $ETAG\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

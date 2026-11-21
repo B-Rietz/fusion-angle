@@ -1,0 +1,170 @@
+{
+  "hash": "start/sign-in",
+  "pathIds": [],
+  "exchanges": [
+    {
+      "caller": "none",
+      "request": {
+        "method": "POST",
+        "target": "/api/authentication/authorize",
+        "headers": [
+          [
+            "authorization",
+            "Basic $(printf '%s:%s' \"$USERNAME\" \"$PASSWORD\" | base64 | tr -d '\\n')"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "content-length",
+            "137"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"method\":\"password\",\"client_id\":\"web-app\",\"code_challenge\":\"$CHALLENGE\",\"code_challenge_method\":\"S256\"}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "authentication-info",
+            "code=\"$CODE\""
+          ],
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "etag",
+            "\"6t7Su00z8uGA0ONU2TiL8A\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "request-id",
+            "dxxqU6V0egySTzAfk5qCzg"
+          ],
+          [
+            "requester-identity-id",
+            "MQFcPtrZPIGjMCRAXtZUnA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:02.539000Z"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "curl": "curl -i -X POST \"$ORIGIN/api/authentication/authorize\" \\\n  -H \"authorization: Basic $(printf '%s:%s' \"$USERNAME\" \"$PASSWORD\" | base64 | tr -d '\\n')\" \\\n  -H \"content-type: application/json\" \\\n  -H \"operation-id: $OPERATION_ID\" \\\n  -d '{\"method\":\"password\",\"client_id\":\"web-app\",\"code_challenge\":\"'\"$CHALLENGE\"'\",\"code_challenge_method\":\"S256\"}'"
+    },
+    {
+      "caller": "none",
+      "request": {
+        "method": "POST",
+        "target": "/api/authentication/token",
+        "headers": [
+          [
+            "authorization",
+            "Basic $(printf '%s:%s' \"$CODE\" \"$VERIFIER\" | base64 | tr -d '\\n')"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "content-length",
+            "57"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"grant_type\":\"authorization_code\",\"client_id\":\"web-app\"}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "authentication-info",
+            "access_token=\"$TOKEN\""
+          ],
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "40"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "etag",
+            "\"yTOvz2LjFhM_XyIgfdF0Ew\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "request-id",
+            "wqDhOH4xxZPrmreI3iSyBg"
+          ],
+          [
+            "requester-identity-id",
+            "MQFcPtrZPIGjMCRAXtZUnA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:02.544000Z"
+          ],
+          [
+            "set-cookie",
+            "refresh_token=$REFRESH_TOKEN; HttpOnly; SameSite=Strict; Path=/api/authentication; Secure"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"expires_in\":900,\"token_type\":\"Bearer\"}"
+        }
+      },
+      "curl": "curl -i -X POST \"$ORIGIN/api/authentication/token\" \\\n  -H \"authorization: Basic $(printf '%s:%s' \"$CODE\" \"$VERIFIER\" | base64 | tr -d '\\n')\" \\\n  -H \"content-type: application/json\" \\\n  -H \"operation-id: $OPERATION_ID\" \\\n  -d '{\"grant_type\":\"authorization_code\",\"client_id\":\"web-app\"}'"
+    }
+  ]
+}

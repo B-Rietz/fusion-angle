@@ -1,0 +1,83 @@
+{
+  "hash": "get/identities/id/pii",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "MQFcPtrZPIGjMCRAXtZUnA",
+      "source": ""
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "GET",
+        "target": "/api/identities/MQFcPtrZPIGjMCRAXtZUnA/pii",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "209"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "etag",
+            "\"FkrZlLtP4Q4wutHFG6xvoA\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "operation-id",
+            "g4rdsWWyMBG7Kv7oj9GCmA"
+          ],
+          [
+            "request-id",
+            "0OPer0KaPwdZr4N6TZV54g"
+          ],
+          [
+            "requester-identity-id",
+            "AAAAAAAAAAAAAAAAAAAAAA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:01.628000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"bio\":\"Operations leader who thrives on aligning cross-functional teams around strategic goals.\",\"email\":\"sarah.chen@company.com\",\"id\":\"MQFcPtrZPIGjMCRAXtZUnA\",\"name\":\"Sarah Chen\",\"phone\":\"+1 (555) 201-3847\"}"
+        }
+      },
+      "curl": "curl -i -X GET \"$ORIGIN/api/identities/MQFcPtrZPIGjMCRAXtZUnA/pii\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

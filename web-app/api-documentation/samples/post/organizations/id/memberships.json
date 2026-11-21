@@ -1,0 +1,97 @@
+{
+  "hash": "post/organizations/id/memberships",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "admin",
+      "request": {
+        "method": "POST",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/memberships/",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "content-length",
+            "459"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"id\":\"etrsi0vX0QS3oi35SuUX4g\",\"kind\":\"human\",\"membership\":{\"type\":\"member\",\"at\":\"2020-01-01T00:00:02.133000Z\"},\"identity\":{\"title\":\"Consultant\",\"department\":\"Advisory\",\"strengths\":[\"Process Design\",\"Facilitation\"],\"team_dimensions\":{\"driver\":60,\"analytical\":70,\"expressive\":65,\"amiable\":72}},\"pii\":{\"name\":\"Riley Okafor\",\"email\":\"riley.okafor@example.net\",\"phone\":\"+1 (555) 310-6642\",\"bio\":\"Independent consultant awaiting a first organization membership.\"}}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "206"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "etag",
+            "\"iVdIBfV6l_gx8_PuG_Qmgg\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "location",
+            "/organizations/AjdvjuECVZEgZoFajaIEkg/invitations/AjdvjuECVZEgZoFajaIEkg:etrsi0vX0QS3oi35SuUX4g"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "request-id",
+            "zXE1fyuQm_DknUjRXu97nA"
+          ],
+          [
+            "requester-identity-id",
+            "XXZruirZyAOoRpNxaDnpSA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:02.136000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"at\":\"2020-01-01T00:00:02.133000Z\",\"id\":\"AjdvjuECVZEgZoFajaIEkg:etrsi0vX0QS3oi35SuUX4g\",\"identity_id\":\"etrsi0vX0QS3oi35SuUX4g\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"state\":\"accepted\",\"type\":\"member\"}"
+        }
+      },
+      "curl": "curl -i -X POST \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/memberships/\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"content-type: application/json\" \\\n  -H \"operation-id: $OPERATION_ID\" \\\n  -d '{\"id\":\"etrsi0vX0QS3oi35SuUX4g\",\"kind\":\"human\",\"membership\":{\"type\":\"member\",\"at\":\"2020-01-01T00:00:02.133000Z\"},\"identity\":{\"title\":\"Consultant\",\"department\":\"Advisory\",\"strengths\":[\"Process Design\",\"Facilitation\"],\"team_dimensions\":{\"driver\":60,\"analytical\":70,\"expressive\":65,\"amiable\":72}},\"pii\":{\"name\":\"Riley Okafor\",\"email\":\"riley.okafor@example.net\",\"phone\":\"+1 (555) 310-6642\",\"bio\":\"Independent consultant awaiting a first organization membership.\"}}'"
+    }
+  ]
+}

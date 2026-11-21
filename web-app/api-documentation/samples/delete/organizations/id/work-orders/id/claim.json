@@ -1,0 +1,92 @@
+{
+  "hash": "delete/organizations/id/work-orders/id/claim",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    },
+    {
+      "name": ":id",
+      "value": "nTIlwHvYCLLpcgDPpZfJsw",
+      "source": "get/organizations/id/work-orders"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "DELETE",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/work-orders/nTIlwHvYCLLpcgDPpZfJsw/claim",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "if-match",
+            "\"KwILjoy0jCdC7LCSHpAlaA\""
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "2662"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "etag",
+            "\"RqqhF3Idxn-Ga2gxygQOvw\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "request-id",
+            "9bYuQC3s-0jShLSaZfn2Tw"
+          ],
+          [
+            "requester-identity-id",
+            "MQFcPtrZPIGjMCRAXtZUnA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:01.716000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"events\":[{\"at\":\"2020-01-01T00:00:01.714000Z\",\"field_values\":[],\"id\":\"CDCYi0Sutz6bNJakudapIg\",\"member_id\":\"MQFcPtrZPIGjMCRAXtZUnA\",\"state\":\"claim_released\"}],\"flow_graph\":{\"edges\":[{\"fromNodeId\":\"laXQcGGyWrbEiExtgkyCcw\",\"id\":\"PuLOAtGBPYhsnldPEyGaQw\",\"name\":\"begin\",\"toNodeId\":\"KWpWgeKhKyoyBDEymUgcmg\"},{\"fromNodeId\":\"KWpWgeKhKyoyBDEymUgcmg\",\"id\":\"JZJrLAteZStrqAvzZiamtA\",\"name\":\"submit\",\"toNodeId\":\"xmghdGZDgLKilxByetrBoA\"},{\"fromNodeId\":\"xmghdGZDgLKilxByetrBoA\",\"id\":\"DYcnMktqUpTdZuEBnLBppw\",\"name\":\"needs revision\",\"toNodeId\":\"KWpWgeKhKyoyBDEymUgcmg\"},{\"fromNodeId\":\"xmghdGZDgLKilxByetrBoA\",\"id\":\"BQCWYtMcBEfKIkKBTFuVDA\",\"name\":\"approve\",\"toNodeId\":\"DkyhupXfDAcrWBojIzHlRQ\"}],\"lockTimeout\":28800,\"name\":\"Customer Onboarding\",\"nodes\":[{\"attributes\":[],\"id\":\"laXQcGGyWrbEiExtgkyCcw\",\"isArchive\":false,\"isCreate\":true,\"memberIds\":[],\"name\":\"Create\",\"positionX\":40,\"positionY\":30,\"taskInstructions\":\"\"},{\"attributes\":[{\"attribute_id\":\"CPJmMPXRaBIiNdGBofUPVg\",\"isRequired\":true,\"mode\":\"editable\"},{\"attribute_id\":\"oeqelDVElwxHYWkWRVTCYw\",\"isRequired\":true,\"mode\":\"editable\"},{\"attribute_id\":\"kxbdVhmkaEzkJvghWKFzkw\",\"isRequired\":false,\"mode\":\"editable\"},{\"attribute_id\":\"QHzHnEAmqGSgiEfkXoWMTw\",\"isRequired\":false,\"mode\":\"editable\"},{\"attribute_id\":\"AXxvHyKNpNYXYKOorywqRQ\",\"isRequired\":false,\"mode\":\"editable\"},{\"attribute_id\":\"DfkwfBiyfyCyRHvsHnDiqQ\",\"isRequired\":false,\"mode\":\"editable\"},{\"attribute_id\":\"UflxQeBtbrxfofrceJgVaA\",\"isRequired\":false,\"mode\":\"editable\"},{\"attribute_id\":\"nHzjBAeemLwpexXjdPBZHQ\",\"isRequired\":false,\"mode\":\"editable\"},{\"attribute_id\":\"zCttybnQPmYzJGmvOxWwBQ\",\"isRequired\":false,\"mode\":\"editable\"}],\"id\":\"KWpWgeKhKyoyBDEymUgcmg\",\"isArchive\":false,\"isCreate\":false,\"memberIds\":[\"SsVAZghfSzMZRZmxNKIizw\",\"XXZruirZyAOoRpNxaDnpSA\"],\"name\":\"Data Capture\",\"positionX\":260,\"positionY\":140,\"taskInstructions\":\"\"},{\"attributes\":[{\"attribute_id\":\"CPJmMPXRaBIiNdGBofUPVg\",\"isRequired\":false,\"mode\":\"readonly\"},{\"attribute_id\":\"oeqelDVElwxHYWkWRVTCYw\",\"isRequired\":false,\"mode\":\"readonly\"},{\"attribute_id\":\"ElVKgkCreTEHQXJZPBJDKw\",\"isRequired\":true,\"mode\":\"editable\"}],\"id\":\"xmghdGZDgLKilxByetrBoA\",\"isArchive\":false,\"isCreate\":false,\"memberIds\":[\"MQFcPtrZPIGjMCRAXtZUnA\",\"CJrglMsNBxOWWfbihHQSeg\"],\"name\":\"Review\",\"positionX\":480,\"positionY\":250,\"taskInstructions\":\"\"},{\"attributes\":[],\"id\":\"DkyhupXfDAcrWBojIzHlRQ\",\"isArchive\":true,\"isCreate\":false,\"memberIds\":[],\"name\":\"Archive\",\"positionX\":680,\"positionY\":370,\"taskInstructions\":\"\"}]},\"id\":\"nTIlwHvYCLLpcgDPpZfJsw\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"position\":32,\"state\":\"KWpWgeKhKyoyBDEymUgcmg\",\"transition\":{\"at\":\"2019-12-25T08:12:00.000000Z\",\"member_id\":\"MQFcPtrZPIGjMCRAXtZUnA\"}}"
+        }
+      },
+      "curl": "curl -i -X DELETE \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/work-orders/nTIlwHvYCLLpcgDPpZfJsw/claim\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"if-match: $ETAG\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

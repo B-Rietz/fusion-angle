@@ -1,0 +1,162 @@
+{
+  "hash": "get/organizations/organization-id/record-types/record-type-id/attributes",
+  "pathIds": [
+    {
+      "name": ":organization-id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    },
+    {
+      "name": ":record-type-id",
+      "value": "sJxkGGTrPegHqFbQAkXnjw",
+      "source": "get/organizations/organization-id/record-types"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "GET",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/record-types/sJxkGGTrPegHqFbQAkXnjw/attributes/",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "7390"
+          ],
+          [
+            "content-type",
+            "multipart/mixed; boundary=43162528-9555-4bd7-89c6-cc022bc2b0da"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "request-id",
+            "tolP_kqPUOBWRY_GxNqX6g"
+          ]
+        ],
+        "body": {
+          "kind": "multipart",
+          "boundary": "43162528-9555-4bd7-89c6-cc022bc2b0da",
+          "parts": [
+            {
+              "status": 200,
+              "headers": [
+                [
+                  "content-length",
+                  "273"
+                ],
+                [
+                  "content-type",
+                  "application/json"
+                ],
+                [
+                  "date",
+                  "Wed, 01 Jan 2020 00:00:02 GMT"
+                ],
+                [
+                  "etag",
+                  "\"WCt0kjc6-_TJ7g_kYoYOIw\""
+                ],
+                [
+                  "last-modified",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "operation-id",
+                  "Do7ka5xQg75U4IdGUp8q6w"
+                ],
+                [
+                  "request-id",
+                  "tolP_kqPUOBWRY_GxNqX6g"
+                ],
+                [
+                  "requester-identity-id",
+                  "AAAAAAAAAAAAAAAAAAAAAA"
+                ],
+                [
+                  "response-at",
+                  "2020-01-01T00:00:01.628000Z"
+                ]
+              ],
+              "body": {
+                "kind": "text",
+                "mediaType": "application/json",
+                "text": "{\"attribute_type\":\"text\",\"constraints\":[],\"id\":\"kxbdVhmkaEzkJvghWKFzkw\",\"name\":\"Contact Phone\",\"options\":[],\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"read_roles\":[\"member\",\"admin\"],\"record_type_id\":\"sJxkGGTrPegHqFbQAkXnjw\",\"sort_order\":3,\"write_roles\":[\"member\",\"admin\"]}"
+              }
+            },
+            {
+              "status": 200,
+              "headers": [
+                [
+                  "content-length",
+                  "272"
+                ],
+                [
+                  "content-type",
+                  "application/json"
+                ],
+                [
+                  "date",
+                  "Wed, 01 Jan 2020 00:00:02 GMT"
+                ],
+                [
+                  "etag",
+                  "\"X35TaXM_i9VhzsX-RXEwpg\""
+                ],
+                [
+                  "last-modified",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "operation-id",
+                  "Do7ka5xQg75U4IdGUp8q6w"
+                ],
+                [
+                  "request-id",
+                  "tolP_kqPUOBWRY_GxNqX6g"
+                ],
+                [
+                  "requester-identity-id",
+                  "AAAAAAAAAAAAAAAAAAAAAA"
+                ],
+                [
+                  "response-at",
+                  "2020-01-01T00:00:01.628000Z"
+                ]
+              ],
+              "body": {
+                "kind": "text",
+                "mediaType": "application/json",
+                "text": "{\"attribute_type\":\"text\",\"constraints\":[],\"id\":\"CPJmMPXRaBIiNdGBofUPVg\",\"name\":\"Company Name\",\"options\":[],\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"read_roles\":[\"member\",\"admin\"],\"record_type_id\":\"sJxkGGTrPegHqFbQAkXnjw\",\"sort_order\":1,\"write_roles\":[\"member\",\"admin\"]}"
+              }
+            }
+          ],
+          "more": 8
+        }
+      },
+      "curl": "curl -i -X GET \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/record-types/sJxkGGTrPegHqFbQAkXnjw/attributes/\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

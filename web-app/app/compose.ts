@@ -219,10 +219,10 @@ function compose(): void {
         );
     }
 
-    copyApiDocumentationRooms();
+    copyApiDocumentationFiles();
 }
 
-function copyApiDocumentationRooms(): void {
+function copyApiDocumentationFiles(): void {
     const src = join(ROOT, 'api-documentation');
     const dest = join(OUT, 'api-documentation');
     if (resolve(src) === resolve(dest)) return;

@@ -1,0 +1,88 @@
+{
+  "hash": "get/organizations/id/flows/id",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    },
+    {
+      "name": ":id",
+      "value": "esKujtyQFYUJaVSXWwavzA",
+      "source": "get/organizations/id/flows"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "GET",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/flows/esKujtyQFYUJaVSXWwavzA",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "7334"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "etag",
+            "\"ZeYFWiGV7z8EozFkrG5wWg\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "operation-id",
+            "GX0DvWm9poZsCH1wVPps_w"
+          ],
+          [
+            "request-id",
+            "tnxvuAp-y6hv7EEmqTBMYg"
+          ],
+          [
+            "requester-identity-id",
+            "AAAAAAAAAAAAAAAAAAAAAA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:01.628000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"graph\":{\"edges\":[{\"fromNodeId\":\"xmghdGZDgLKilxByetrBoA\",\"id\":\"BQCWYtMcBEfKIkKBTFuVDA\",\"name\":\"approve\",\"toNodeId\":\"DkyhupXfDAcrWBojIzHlRQ\"},{\"fromNodeId\":\"xmghdGZDgLKilxByetrBoA\",\"id\":\"DYcnMktqUpTdZuEBnLBppw\",\"name\":\"needs revision\",\"toNodeId\":\"KWpWgeKhKyoyBDEymUgcmg\"},{\"fromNodeId\":\"KWpWgeKhKyoyBDEymUgcmg\",\"id\":\"JZJrLAteZStrqAvzZiamtA\",\"name\":\"submit\",\"toNodeId\":\"xmghdGZDgLKilxByetrBoA\"},{\"fromNodeId\":\"laXQcGGyWrbEiExtgkyCcw\",\"id\":\"PuLOAtGBPYhsnldPEyGaQw\",\"name\":\"begin\",\"toNodeId\":\"KWpWgeKhKyoyBDEymUgcmg\"}],\"nodes\":[{\"attributes\":[],\"id\":\"DkyhupXfDAcrWBojIzHlRQ\",\"isArchive\":true,\"isCreate\":false,\"memberIds\":[],\"name\":\"Archive\",\"positionX\":680,\"positionY\":370,\"taskInstructions\":\"\"},{\"attributes\":[{\"attribute_id\":\"CPJmMPXRaBIiNdGBofUPVg\",\"isRequired\":true,\"mode\":\"editable\"},{\"attribute_id\":\"oeqelDVElwxHYWkWRVTCYw\",\"isRequired\":true,\"mode\":\"editable\"},{\"attribute_id\":\"kxbdVhmkaEzkJvghWKFzkw\",\"isRequired\":false,\"mode\":\"editable\"},{\"attribute_id\":\"QHzHnEAmqGSgiEfkXoWMTw\",\"isRequired\":false,\"mode\":\"editable\"},{\"attribute_id\":\"AXxvHyKNpNYXYKOorywqRQ\",\"isRequired\":false,\"mode\":\"editable\"},{\"attribute_id\":\"DfkwfBiyfyCyRHvsHnDiqQ\",\"isRequired\":false,\"mode\":\"editable\"},{\"attribute_id\":\"UflxQeBtbrxfofrceJgVaA\",\"isRequired\":false,\"mode\":\"editable\"},{\"attribute_id\":\"nHzjBAeemLwpexXjdPBZHQ\",\"isRequired\":false,\"mode\":\"editable\"},{\"attribute_id\":\"zCttybnQPmYzJGmvOxWwBQ\",\"isRequired\":false,\"mode\":\"editable\"}],\"id\":\"KWpWgeKhKyoyBDEymUgcmg\",\"isArchive\":false,\"isCreate\":false,\"memberIds\":[\"SsVAZghfSzMZRZmxNKIizw\",\"XXZruirZyAOoRpNxaDnpSA\"],\"name\":\"Data Capture\",\"positionX\":260,\"positionY\":140,\"taskInstructions\":\"\"},{\"attributes\":[],\"id\":\"laXQcGGyWrbEiExtgkyCcw\",\"isArchive\":false,\"isCreate\":true,\"memberIds\":[],\"name\":\"Create\",\"positionX\":40,\"positionY\":30,\"taskInstructions\":\"\"},{\"attributes\":[{\"attribute_id\":\"CPJmMPXRaBIiNdGBofUPVg\",\"isRequired\":false,\"mode\":\"readonly\"},{\"attribute_id\":\"oeqelDVElwxHYWkWRVTCYw\",\"isRequired\":false,\"mode\":\"readonly\"},{\"attribute_id\":\"ElVKgkCreTEHQXJZPBJDKw\",\"isRequired\":true,\"mode\":\"editable\"}],\"id\":\"xmghdGZDgLKilxByetrBoA\",\"isArchive\":false,\"isCreate\":false,\"memberIds\":[\"MQFcPtrZPIGjMCRAXtZUnA\",\"CJrglMsNBxOWWfbihHQSeg\"],\"name\":\"Review\",\"positionX\":480,\"positionY\":250,\"taskInstructions\":\"\"}]},\"graphDelta\":{\"attributeEvents\":[{\"action\":\"added\",\"at\":\"2026-01-01T00:00:00.000000Z\",\"attribute_id\":\"CPJmMPXRaBIiNdGBofUPVg\",\"flow_node_id\":\"KWpWgeKhKyoyBDEymUgcmg\",\"id\":\"2xFTxBEykH3n4f6BRMmgvg\",\"is_required\":true,\"mode\":\"editable\"},{\"action\":\"added\",\"at\":\"2026-01-01T00:00:00.000000Z\",\"attribute_id\":\"oeqelDVElwxHYWkWRVTCYw\",\"flow_node_id\":\"KWpWgeKhKyoyBDEymUgcmg\",\"id\":\"5iW2nru2pg1HLzaUPznBBQ\",\"is_required\":true,\"mode\":\"editable\"},{\"action\":\"added\",\"at\":\"2026-01-01T00:00:00.000000Z\",\"attribute_id\":\"kxbdVhmkaEzkJvghWKFzkw\",\"flow_node_id\":\"KWpWgeKhKyoyBDEymUgcmg\",\"id\":\"DroamBh5CD-Tx40-xGvIFg\",\"is_required\":false,\"mode\":\"editable\"},{\"action\":\"added\",\"at\":\"2026-01-01T00:00:00.000000Z\",\"attribute_id\":\"QHzHnEAmqGSgiEfkXoWMTw\",\"flow_node_id\":\"KWpWgeKhKyoyBDEymUgcmg\",\"id\":\"_x7BH3GnSW0na-0aRsUftg\",\"is_required\":false,\"mode\":\"editable\"},{\"action\":\"added\",\"at\":\"2026-01-01T00:00:00.000000Z\",\"attribute_id\":\"AXxvHyKNpNYXYKOorywqRQ\",\"flow_node_id\":\"KWpWgeKhKyoyBDEymUgcmg\",\"id\":\"T4XLgvTgXEs_WQFszPmegg\",\"is_required\":false,\"mode\":\"editable\"},{\"action\":\"added\",\"at\":\"2026-01-01T00:00:00.000000Z\",\"attribute_id\":\"DfkwfBiyfyCyRHvsHnDiqQ\",\"flow_node_id\":\"KWpWgeKhKyoyBDEymUgcmg\",\"id\":\"XHZmEcxUzJma4icLA8K25w\",\"is_required\":false,\"mode\":\"editable\"},{\"action\":\"added\",\"at\":\"2026-01-01T00:00:00.000000Z\",\"attribute_id\":\"UflxQeBtbrxfofrceJgVaA\",\"flow_node_id\":\"KWpWgeKhKyoyBDEymUgcmg\",\"id\":\"x1LuxLE1bKYR9UQPvgsXMQ\",\"is_required\":false,\"mode\":\"editable\"},{\"action\":\"added\",\"at\":\"2026-01-01T00:00:00.000000Z\",\"attribute_id\":\"nHzjBAeemLwpexXjdPBZHQ\",\"flow_node_id\":\"KWpWgeKhKyoyBDEymUgcmg\",\"id\":\"HLk-cZJPcKVpAxqv8iv8ug\",\"is_required\":false,\"mode\":\"editable\"},{\"action\":\"added\",\"at\":\"2026-01-01T00:00:00.000000Z\",\"attribute_id\":\"zCttybnQPmYzJGmvOxWwBQ\",\"flow_node_id\":\"KWpWgeKhKyoyBDEymUgcmg\",\"id\":\"n2YDwtPHBttXY8Mfz-5SsQ\",\"is_required\":false,\"mode\":\"editable\"},{\"action\":\"added\",\"at\":\"2026-01-01T00:00:00.000000Z\",\"attribute_id\":\"CPJmMPXRaBIiNdGBofUPVg\",\"flow_node_id\":\"xmghdGZDgLKilxByetrBoA\",\"id\":\"4rDhmHZd76EpWBU7spq6zg\",\"is_required\":false,\"mode\":\"readonly\"},{\"action\":\"added\",\"at\":\"2026-01-01T00:00:00.000000Z\",\"attribute_id\":\"oeqelDVElwxHYWkWRVTCYw\",\"flow_node_id\":\"xmghdGZDgLKilxByetrBoA\",\"id\":\"ikJ80AjzHYYUbLFlYsiGSw\",\"is_required\":false,\"mode\":\"readonly\"},{\"action\":\"added\",\"at\":\"2026-01-01T00:00:00.000000Z\",\"attribute_id\":\"ElVKgkCreTEHQXJZPBJDKw\",\"flow_node_id\":\"xmghdGZDgLKilxByetrBoA\",\"id\":\"k-imhS7RoZ-iyN2TNOWp3g\",\"is_required\":true,\"mode\":\"editable\"}],\"deletions\":[],\"edges\":[{\"at\":\"2026-01-01T00:00:00.000000Z\",\"flow_id\":\"esKujtyQFYUJaVSXWwavzA\",\"from_node_id\":\"laXQcGGyWrbEiExtgkyCcw\",\"id\":\"PuLOAtGBPYhsnldPEyGaQw\",\"name\":\"begin\",\"to_node_id\":\"KWpWgeKhKyoyBDEymUgcmg\"},{\"at\":\"2026-01-01T00:00:00.000000Z\",\"flow_id\":\"esKujtyQFYUJaVSXWwavzA\",\"from_node_id\":\"KWpWgeKhKyoyBDEymUgcmg\",\"id\":\"JZJrLAteZStrqAvzZiamtA\",\"name\":\"submit\",\"to_node_id\":\"xmghdGZDgLKilxByetrBoA\"},{\"at\":\"2026-01-01T00:00:00.000000Z\",\"flow_id\":\"esKujtyQFYUJaVSXWwavzA\",\"from_node_id\":\"xmghdGZDgLKilxByetrBoA\",\"id\":\"DYcnMktqUpTdZuEBnLBppw\",\"name\":\"needs revision\",\"to_node_id\":\"KWpWgeKhKyoyBDEymUgcmg\"},{\"at\":\"2026-01-01T00:00:00.000000Z\",\"flow_id\":\"esKujtyQFYUJaVSXWwavzA\",\"from_node_id\":\"xmghdGZDgLKilxByetrBoA\",\"id\":\"BQCWYtMcBEfKIkKBTFuVDA\",\"name\":\"approve\",\"to_node_id\":\"DkyhupXfDAcrWBojIzHlRQ\"}],\"memberEvents\":[{\"action\":\"added\",\"at\":\"2026-01-01T00:00:00.000000Z\",\"flow_node_id\":\"KWpWgeKhKyoyBDEymUgcmg\",\"id\":\"Jytnbrqhxr-hQ4zwM-rvsQ\",\"member_id\":\"SsVAZghfSzMZRZmxNKIizw\"},{\"action\":\"added\",\"at\":\"2026-01-01T00:00:00.000000Z\",\"flow_node_id\":\"KWpWgeKhKyoyBDEymUgcmg\",\"id\":\"wFS-bArho5uu0GuSe8oEBg\",\"member_id\":\"XXZruirZyAOoRpNxaDnpSA\"},{\"action\":\"added\",\"at\":\"2026-01-01T00:00:00.000000Z\",\"flow_node_id\":\"xmghdGZDgLKilxByetrBoA\",\"id\":\"oFS0Zd7pvk_RtLsy8UjSwA\",\"member_id\":\"MQFcPtrZPIGjMCRAXtZUnA\"},{\"action\":\"added\",\"at\":\"2026-01-01T00:00:00.000000Z\",\"flow_node_id\":\"xmghdGZDgLKilxByetrBoA\",\"id\":\"rgZf2myqRURI8e_i-Z2JXw\",\"member_id\":\"CJrglMsNBxOWWfbihHQSeg\"}],\"nodes\":[{\"at\":\"2026-01-01T00:00:00.000000Z\",\"flow_id\":\"esKujtyQFYUJaVSXWwavzA\",\"id\":\"laXQcGGyWrbEiExtgkyCcw\",\"is_archive\":false,\"is_create\":true,\"name\":\"Create\",\"position_x\":40,\"position_y\":30,\"task_instructions\":\"\"},{\"at\":\"2026-01-01T00:00:00.000000Z\",\"flow_id\":\"esKujtyQFYUJaVSXWwavzA\",\"id\":\"KWpWgeKhKyoyBDEymUgcmg\",\"is_archive\":false,\"is_create\":false,\"name\":\"Data Capture\",\"position_x\":260,\"position_y\":140,\"task_instructions\":\"\"},{\"at\":\"2026-01-01T00:00:00.000000Z\",\"flow_id\":\"esKujtyQFYUJaVSXWwavzA\",\"id\":\"xmghdGZDgLKilxByetrBoA\",\"is_archive\":false,\"is_create\":false,\"name\":\"Review\",\"position_x\":480,\"position_y\":250,\"task_instructions\":\"\"},{\"at\":\"2026-01-01T00:00:00.000000Z\",\"flow_id\":\"esKujtyQFYUJaVSXWwavzA\",\"id\":\"DkyhupXfDAcrWBojIzHlRQ\",\"is_archive\":true,\"is_create\":false,\"name\":\"Archive\",\"position_x\":680,\"position_y\":370,\"task_instructions\":\"\"}]},\"id\":\"esKujtyQFYUJaVSXWwavzA\",\"is_auto_fit\":true,\"is_auto_layout\":true,\"is_locked\":false,\"lock_timeout\":28800,\"name\":\"Customer Onboarding\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"revivals\":[],\"state\":\"active\",\"state_at\":\"2019-11-02T09:00:00.000000Z\",\"state_event_id\":\"B2QqHAYX-yrp6NNvE23-uA\"}"
+        }
+      },
+      "curl": "curl -i -X GET \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/flows/esKujtyQFYUJaVSXWwavzA\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

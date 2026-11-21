@@ -1,0 +1,93 @@
+{
+  "hash": "get/organizations/id/flows/id/tags/name",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    },
+    {
+      "name": ":id",
+      "value": "esKujtyQFYUJaVSXWwavzA",
+      "source": "get/organizations/id/flows"
+    },
+    {
+      "name": ":name",
+      "value": "reviewed",
+      "source": "put/organizations/id/flows/id/tags/name"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "GET",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/flows/esKujtyQFYUJaVSXWwavzA/tags/reviewed",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "96"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "etag",
+            "\"PJjrqIrMYqYTnY0BhCTb9w\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "operation-id",
+            "u1XsclZ7MvM6SkQ3W_Jpfg"
+          ],
+          [
+            "request-id",
+            "DaZ709Dv8FD141Psg3eMlQ"
+          ],
+          [
+            "requester-identity-id",
+            "MQFcPtrZPIGjMCRAXtZUnA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:01.868000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"flow_id\":\"esKujtyQFYUJaVSXWwavzA\",\"flow_response_id\":\"ZeYFWiGV7z8EozFkrG5wWg\",\"id\":\"reviewed\"}"
+        }
+      },
+      "curl": "curl -i -X GET \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/flows/esKujtyQFYUJaVSXWwavzA/tags/reviewed\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

@@ -4,19 +4,67 @@ import type {
     ApiDocRoom,
     ApiDocStatus,
 } from './rooms.ts';
+import type {
+    ApiDocHeader,
+    ApiDocHeaderSet,
+    ApiDocLink,
+    ApiDocSampleRef,
+    ApiDocTier,
+} from './shapes.ts';
 
-function responseHeaderHtml(
-    headers: readonly string[],
-): SafeHtml | string {
-    if (headers.length === 0) return '';
+// Who may call, in the grid legend's words.
+const TIER_TEXT: Readonly<Record<ApiDocTier, string>> = {
+    member: 'member and organization admin',
+    admin: 'organization admin only',
+    none: 'no token',
+};
+
+function headerStateText(header: ApiDocHeader): string {
+    return header.state === 'alternative'
+        ? 'one of ' + header.alternatives.join(', ')
+        : header.state;
+}
+
+function headerSetHtml(set: ApiDocHeaderSet): SafeHtml {
     return html`
-        <h2 class="mt-4 text-sm font-semibold">
-            Response headers</h2>
+        ${set.when === '' ? '' : html`
+            <p class="text-muted mt-2">${set.when}</p>
+        `}
         <ul class="api-doc-list">
-            ${headers.map((header) => html`
-                <li>${header}</li>
+            ${set.headers.map((header) => html`
+                <li>${
+                    header.name + ': ' + headerStateText(header)
+                }</li>
             `)}
         </ul>
+    `;
+}
+
+function relatedHtml(
+    links: readonly ApiDocLink[],
+): SafeHtml | string {
+    if (links.length === 0) return '';
+    return html`
+        <h2 class="mt-4 text-sm font-semibold">
+            Related</h2>
+        <ul class="api-doc-list">
+            ${links.map((link) => html`
+                <li><a href="${
+                    '#' + link.hash
+                }">${link.label}</a></li>
+            `)}
+        </ul>
+    `;
+}
+
+function noSampleHtml(
+    sample: ApiDocSampleRef,
+): SafeHtml | string {
+    if (sample.kind === 'sample') return '';
+    return html`
+        <h2 class="mt-4 text-sm font-semibold">
+            No sample</h2>
+        <p class="mt-2">${sample.reason}</p>
     `;
 }
 
@@ -25,26 +73,23 @@ export function roomHtml(room: ApiDocRoom): SafeHtml {
         <h1 class="font-mono text-xl">${
             room.verb + ' ' + room.uri
         }</h1>
-        <h2 class="mt-4 text-sm font-semibold">
-            Request body</h2>
-        <pre class="api-doc-pre">${room.body}</pre>
+        <p class="text-muted mt-2">${TIER_TEXT[room.tier]}</p>
         <h2 class="mt-4 text-sm font-semibold">
             Headers</h2>
-        <ul class="api-doc-list">
-            ${room.headers.map((header) => html`
-                <li>${header}</li>
-            `)}
-        </ul>
-        ${responseHeaderHtml(room.responseHeaders)}
+        ${room.headerSets.map(headerSetHtml)}
         <h2 class="mt-4 text-sm font-semibold">
             Status</h2>
         <ul class="api-doc-list">
-            ${room.statuses.map((code) => html`
+            ${room.answers.map((answer) => html`
                 <li><a href="${
-                    '#statuses/' + code
-                }">${code}</a></li>
+                    '#statuses/' + answer.code
+                }">${answer.code}</a>${
+                    ' ' + answer.line
+                }</li>
             `)}
         </ul>
+        ${relatedHtml(room.related)}
+        ${noSampleHtml(room.sample)}
     `;
 }
 

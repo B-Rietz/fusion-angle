@@ -12,8 +12,16 @@ import { MemoryStorageBackend }
 // keeps `getAll()` as its whole-plane oracle. Every face
 // the product passes around still hides it.
 export function memoryDbAdapter(): BackedDbAdapter {
+    return memoryDbAdapterOver(new MemoryStorageBackend());
+}
+
+// The same preset over a backend the caller holds, such as
+// a copy of another's rows.
+export function memoryDbAdapterOver(
+    backend: MemoryStorageBackend,
+): BackedDbAdapter {
     return new BackedDbAdapter(
-        new MemoryStorageBackend(),
+        backend,
         async () => {},
         () => {},
     );

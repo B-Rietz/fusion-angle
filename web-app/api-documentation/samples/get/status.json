@@ -1,0 +1,40 @@
+{
+  "hash": "get/status",
+  "pathIds": [],
+  "exchanges": [
+    {
+      "caller": "none",
+      "request": {
+        "method": "GET",
+        "target": "/api/status",
+        "headers": [],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "request-id",
+            "mzt9XpzEytiwknmLxwrWnA"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"git-sha\":\"0123456789abcdef0123456789abcdef01234567\",\"git-subject\":\"Answer system status at /api/status\",\"up\":true,\"components\":{\"postgres\":\"up\"}}"
+        }
+      },
+      "curl": "curl -i -X GET \"$ORIGIN/api/status\""
+    }
+  ]
+}

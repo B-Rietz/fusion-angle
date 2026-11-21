@@ -1,0 +1,97 @@
+{
+  "hash": "put/identities/id/default-organization",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "MQFcPtrZPIGjMCRAXtZUnA",
+      "source": ""
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "PUT",
+        "target": "/api/identities/MQFcPtrZPIGjMCRAXtZUnA/default-organization",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "if-match",
+            "\"Zp95CCwXPUnAusSQzpgL9A\""
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "content-length",
+            "44"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\"}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "74"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "etag",
+            "\"Zp95CCwXPUnAusSQzpgL9A\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "operation-id",
+            "e9MzfvWbyo9P4D5K1CHeUA"
+          ],
+          [
+            "request-id",
+            "OjwllIvY7kd0KAEDE9X45w"
+          ],
+          [
+            "requester-identity-id",
+            "MQFcPtrZPIGjMCRAXtZUnA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:01.628000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"id\":\"MQFcPtrZPIGjMCRAXtZUnA\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\"}"
+        }
+      },
+      "curl": "curl -i -X PUT \"$ORIGIN/api/identities/MQFcPtrZPIGjMCRAXtZUnA/default-organization\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"content-type: application/json\" \\\n  -H \"if-match: $ETAG\" \\\n  -H \"operation-id: $OPERATION_ID\" \\\n  -d '{\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\"}'"
+    }
+  ]
+}

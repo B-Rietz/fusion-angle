@@ -1,0 +1,91 @@
+{
+  "hash": "post/identities",
+  "pathIds": [],
+  "exchanges": [
+    {
+      "caller": "admin",
+      "request": {
+        "method": "POST",
+        "target": "/api/identities/",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "content-length",
+            "47"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"id\":\"47OK_xhkJpeKcAwvhGCxgg\",\"kind\":\"person\"}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "47"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "etag",
+            "\"6M_654uN9X4Jz9Unc6KgWA\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "location",
+            "47OK_xhkJpeKcAwvhGCxgg"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "request-id",
+            "YIHNrZB90KGBfidiOhcUMw"
+          ],
+          [
+            "requester-identity-id",
+            "XXZruirZyAOoRpNxaDnpSA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:02.092000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"id\":\"47OK_xhkJpeKcAwvhGCxgg\",\"kind\":\"person\"}"
+        }
+      },
+      "curl": "curl -i -X POST \"$ORIGIN/api/identities/\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"content-type: application/json\" \\\n  -H \"operation-id: $OPERATION_ID\" \\\n  -d '{\"id\":\"47OK_xhkJpeKcAwvhGCxgg\",\"kind\":\"person\"}'"
+    }
+  ]
+}

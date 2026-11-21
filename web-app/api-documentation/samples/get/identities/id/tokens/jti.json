@@ -1,0 +1,88 @@
+{
+  "hash": "get/identities/id/tokens/jti",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "XXZruirZyAOoRpNxaDnpSA",
+      "source": ""
+    },
+    {
+      "name": ":jti",
+      "value": "U44gz-alugPFgs-3ziB3tQ",
+      "source": "get/identities/id/tokens"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "admin",
+      "request": {
+        "method": "GET",
+        "target": "/api/identities/XXZruirZyAOoRpNxaDnpSA/tokens/U44gz-alugPFgs-3ziB3tQ",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "190"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "etag",
+            "\"VOj_i-42X6hP5Nieh-l5yA\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "operation-id",
+            "fGaoGS91mrmwOMIQGnhWrQ"
+          ],
+          [
+            "request-id",
+            "oUSCHOqb39Zb7vuRI_Avag"
+          ],
+          [
+            "requester-identity-id",
+            "XXZruirZyAOoRpNxaDnpSA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:01.656000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"action\":\"issued\",\"at\":\"2020-01-01T00:00:01.654000Z\",\"chain_id\":\"Wce3fJcLyA-KdefZAeqT3Q\",\"id\":\"U44gz-alugPFgs-3ziB3tQ\",\"identity_id\":\"XXZruirZyAOoRpNxaDnpSA\",\"jti\":\"U44gz-alugPFgs-3ziB3tQ\"}"
+        }
+      },
+      "curl": "curl -i -X GET \"$ORIGIN/api/identities/XXZruirZyAOoRpNxaDnpSA/tokens/U44gz-alugPFgs-3ziB3tQ\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

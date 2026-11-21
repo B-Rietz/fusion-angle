@@ -1,0 +1,81 @@
+{
+  "hash": "post/authentication/authorize",
+  "pathIds": [],
+  "exchanges": [
+    {
+      "caller": "none",
+      "request": {
+        "method": "POST",
+        "target": "/api/authentication/authorize",
+        "headers": [
+          [
+            "authorization",
+            "Basic $(printf '%s:%s' \"$USERNAME\" \"$PASSWORD\" | base64 | tr -d '\\n')"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "content-length",
+            "137"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"method\":\"password\",\"client_id\":\"web-app\",\"code_challenge\":\"$CHALLENGE\",\"code_challenge_method\":\"S256\"}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "authentication-info",
+            "code=\"$CODE\""
+          ],
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "etag",
+            "\"B_T33zyTlw9E1f1DLhTw0w\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "request-id",
+            "NQVpXZLhPMQ1P99ZCcUBeQ"
+          ],
+          [
+            "requester-identity-id",
+            "MQFcPtrZPIGjMCRAXtZUnA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:02.083000Z"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "curl": "curl -i -X POST \"$ORIGIN/api/authentication/authorize\" \\\n  -H \"authorization: Basic $(printf '%s:%s' \"$USERNAME\" \"$PASSWORD\" | base64 | tr -d '\\n')\" \\\n  -H \"content-type: application/json\" \\\n  -H \"operation-id: $OPERATION_ID\" \\\n  -d '{\"method\":\"password\",\"client_id\":\"web-app\",\"code_challenge\":\"'\"$CHALLENGE\"'\",\"code_challenge_method\":\"S256\"}'"
+    }
+  ]
+}

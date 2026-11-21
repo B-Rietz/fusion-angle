@@ -265,6 +265,20 @@ export class MemoryStorageBackend
         return this.#rows !== undefined;
     }
 
+    // The same rows under a backend of its own: a write on
+    // either is never seen by the other. Rows are appended
+    // and never changed in place, so the two share them. A
+    // transaction adopts its buffer whole, so the rows
+    // copied are committed ones.
+    copy(): MemoryStorageBackend {
+        if (this.#rows === undefined) {
+            throw new MissingTableError(TABLE);
+        }
+        const backend = new MemoryStorageBackend();
+        backend.#rows = [...this.#rows];
+        return backend;
+    }
+
     async postSchemaCreation(): Promise<void> {
         await this.ensureTable();
     }

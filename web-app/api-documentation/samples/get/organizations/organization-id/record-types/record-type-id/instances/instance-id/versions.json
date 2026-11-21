@@ -1,0 +1,167 @@
+{
+  "hash": "get/organizations/organization-id/record-types/record-type-id/instances/instance-id/versions",
+  "pathIds": [
+    {
+      "name": ":organization-id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    },
+    {
+      "name": ":record-type-id",
+      "value": "sJxkGGTrPegHqFbQAkXnjw",
+      "source": "get/organizations/organization-id/record-types"
+    },
+    {
+      "name": ":instance-id",
+      "value": "RUvEF1xhBZdYhz3igwrThA",
+      "source": "get/organizations/organization-id/record-types/record-type-id/instances"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "GET",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/record-types/sJxkGGTrPegHqFbQAkXnjw/instances/RUvEF1xhBZdYhz3igwrThA/versions/",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "2570"
+          ],
+          [
+            "content-type",
+            "multipart/mixed; boundary=934258e2-56a5-40ab-836e-ad425956da01"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "request-id",
+            "g-D_P_TPE75CrEg64o_f1w"
+          ]
+        ],
+        "body": {
+          "kind": "multipart",
+          "boundary": "934258e2-56a5-40ab-836e-ad425956da01",
+          "parts": [
+            {
+              "status": 200,
+              "headers": [
+                [
+                  "content-length",
+                  "128"
+                ],
+                [
+                  "content-type",
+                  "application/json"
+                ],
+                [
+                  "date",
+                  "Wed, 01 Jan 2020 00:00:02 GMT"
+                ],
+                [
+                  "etag",
+                  "\"Cg6A4Wr7ZugPvX_W4PEXGg\""
+                ],
+                [
+                  "last-modified",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "operation-id",
+                  "M1n1JpqEvDetdt1CibUcbQ"
+                ],
+                [
+                  "request-id",
+                  "g-D_P_TPE75CrEg64o_f1w"
+                ],
+                [
+                  "requester-identity-id",
+                  "AAAAAAAAAAAAAAAAAAAAAA"
+                ],
+                [
+                  "response-at",
+                  "2020-01-01T00:00:01.628000Z"
+                ]
+              ],
+              "body": {
+                "kind": "text",
+                "mediaType": "application/json",
+                "text": "{\"id\":\"RUvEF1xhBZdYhz3igwrThA\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"record_type_id\":\"sJxkGGTrPegHqFbQAkXnjw\",\"values\":[]}"
+              }
+            },
+            {
+              "status": 200,
+              "headers": [
+                [
+                  "content-length",
+                  "501"
+                ],
+                [
+                  "content-type",
+                  "application/json"
+                ],
+                [
+                  "date",
+                  "Wed, 01 Jan 2020 00:00:02 GMT"
+                ],
+                [
+                  "etag",
+                  "\"o7dvra635ChmPDR8-raojA\""
+                ],
+                [
+                  "last-modified",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "operation-id",
+                  "Ja7WkiyYV6WlUxScNep_2g"
+                ],
+                [
+                  "request-id",
+                  "g-D_P_TPE75CrEg64o_f1w"
+                ],
+                [
+                  "requester-identity-id",
+                  "CJrglMsNBxOWWfbihHQSeg"
+                ],
+                [
+                  "response-at",
+                  "2020-01-01T00:00:01.630000Z"
+                ]
+              ],
+              "body": {
+                "kind": "text",
+                "mediaType": "application/json",
+                "text": "{\"id\":\"RUvEF1xhBZdYhz3igwrThA\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"record_type_id\":\"sJxkGGTrPegHqFbQAkXnjw\",\"values\":[{\"attribute_id\":\"AXxvHyKNpNYXYKOorywqRQ\",\"value\":\"5000000\"},{\"attribute_id\":\"CPJmMPXRaBIiNdGBofUPVg\",\"value\":\"Acme Corp\"},{\"attribute_id\":\"DfkwfBiyfyCyRHvsHnDiqQ\",\"value\":\"250\"},{\"attribute_id\":\"QHzHnEAmqGSgiEfkXoWMTw\",\"value\":\"Technology\"},{\"attribute_id\":\"kxbdVhmkaEzkJvghWKFzkw\",\"value\":\"+1-555-0100\"},{\"attribute_id\":\"oeqelDVElwxHYWkWRVTCYw\",\"value\":\"onboard@acme.com\"}]}"
+              }
+            }
+          ],
+          "more": 1
+        }
+      },
+      "curl": "curl -i -X GET \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/record-types/sJxkGGTrPegHqFbQAkXnjw/instances/RUvEF1xhBZdYhz3igwrThA/versions/\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

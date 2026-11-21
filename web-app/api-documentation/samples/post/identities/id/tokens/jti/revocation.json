@@ -1,0 +1,98 @@
+{
+  "hash": "post/identities/id/tokens/jti/revocation",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "MQFcPtrZPIGjMCRAXtZUnA",
+      "source": ""
+    },
+    {
+      "name": ":jti",
+      "value": "G4H0_nAYLbTBb0HzPTOdCQ",
+      "source": "get/identities/id/tokens"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "POST",
+        "target": "/api/identities/MQFcPtrZPIGjMCRAXtZUnA/tokens/G4H0_nAYLbTBb0HzPTOdCQ/revocation",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "content-length",
+            "2"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "191"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "etag",
+            "\"3aZW1PvVLRFy5s7ZsjoUpQ\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "request-id",
+            "dXGlKjD1-RV_86NAOY9N5w"
+          ],
+          [
+            "requester-identity-id",
+            "MQFcPtrZPIGjMCRAXtZUnA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:02.096000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"action\":\"revoked\",\"at\":\"2020-01-01T00:00:02.095000Z\",\"chain_id\":\"wFyiUP16cHwqjtMWgUnJhQ\",\"id\":\"G4H0_nAYLbTBb0HzPTOdCQ\",\"identity_id\":\"MQFcPtrZPIGjMCRAXtZUnA\",\"jti\":\"G4H0_nAYLbTBb0HzPTOdCQ\"}"
+        }
+      },
+      "curl": "curl -i -X POST \"$ORIGIN/api/identities/MQFcPtrZPIGjMCRAXtZUnA/tokens/G4H0_nAYLbTBb0HzPTOdCQ/revocation\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"content-type: application/json\" \\\n  -H \"operation-id: $OPERATION_ID\" \\\n  -d '{}'"
+    }
+  ]
+}

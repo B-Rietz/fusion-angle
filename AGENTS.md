@@ -69,7 +69,10 @@ own, so neither touches an operator's stack. Each needs
 `./bin/develop PORT --postgres mock-data|bootstrap`
 is the edit session. It `deno run`s the server
 against a `bundle_client` directory. Press
-Return to redeploy. Return recomposes the site
+Return to redeploy. Return first regenerates the API
+documentation and logs whether files changed; a
+failed generation prints its error and does not
+block the redeploy. Return then recomposes the site
 and restarts the server. The request log is a
 file beside the site; its path prints at
 startup. The process creates a fresh Postgres

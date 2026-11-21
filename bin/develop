@@ -111,6 +111,9 @@ read_return() {
         set +e
         (
             set -euo pipefail
+            ./bin/generate-api-documentation \
+                || echo "api-documentation: generation failed;" \
+                    "recomposing with the tree as it stands"
             bundle_client "$SITE" </dev/null
         )
         status=$?

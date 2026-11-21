@@ -81,6 +81,7 @@ const MIME_BY_EXT: Readonly<Record<string, string>> = {
     '.html': 'text/html; charset=utf-8',
     '.js': 'text/javascript; charset=utf-8',
     '.css': 'text/css; charset=utf-8',
+    '.json': 'application/json',
     '.woff2': 'font/woff2',
     '.ico': 'image/x-icon',
     '.svg': 'image/svg+xml',
@@ -333,6 +334,20 @@ function apiRequest(
         init.body = body;
     }
     return new Request(url, init);
+}
+
+// The server's defaults for an answer under /api: no-store
+// unless the handler set a cache-control. The default is
+// placed on the response handed in, which is returned. The
+// documentation's replay calls this too, so a sample shows
+// the headers the server sends.
+export function withApiResponseDefaults(
+    response: Response,
+): Response {
+    if (!response.headers.has('cache-control')) {
+        response.headers.set('Cache-Control', NO_STORE);
+    }
+    return response;
 }
 
 function jsonResponse(
@@ -759,19 +774,14 @@ async function dispatch(
                 && isSystemStatusPath(requestPathname)
                 ? await systemStatusHandler(options.commit)
                 : handle;
-            response = await handleApi(
+            response = withApiResponseDefaults(await handleApi(
                 options.adapter,
                 apiRequest(
                     request,
                     bytes,
                     resourcePath + url.search,
                 ),
-            );
-            if (!response.headers.has('cache-control')) {
-                response.headers.set(
-                    'Cache-Control', NO_STORE,
-                );
-            }
+            ));
             status = response.status;
             return response;
         }

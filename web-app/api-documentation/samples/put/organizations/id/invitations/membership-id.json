@@ -1,0 +1,102 @@
+{
+  "hash": "put/organizations/id/invitations/membership-id",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    },
+    {
+      "name": ":membership-id",
+      "value": "AjdvjuECVZEgZoFajaIEkg:MQFcPtrZPIGjMCRAXtZUnA",
+      "source": "get/organizations/id/memberships"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "admin",
+      "request": {
+        "method": "PUT",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/invitations/AjdvjuECVZEgZoFajaIEkg:MQFcPtrZPIGjMCRAXtZUnA",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "if-match",
+            "\"nZgxJQxCZNLeDJgev6h7_w\""
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "content-length",
+            "54"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"state\":\"removed\",\"at\":\"2020-01-01T00:00:02.285000Z\"}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "205"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "etag",
+            "\"-cwR3X5JXXWnDy5SCm-O6A\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "request-id",
+            "UR3kJ7aBgy3sghjrjpbqkw"
+          ],
+          [
+            "requester-identity-id",
+            "XXZruirZyAOoRpNxaDnpSA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:02.291000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"at\":\"2020-01-01T00:00:02.285000Z\",\"id\":\"AjdvjuECVZEgZoFajaIEkg:MQFcPtrZPIGjMCRAXtZUnA\",\"identity_id\":\"MQFcPtrZPIGjMCRAXtZUnA\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"state\":\"removed\",\"type\":\"member\"}"
+        }
+      },
+      "curl": "curl -i -X PUT \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/invitations/AjdvjuECVZEgZoFajaIEkg:MQFcPtrZPIGjMCRAXtZUnA\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"content-type: application/json\" \\\n  -H \"if-match: $ETAG\" \\\n  -H \"operation-id: $OPERATION_ID\" \\\n  -d '{\"state\":\"removed\",\"at\":\"2020-01-01T00:00:02.285000Z\"}'"
+    }
+  ]
+}

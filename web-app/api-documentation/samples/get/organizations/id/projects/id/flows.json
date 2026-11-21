@@ -1,0 +1,162 @@
+{
+  "hash": "get/organizations/id/projects/id/flows",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    },
+    {
+      "name": ":id",
+      "value": "wqGTTFdYUGnmBxWCppmkOQ",
+      "source": "get/organizations/id/projects"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "GET",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/projects/wqGTTFdYUGnmBxWCppmkOQ/flows/",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "1202"
+          ],
+          [
+            "content-type",
+            "multipart/mixed; boundary=267657e8-8f18-45d4-95ad-6c897e741686"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "request-id",
+            "UN2u_RIEnea9hPOF75_vWQ"
+          ]
+        ],
+        "body": {
+          "kind": "multipart",
+          "boundary": "267657e8-8f18-45d4-95ad-6c897e741686",
+          "parts": [
+            {
+              "status": 200,
+              "headers": [
+                [
+                  "content-length",
+                  "139"
+                ],
+                [
+                  "content-type",
+                  "application/json"
+                ],
+                [
+                  "date",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "etag",
+                  "\"JQH5bitPbZWPHI6tgLvmrQ\""
+                ],
+                [
+                  "last-modified",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "operation-id",
+                  "qDTot9bu0J4zhUfiI2TcTg"
+                ],
+                [
+                  "request-id",
+                  "UN2u_RIEnea9hPOF75_vWQ"
+                ],
+                [
+                  "requester-identity-id",
+                  "AAAAAAAAAAAAAAAAAAAAAA"
+                ],
+                [
+                  "response-at",
+                  "2020-01-01T00:00:01.628000Z"
+                ]
+              ],
+              "body": {
+                "kind": "text",
+                "mediaType": "application/json",
+                "text": "{\"at\":\"2019-11-02T09:00:00.000000Z\",\"flow_id\":\"DDUhYDIRInXtIrRraxcyHQ\",\"id\":\"ECsMuhiPqBaILNBzyRlVqQ\",\"project_id\":\"wqGTTFdYUGnmBxWCppmkOQ\"}"
+              }
+            },
+            {
+              "status": 200,
+              "headers": [
+                [
+                  "content-length",
+                  "139"
+                ],
+                [
+                  "content-type",
+                  "application/json"
+                ],
+                [
+                  "date",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "etag",
+                  "\"vmodo_seH8f7_828IlJhZQ\""
+                ],
+                [
+                  "last-modified",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "operation-id",
+                  "GX0DvWm9poZsCH1wVPps_w"
+                ],
+                [
+                  "request-id",
+                  "UN2u_RIEnea9hPOF75_vWQ"
+                ],
+                [
+                  "requester-identity-id",
+                  "AAAAAAAAAAAAAAAAAAAAAA"
+                ],
+                [
+                  "response-at",
+                  "2020-01-01T00:00:01.628000Z"
+                ]
+              ],
+              "body": {
+                "kind": "text",
+                "mediaType": "application/json",
+                "text": "{\"at\":\"2019-11-02T09:00:00.000000Z\",\"flow_id\":\"esKujtyQFYUJaVSXWwavzA\",\"id\":\"odduyeNIUVDwJRwKajtzsw\",\"project_id\":\"wqGTTFdYUGnmBxWCppmkOQ\"}"
+              }
+            }
+          ],
+          "more": 0
+        }
+      },
+      "curl": "curl -i -X GET \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/projects/wqGTTFdYUGnmBxWCppmkOQ/flows/\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

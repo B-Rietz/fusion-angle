@@ -1,0 +1,88 @@
+{
+  "hash": "get/organizations/id/invitations/membership-id",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    },
+    {
+      "name": ":membership-id",
+      "value": "AjdvjuECVZEgZoFajaIEkg:MQFcPtrZPIGjMCRAXtZUnA",
+      "source": "get/organizations/id/memberships"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "GET",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/invitations/AjdvjuECVZEgZoFajaIEkg:MQFcPtrZPIGjMCRAXtZUnA",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "300"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "etag",
+            "\"nZgxJQxCZNLeDJgev6h7_w\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "operation-id",
+            "yv5OE6HIbF696GkoQgK2ug"
+          ],
+          [
+            "request-id",
+            "vgwOWjKvqeg1s790eRnz2Q"
+          ],
+          [
+            "requester-identity-id",
+            "AAAAAAAAAAAAAAAAAAAAAA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:01.628000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"at\":\"2026-01-01T00:00:00.000000Z\",\"id\":\"AjdvjuECVZEgZoFajaIEkg:MQFcPtrZPIGjMCRAXtZUnA\",\"identity_id\":\"MQFcPtrZPIGjMCRAXtZUnA\",\"identity_kind\":\"person\",\"invitee_email\":\"sarah.chen@company.com\",\"invitee_name\":\"Sarah Chen\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"state\":\"accepted\",\"type\":\"member\"}"
+        }
+      },
+      "curl": "curl -i -X GET \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/invitations/AjdvjuECVZEgZoFajaIEkg:MQFcPtrZPIGjMCRAXtZUnA\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

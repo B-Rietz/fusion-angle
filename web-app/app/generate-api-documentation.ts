@@ -1,61 +1,89 @@
-// Derive API.svg and verb/status rooms from the live
-// route table. The table is the surface: if it is not
-// on routes[], it does not exist.
-// Output is deterministic — no clocks, no randomness,
-// stable ordering — so `--check` can gate staleness.
+// Derive API.svg, the catalog, and a replayed sample per
+// endpoint and per step of the guided start from the live
+// route table. The table is the surface: if it is not on
+// routes[], it does not exist.
+// Output is deterministic — the pins fix the day, the
+// clock, and randomness before this module loads, and the
+// ordering is stable — so `--check` can gate staleness.
 import { dirname, join } from '@std/path';
-import {
-    conditionalOf,
-    postWorkOrderCreationOp,
-    routes,
-} from '../../api/routes.ts';
-import type {
-    Conditional,
-    Route,
-    WriteMethod,
-} from '../../api/routes.ts';
+import { routes } from '../../api/routes.ts';
+import type { Route } from '../../api/routes.ts';
 import {
     HTTP_VERBS,
     offeredVerbs,
-    routePatternOf,
     uriOf,
 } from '../../api/route-surface.ts';
-import type { HttpVerb } from
-    '../../api/route-surface.ts';
-import { pathSegmentsOf } from
-    '../../api/path-segments.ts';
 import {
     STATUS_DOCUMENTS,
 } from '../../api/http-status-documents.ts';
-import type { StatusDocument } from
-    '../../api/http-status-documents.ts';
-import {
-    AUTHENTICATION_ROUTES,
-    STATUS_ROUTE,
-} from '../../api/request-auth.ts';
-import { documentFamilyWiring } from
-    '../../api/document-family.ts';
 import { FAMILY_REGISTRY } from
     '../../api/family-registry.ts';
 import { INVITATION_STATES } from
     '../../shared/types.ts';
+import { credentialFindingsOf } from
+    './api-documentation-credentials.ts';
 import {
-    HTTP_CREATED,
-    HTTP_NO_CONTENT,
-    HTTP_OK,
-} from '../../shared/http-errors.ts';
+    openReplayStage,
+    succeeded,
+} from './api-documentation-replay.ts';
+import {
+    castOf,
+    endpointsOf,
+    NO_SAMPLE,
+    planOf,
+    sendPlan,
+    sentPathIdsOf,
+} from './api-documentation-story.ts';
+import type { Endpoint } from './api-documentation-story.ts';
+import {
+    CURL_ADDS,
+    sampleOf,
+    SecretLedger,
+} from './api-documentation-exchange.ts';
+import {
+    replayStep,
+    STEPS,
+} from './api-documentation-guided-start.ts';
+import { roomHashOf } from './api-documentation-hash.ts';
+import { tierOf } from './api-documentation-tier.ts';
+import {
+    answersFor,
+    GENERIC_ANSWERS,
+} from './api-documentation-answers.ts';
+import type { AnswerRule } from
+    './api-documentation-answers.ts';
+import {
+    headerSetsOf,
+    TRANSPORT_HEADERS,
+} from './api-documentation-headers.ts';
+import {
+    queryParametersOf,
+    relatedOf,
+} from './api-documentation-related.ts';
+import type {
+    ApiDocAnswer,
+    ApiDocHeaderSet,
+    ApiDocQueryParameter,
+    ApiDocRoom,
+    ApiDocSample,
+    ApiDocSampleRef,
+    ApiDocStatus,
+    ApiDocStep,
+    ApiDocTier,
+} from '../api-documentation/shapes.ts';
 
 const OUT_ROOT = 'web-app/api-documentation';
 const LINE_MAX = 78;
-const AT = '2020-01-01T00:00:00.000Z';
-const INVITATION_EXPIRES_AT =
-    '2020-01-15T00:00:00.000Z';
 const KEPT_ROOT_NAMES = new Set([
     'index.html',
     'index.ts',
     'presenter.ts',
+    'shapes.ts',
 ]);
 const enc = new TextEncoder();
+
+export { roomHashOf, roomPathOf } from
+    './api-documentation-hash.ts';
 
 function wrapLine(line: string): string[] {
     if (line.length <= LINE_MAX) return [line];
@@ -69,11 +97,6 @@ function wrapLine(line: string): string[] {
     }
     if (rest !== '') lines.push(rest);
     return lines;
-}
-
-function wrapText(text: string): string {
-    return text.split('\n').flatMap(wrapLine)
-        .join('\n');
 }
 
 function escapeHtml(s: string): string {
@@ -102,973 +125,8 @@ function formatJson(value: unknown): string {
     }).join('\n');
 }
 
-function heading(tag: string, text: string): string {
-    const open = '<' + tag + '>';
-    const close = '</' + tag + '>';
-    const one = open + text + close;
-    if (one.length <= LINE_MAX) return one;
-    return open + '\n' + wrapText(text) + '\n'
-        + close;
-}
-
 function wireUriOf(resourceUri: string): string {
     return '/api' + resourceUri;
-}
-
-export function roomPathOf(
-    verb: string,
-    segments: readonly string[],
-): string {
-    const parts = [verb.toLowerCase()];
-    for (const seg of segments) {
-        if (seg === '') continue;
-        parts.push(
-            seg.startsWith(':') ? seg.slice(1) : seg,
-        );
-    }
-    return parts.join('/') + '/index.html';
-}
-
-export function roomHashOf(
-    verb: string,
-    segments: readonly string[],
-): string {
-    const path = roomPathOf(verb, segments);
-    const suffix = '/index.html';
-    if (path.endsWith(suffix)) {
-        return path.slice(0, -suffix.length);
-    }
-    return path;
-}
-
-function writeExample(
-    verb: string,
-    uri: string,
-    body: unknown,
-): [string, unknown] {
-    return [verb + ' ' + uri, body];
-}
-
-function graphDeltaExample(): Record<string, unknown> {
-    return {
-        nodes: [],
-        edges: [],
-        deletions: [],
-        memberEvents: [],
-        attributeEvents: [],
-    };
-}
-
-function ideaDocument(): Record<string, unknown> {
-    return {
-        title: 'title',
-        position: 0,
-        problem_statement: 'problem_statement',
-        target_users: 'target_users',
-        proposed_solution: 'proposed_solution',
-        expected_outcome: 'expected_outcome',
-        success_metrics: 'success_metrics',
-        state: 'submitted',
-    };
-}
-
-function projectDocument(): Record<string, unknown> {
-    return {
-        title: 'title',
-        description: 'description',
-        progress: 0,
-        start_date: '2020-01-01',
-        target_end_date: '2020-01-01',
-        estimated_cost: 0,
-        actual_cost: 0,
-        position: 0,
-        state: 'active',
-    };
-}
-
-function flowDocument(): Record<string, unknown> {
-    return {
-        name: 'name',
-        is_locked: false,
-        is_auto_layout: false,
-        is_auto_fit: false,
-        lock_timeout: 0,
-        state: 'active',
-        state_at: AT,
-        state_event_id: 'id',
-        graph: { nodes: [], edges: [] },
-        graphDelta: graphDeltaExample(),
-        revivals: [],
-    };
-}
-
-function workOrderDocument(): Record<string, unknown> {
-    return {
-        flow_graph: {
-            name: 'name',
-            lockTimeout: 0,
-            nodes: [],
-            edges: [],
-        },
-        position: 0,
-    };
-}
-
-function recordDocument(): Record<string, unknown> {
-    return {
-        name: 'name',
-        description: 'description',
-        position: 0,
-        state: 'active',
-    };
-}
-
-function attributeDocument(): Record<string, unknown> {
-    return {
-        name: 'name',
-        attribute_type: 'text',
-        sort_order: 0,
-        options: [],
-        constraints: [],
-        read_roles: [],
-        write_roles: [],
-    };
-}
-
-function invitationTransition(
-    state: string,
-): Record<string, unknown> {
-    return { state, at: AT };
-}
-
-const WRITE_EXAMPLES = new Map<string, unknown>([
-    writeExample('post', '/identities/', {
-        id: 'id',
-        kind: 'person',
-    }),
-    writeExample('put', '/identities/:id', {
-        kind: 'person',
-        title: 'Engineer',
-        department: 'Product',
-        strengths: ['Leadership'],
-        team_dimensions: { driver: 60 },
-    }),
-    writeExample(
-        'put',
-        '/identities/:id/default-organization',
-        { organization_id: 'id' },
-    ),
-    writeExample(
-        'put',
-        '/identities/:id/invitations/:membership-id',
-        invitationTransition('accepted'),
-    ),
-    writeExample('put', '/organizations/:id/ai-agents/:id', {
-        name: 'name',
-        description: 'description',
-        model: 'nqNVXnBkUBLoKlenbyPIZQ',
-        skill_focus: 'skill_focus',
-    }),
-    writeExample('put', '/organizations/:id/services/:id', {
-        name: 'name',
-        description: 'description',
-    }),
-    writeExample('put', '/identities/:id/pii', {
-        name: 'name',
-        email: 'email',
-        phone: 'phone',
-        bio: 'bio',
-    }),
-    writeExample(
-        'put',
-        '/identities/:id/credentials/:cid',
-        {
-            identity_id: 'id',
-            kind: 'password',
-            status: 'set',
-            secret: 'secret',
-            at: AT,
-        },
-    ),
-    writeExample(
-        'put',
-        '/identities/:id/registration',
-        {
-            grant_types: 'grant_types',
-            redirect_uris: 'redirect_uris',
-            jwks: 'jwks',
-            aud: 'aud',
-            status: 'active',
-        },
-    ),
-    writeExample(
-        'put',
-        '/identities/:id/token-revocations/:rid',
-        { identity_id: 'id', at: AT },
-    ),
-    writeExample(
-        'put',
-        '/identities/:id/tokens/:jti',
-        {
-            jti: 'jti',
-            identity_id: 'id',
-            action: 'issued',
-            chain_id: 'id',
-            at: AT,
-        },
-    ),
-    writeExample(
-        'put',
-        '/identities/:id/providers/:eid',
-        {
-            identity_id: 'id',
-            provider: 'provider',
-            provider_subject: 'provider_subject',
-            action: 'linked',
-            at: AT,
-        },
-    ),
-    writeExample('post', '/authentication/token', {
-        grant_type: 'authorization_code',
-        client_id: 'id',
-    }),
-    writeExample(
-        'post',
-        '/authentication/authorize',
-        {
-            method: 'password',
-            client_id: 'id',
-            code_challenge: 'code_challenge',
-            code_challenge_method: 'S256',
-        },
-    ),
-    writeExample(
-        'post',
-        '/organizations/:id/ideas/:id/conversion',
-        {
-            projectId: 'id',
-            project: {},
-            idea: {},
-            ideaStateEventId: 'id',
-            ideaState: 'promoted',
-            ideaStateAt: AT,
-            projectStateEventId: 'id',
-            projectState: 'active',
-            projectStateAt: AT,
-            baselines: [],
-        },
-    ),
-    writeExample(
-        'put',
-        '/organizations/:id/ideas/:id/submissions/:sid',
-        { idea_id: 'id', member_id: 'id', at: AT },
-    ),
-    writeExample('post', '/organizations/:id/flows/', {
-        id: 'id',
-        flow: {},
-        projectFlowId: 'id',
-        projectFlow: {},
-        initialState: 'active',
-        initialStateEventId: 'id',
-        initialStateAt: AT,
-        graphDelta: graphDeltaExample(),
-    }),
-    writeExample(
-        'put',
-        '/organizations/:id/flows/:id',
-        flowDocument(),
-    ),
-    writeExample(
-        'post',
-        '/organizations/:id/flows/:id/undo',
-        { eventId: 'id', at: AT },
-    ),
-    writeExample(
-        'put',
-        '/organizations/:id/projects/:id/flows/:pfid',
-        {
-            project_id: 'id',
-            flow_id: 'id',
-            at: AT,
-        },
-    ),
-    writeExample(
-        'post',
-        '/organizations/:id/work-orders/',
-        {
-            id: 'id',
-            workOrder: {},
-            flowWorkOrderId: 'id',
-            flowWorkOrder: {},
-            stateEventIds: ['id', 'id', 'id'],
-            stateEventAts: [AT, AT, AT],
-            states: ['start', 'active', 'claimed'],
-            instance: { instance_id: 'id', record_type_id: 'id' },
-        },
-    ),
-    writeExample(
-        'put',
-        '/organizations/:id/work-orders/:id',
-        workOrderDocument(),
-    ),
-    writeExample(
-        'put',
-        '/organizations/:id/work-orders/:id/claim',
-        {
-            claimEventId: 'id',
-            claimAt: AT,
-            expireEventId: 'id',
-            expireAt: AT,
-        },
-    ),
-    writeExample(
-        'post',
-        '/organizations/:id/work-orders/:id'
-            + '/transition',
-        {
-            transitionEventId: 'id',
-            targetState: 'targetState',
-            release: null,
-            transitionAt: AT,
-        },
-    ),
-    writeExample(
-        'put',
-        '/organizations/:id/work-orders/:id/binding',
-        { instance_id: 'id', record_type_id: 'id' },
-    ),
-    writeExample(
-        'put',
-        '/organizations/:id/flows/:id/work-orders/'
-            + ':woid',
-        {
-            flow_id: 'id',
-            work_order_id: 'id',
-            at: AT,
-        },
-    ),
-    writeExample(
-        'post',
-        '/organizations/:organization-id/'
-            + 'record-types/',
-        {
-            kind: 'create',
-            id: 'id',
-            record: {
-                organization_id: 'id',
-                name: 'name',
-                description: 'description',
-                position: 0,
-            },
-            attributes: [],
-            initialState: 'active',
-        },
-    ),
-    writeExample(
-        'put',
-        '/organizations/:organization-id/'
-            + 'record-types/:record-type-id',
-        recordDocument(),
-    ),
-    writeExample(
-        'put',
-        '/organizations/:organization-id/'
-            + 'record-types/:record-type-id/'
-            + 'attributes/:attribute-id',
-        attributeDocument(),
-    ),
-    writeExample(
-        'patch',
-        '/organizations/:organization-id/'
-            + 'record-types/:record-type-id/'
-            + 'instances/:instance-id',
-        {
-            set: [{
-                attribute_id: 'id',
-                value: 'value',
-            }],
-            clear: [],
-        },
-    ),
-    writeExample(
-        'put',
-        '/organizations/:id/flows/:id/records/:frid',
-        { flow_id: 'id', record_id: 'id', at: AT },
-    ),
-    writeExample(
-        'put',
-        '/organizations/:id/flows/:id/tags/:name',
-        { flow_response_id: 'id' },
-    ),
-    writeExample('put', '/organizations/:id', {
-        name: 'name',
-        domain: 'domain',
-        next_billing: AT,
-        seats: 0,
-        projects_limit: 0,
-        ideas_limit: 0,
-    }),
-    writeExample(
-        'post',
-        '/organizations/:id/invitations/',
-        {
-            email: 'email',
-            at: AT,
-            expiresAt: INVITATION_EXPIRES_AT,
-        },
-    ),
-    writeExample(
-        'post',
-        '/organizations/:id/memberships/',
-        {
-            id: 'id',
-            kind: 'human',
-            membership: {
-                type: 'member',
-                at: AT,
-            },
-            identity: {
-                title: 'Engineer',
-                department: 'Product',
-                strengths: ['Leadership'],
-                team_dimensions: { driver: 60 },
-            },
-            pii: {
-                name: 'name',
-                email: 'email',
-                phone: 'phone',
-                bio: 'bio',
-            },
-        },
-    ),
-    writeExample(
-        'put',
-        '/organizations/:id/invitations/:membership-id',
-        invitationTransition('revoked'),
-    ),
-    writeExample(
-        'put',
-        '/organizations/:id/ideas/:id',
-        ideaDocument(),
-    ),
-    writeExample(
-        'put',
-        '/organizations/:id/projects/:id',
-        projectDocument(),
-    ),
-    writeExample(
-        'post',
-        '/organizations/:id/objectives/',
-        {
-            id: 'id',
-            objective: {},
-            revisionId: 'id',
-            revision: {},
-            initialState: 'active',
-        },
-    ),
-    writeExample(
-        'put',
-        '/organizations/:id/objectives/:id',
-        { position: 0, state: 'active' },
-    ),
-    writeExample(
-        'put',
-        '/organizations/:id/objectives/:id/'
-            + 'revisions/:rid',
-        {
-            objective_id: 'id',
-            name: 'name',
-            description: 'description',
-            member_id: 'id',
-            at: AT,
-        },
-    ),
-    writeExample(
-        'put',
-        '/organizations/:id/projects/:id/'
-            + 'objective-baseline-scores/:sid',
-        {
-            project_id: 'id',
-            objective_id: 'id',
-            score: 0,
-            member_id: 'id',
-            at: AT,
-        },
-    ),
-    writeExample(
-        'put',
-        '/organizations/:id/projects/:id/'
-            + 'objective-actual-scores/:sid',
-        {
-            project_id: 'id',
-            objective_id: 'id',
-            score: 0,
-            member_id: 'id',
-            at: AT,
-        },
-    ),
-]);
-
-// Every QUERY takes the same body: the search text.
-const QUERY_EXAMPLE = { q: 'approval' };
-
-export function exampleBodyFor(
-    pattern: string,
-    verb: string,
-): string {
-    const lower = verb.toLowerCase();
-    if (lower === 'get' || lower === 'delete') {
-        return 'none';
-    }
-    if (lower === 'query') return formatJson(QUERY_EXAMPLE);
-    const body = WRITE_EXAMPLES.get(
-        lower + ' ' + pattern,
-    );
-    if (body === undefined) return 'none';
-    return formatJson(body);
-}
-
-function isAuthGrant(row: Route): boolean {
-    return AUTHENTICATION_ROUTES.has(
-        routePatternOf(row),
-    );
-}
-
-function isOrganizationNested(row: Route): boolean {
-    return row.segments[0] === 'organizations';
-}
-
-const WRITE_METHODS: Readonly<Record<string, WriteMethod>> = {
-    put: 'PUT',
-    post: 'POST',
-    patch: 'PATCH',
-    delete: 'DELETE',
-};
-
-// A GET takes no conditional; every write route's entry
-// names the one its verb takes. The room's URI is the
-// route pattern behind a leading slash.
-function conditionalFor(
-    verb: string,
-    uri: string,
-): Conditional | undefined {
-    const method = WRITE_METHODS[verb];
-    if (method === undefined) return undefined;
-    return conditionalOf(uri.slice(1), method);
-}
-
-// A selected head that is deleted answers 410 (spec §5):
-// a DELETE head, which only a route offering DELETE can
-// store, or a state-`deleted` head in a lifecycle family.
-// A family's document is the segment before its id.
-function isDeletableDocument(row: Route): boolean {
-    if (offeredVerbs(row).includes('delete')) return true;
-    const id = row.segments.at(-1);
-    const family = row.segments.at(-2);
-    return id !== undefined
-        && id.startsWith(':')
-        && family !== undefined
-        && documentFamilyWiring(family)?.lifecycle === 'state';
-}
-
-// The segment before the document id, for a version route.
-function versionFamily(row: Route): string | undefined {
-    const at = row.segments.indexOf('versions');
-    if (at < 2) return undefined;
-    return row.segments[at - 2];
-}
-
-// A lifecycle-'state' family, or a document route that
-// offers DELETE, can hold a deleted head.
-function familyHoldsDeletedHead(family: string): boolean {
-    if (
-        documentFamilyWiring(family)?.lifecycle === 'state'
-    ) {
-        return true;
-    }
-    return routes.some((candidate) => {
-        const last = candidate.segments.at(-1);
-        const previous = candidate.segments.at(-2);
-        return last !== undefined
-            && last.startsWith(':')
-            && previous === family
-            && offeredVerbs(candidate).includes('delete');
-    });
-}
-
-function handlerSource(
-    row: Route,
-    verb: HttpVerb,
-): string | undefined {
-    const fn = verb === 'post'
-        ? row.post
-        : verb === 'put'
-            ? row.put
-            : verb === 'patch'
-                ? row.patch
-                : undefined;
-    if (fn === undefined) return undefined;
-    return fn.toString();
-}
-
-// formStateWrite stores HTTP_CREATED when the answer
-// kind is 'created'. The route handler is that write,
-// or it adapts the signature and calls the write.
-// postWorkOrderCreationOp is the one such call: the
-// created answer is in the function, not the adapter.
-function answersCreated(source: string): boolean {
-    if (source.includes("kind: 'created'")) return true;
-    const delegated = 'postWorkOrderCreationOp(';
-    return source.includes(delegated)
-        && postWorkOrderCreationOp.toString()
-            .includes("kind: 'created'");
-}
-
-// A return of some other call is a second success:
-// the record-type edit, or the invitation head served
-// again (HTTP_OK). Landing the created write is not.
-function alsoAnswersOk(source: string): boolean {
-    const calls = source.matchAll(
-        /return\s+([A-Za-z_$][\w$]*)\s*\(/gu,
-    );
-    for (const match of calls) {
-        const name = match[1];
-        if (
-            name !== undefined
-            && name !== 'landStateWrite'
-            && name !== 'runStateWrite'
-        ) {
-            return true;
-        }
-    }
-    return false;
-}
-
-function successCodes(
-    row: Route,
-    verb: HttpVerb,
-): number[] {
-    if (verb === 'delete') return [HTTP_NO_CONTENT];
-    const source = handlerSource(row, verb);
-    if (source === undefined) return [HTTP_OK];
-    if (!answersCreated(source)) return [HTTP_OK];
-    const codes: number[] = [];
-    if (alsoAnswersOk(source)) codes.push(HTTP_OK);
-    codes.push(HTTP_CREATED);
-    return codes;
-}
-
-// A QUERY answers as a GET collection does: its parts,
-// or 204 when nothing matches. A missing Content-Type or
-// a body without a string q is 400, a foreign
-// organization path is 403, and a media type other than
-// JSON is 415.
-const QUERY_STATUS_CODES = [
-    '200', '204', '400', '401', '403', '415',
-] as const;
-
-// The gate answers the status route ahead of the bearer
-// check and the route match, so it is never 401 or 404:
-// its document, 500 when the API is handed no commit, and
-// 503 when a component is not up.
-const SYSTEM_STATUS_CODES = ['200', '500', '503'] as const;
-
-export function statusCodesFor(
-    row: Route,
-    verb: HttpVerb,
-): string[] {
-    if (verb === 'query') return [...QUERY_STATUS_CODES];
-    const uri = uriOf(row);
-    if (isSystemStatusUri(uri)) return [...SYSTEM_STATUS_CODES];
-    const codes: number[] = [];
-    const selects = verb === 'get' && row.select !== undefined;
-    for (const code of successCodes(row, verb)) {
-        codes.push(code);
-    }
-    // A collection that selects no head answers 204.
-    // A versions/ list never does: a written document
-    // has a PUT.
-    if (
-        selects
-        && uri.endsWith('/')
-        && !uri.endsWith('/versions/')
-    ) {
-        codes.push(204);
-    }
-    const body = exampleBodyFor(uri, verb);
-    // A view's ?state= is judged before any body. A bad
-    // query is 400. A write body is 400 on its own.
-    if (body !== 'none') codes.push(400);
-    else if (verb === 'get' && row.query !== undefined) {
-        codes.push(400);
-    }
-    codes.push(401);
-    // The organization view's 403 is the member rule,
-    // already listed because the nest is fenced. The
-    // identity view's 403 is that route's own fence.
-    if (
-        isOrganizationNested(row)
-        || uri === '/identities/:id/invitations/'
-    ) {
-        codes.push(403);
-    }
-    if (!isAuthGrant(row)) codes.push(404);
-    // DELETE is not offered, so the catalog has no
-    // DELETE room. The item still answers 405.
-    if (isMembershipItem(uri)) codes.push(405);
-    // A transition outside the table, the last accepted
-    // admin, a repeated accept, decline, or revoke, a seat
-    // for the system identity, and the statement's resend.
-    if (isMembershipConflict(verb, uri)) codes.push(409);
-    const family = versionFamily(row);
-    // State families, and any family whose document route
-    // offers DELETE, already list 410. A select version
-    // route lists it too: the ladder answers Gone for a
-    // DELETE head of every lifecycle.
-    const deletedVersion = family !== undefined
-        && (
-            familyHoldsDeletedHead(family)
-            || (
-                selects
-                && documentFamilyWiring(family) !== undefined
-            )
-        );
-    if (
-        (selects && isDeletableDocument(row))
-        || deletedVersion
-    ) {
-        codes.push(410);
-    }
-    const conditional = conditionalFor(verb, uriOf(row));
-    if (conditional !== undefined && conditional !== 'none') {
-        codes.push(412);
-    }
-    if (
-        conditional === 'required'
-        || conditional === 'in-order'
-    ) {
-        codes.push(428);
-    }
-    return codes.map(String);
-}
-
-function roomDepth(
-    verb: string,
-    uri: string,
-): number {
-    const path = roomPathOf(
-        verb, pathSegmentsOf(uri),
-    );
-    return path.split('/').length - 1;
-}
-
-function statusHref(
-    depth: number,
-    code: string,
-): string {
-    return '../'.repeat(depth)
-        + 'statuses/' + code + '/';
-}
-
-function isGrantUri(uri: string): boolean {
-    return uri === '/authentication/token'
-        || uri === '/authentication/authorize';
-}
-
-function isSystemStatusUri(uri: string): boolean {
-    return uri === '/' + STATUS_ROUTE;
-}
-
-function isMembershipItem(uri: string): boolean {
-    return uri
-            === '/identities/:id/invitations/:membership-id'
-        || uri
-            === '/organizations/:id/invitations'
-                + '/:membership-id';
-}
-
-function isMembershipConflict(
-    verb: HttpVerb,
-    uri: string,
-): boolean {
-    if (verb === 'put' && isMembershipItem(uri)) {
-        return true;
-    }
-    return verb === 'post'
-        && (
-            uri === '/organizations/:id/invitations/'
-            || uri === '/organizations/:id/memberships/'
-        );
-}
-
-// The three lines of one stored pair, on a 2xx. A
-// collection, a QUERY, or a versions list answers an
-// envelope: the lines ride each part, not the response.
-// History answers JSON. A grant's wire is the pair it
-// stored, so it carries the same three. The status route
-// computes its answer and stores no pair.
-const PAIR_RESPONSE_HEADERS = [
-    'last-modified: on 2xx',
-    'requester-identity-id: on 2xx',
-    'response-at: on 2xx',
-] as const;
-
-function carriesStoredPairLines(
-    verb: string,
-    uri: string,
-): boolean {
-    const lower = verb.toLowerCase();
-    if (
-        lower === 'put' || lower === 'post'
-        || lower === 'patch' || lower === 'delete'
-    ) {
-        return true;
-    }
-    if (lower !== 'get' || uri.endsWith('/')) return false;
-    if (isSystemStatusUri(uri)) return false;
-    const row = routes.find(
-        (candidate) => uriOf(candidate) === uri,
-    );
-    return row !== undefined && row.select !== undefined;
-}
-
-interface DocumentedHeaders {
-    readonly request: readonly string[];
-    readonly response: readonly string[];
-}
-
-function headersFor(
-    verb: string,
-    uri: string,
-): DocumentedHeaders {
-    const lower = verb.toLowerCase();
-    const request: string[] = [];
-    // The gate answers the status route before it reads
-    // either line.
-    if (!isSystemStatusUri(uri)) {
-        if (!isGrantUri(uri)) {
-            request.push('Authorization: Bearer …');
-        }
-        request.push('Operation-ID: on every request');
-    }
-    const conditional = conditionalFor(lower, uri);
-    if (conditional === 'in-order') {
-        request.push('If-Match: strong etag');
-    }
-    if (conditional === 'required') {
-        request.push('If-Match or If-None-Match: *');
-    }
-    // If-None-Match: * never lands a DELETE: a name never
-    // written is 404, a gone one 204 with nothing stored,
-    // and a live head refuses it with 412.
-    if (conditional === 'optional' && lower === 'delete') {
-        request.push('If-Match (optional)');
-    } else if (conditional === 'optional') {
-        request.push(
-            'If-Match or If-None-Match: * (optional)',
-        );
-    }
-    const response = carriesStoredPairLines(verb, uri)
-        ? PAIR_RESPONSE_HEADERS
-        : [];
-    return { request, response };
-}
-
-export function verbRoomHtml(
-    verb: string,
-    uri: string,
-    statusCodes: readonly string[],
-    body: string,
-): string {
-    const lower = verb.toLowerCase();
-    const title = lower.toUpperCase()
-        + ' ' + wireUriOf(uri);
-    const depth = roomDepth(lower, uri);
-    const write = lower === 'put'
-        || lower === 'post'
-        || lower === 'patch';
-    const lines: string[] = [
-        '<!doctype html>',
-        '<meta charset="utf-8">',
-        heading('title', title),
-        heading('h1', title),
-        '<h2>Request body</h2>',
-    ];
-    if (body === 'none' && write) {
-        lines.push('<!-- no gate validator -->');
-    }
-    if (body === 'none') {
-        lines.push('<pre>none</pre>');
-    } else {
-        lines.push(
-            '<pre>',
-            escapeHtml(body),
-            '</pre>',
-        );
-    }
-    const documented = headersFor(verb, uri);
-    lines.push('<h2>Headers</h2>', '<ul>');
-    for (const header of documented.request) {
-        lines.push(
-            '  <li>' + escapeHtml(header) + '</li>',
-        );
-    }
-    lines.push('</ul>');
-    if (documented.response.length > 0) {
-        lines.push('<h2>Response headers</h2>', '<ul>');
-        for (const header of documented.response) {
-            lines.push(
-                '  <li>' + escapeHtml(header) + '</li>',
-            );
-        }
-        lines.push('</ul>');
-    }
-    const storageField = viewStorageField(lower, uri);
-    if (storageField !== undefined) {
-        lines.push('<h2>Storage</h2>', '<ul>');
-        lines.push(
-            '  <li>/invitations/ selects on '
-            + storageField + '</li>',
-        );
-        lines.push('</ul>');
-    }
-    lines.push('<h2>Status</h2>', '<ul>');
-    for (const code of statusCodes) {
-        const href = statusHref(depth, code);
-        lines.push(
-            '  <li><a href="' + href + '">'
-            + code + '</a></li>',
-        );
-    }
-    lines.push('</ul>', '');
-    return lines.join('\n');
-}
-
-function statusRoomHtml(
-    doc: StatusDocument,
-): string {
-    const code = String(doc.code);
-    const body = doc.body === null
-        ? 'empty'
-        : formatJson(doc.body);
-    const lines: string[] = [
-        '<!doctype html>',
-        '<meta charset="utf-8">',
-        heading('title', code),
-        heading('h1', code),
-    ];
-    if (body === 'empty') {
-        lines.push('<pre>empty</pre>');
-    } else {
-        lines.push(
-            '<pre>',
-            escapeHtml(body),
-            '</pre>',
-        );
-    }
-    lines.push('');
-    return lines.join('\n');
 }
 
 function wingNameOf(row: Route): string {
@@ -1091,6 +149,10 @@ const WING_H = 24;
 const LEGEND_H = 22;
 const HEADER_H = 16;
 const CIRCLE_R = 5;
+// Half the diamond's diagonal: about a circle's area.
+const DIAMOND_R = 6;
+// An open circle's ring, wide enough to read its colour.
+const RING_W = 1.5;
 const EMPTY = 10;
 const URI_SIZE = 8.5;
 const CHAR_W = 5.2;
@@ -1149,21 +211,78 @@ function backingRowText(family: string): string {
         + INVITATION_STATES.join(' ');
 }
 
-function viewStorageField(
-    verb: string,
-    uri: string,
-): string | undefined {
-    if (verb !== 'get' && verb !== 'query') return undefined;
-    if (
-        uri === '/organizations/:id/invitations/'
-        || uri === '/organizations/:id/memberships/'
-    ) {
-        return 'organization_id';
+// Each tier's shape and colour on the grid, so a role
+// never rests on colour alone. The legend's glyph draws
+// the same shape, as a character reference: the SVG stays
+// ASCII, so the generated module's lines measure in bytes
+// as they do in characters.
+interface TierPaint {
+    readonly paint: string;
+    readonly glyph: string;
+    readonly label: string;
+}
+
+const TIER_PAINTS: Readonly<Record<ApiDocTier, TierPaint>> = {
+    member: {
+        paint: 'hsl(var(--primary))',
+        glyph: '&#x25CF;',
+        label: 'member and organization admin',
+    },
+    admin: {
+        paint: 'hsl(var(--accent))',
+        glyph: '&#x25C6;',
+        label: 'organization admin only',
+    },
+    none: {
+        paint: 'hsl(var(--success))',
+        glyph: '&#x25CB;',
+        label: 'no token',
+    },
+};
+
+const TIERS: readonly ApiDocTier[] = ['member', 'admin', 'none'];
+
+const OWN_DATA_NOTE =
+    "Some member endpoints act only on the caller's own data.";
+
+// An open circle is filled with the surface, so a click
+// inside its ring still lands on its link.
+function tierShapeOf(
+    tier: ApiDocTier,
+    cx: number,
+    cy: number,
+    surface: string,
+): string {
+    const { paint } = TIER_PAINTS[tier];
+    const tierClass = ' class="tier-' + tier + '"';
+    switch (tier) {
+        case 'member':
+            return '<circle' + tierClass + ' fill="' + paint
+                + '" cx="' + cx + '" cy="' + cy + '" r="' + CIRCLE_R
+                + '"/>';
+        case 'admin':
+            return '<polygon' + tierClass + ' fill="' + paint
+                + '" points="' + [
+                    [cx, cy - DIAMOND_R],
+                    [cx + DIAMOND_R, cy],
+                    [cx, cy + DIAMOND_R],
+                    [cx - DIAMOND_R, cy],
+                ].map((point) => point.join(',')).join(' ')
+                + '"/>';
+        case 'none':
+            return '<circle' + tierClass + ' fill="' + surface
+                + '" stroke="' + paint + '" stroke-width="'
+                + RING_W + '" cx="' + cx + '" cy="' + cy
+                + '" r="' + CIRCLE_R + '"/>';
     }
-    if (uri === '/identities/:id/invitations/') {
-        return 'identity_id';
-    }
-    return undefined;
+}
+
+function tierLegendOf(): string {
+    return TIERS.map((tier) => {
+        const { paint, glyph, label } = TIER_PAINTS[tier];
+        return '<tspan fill="' + paint + '">' + glyph
+            + '</tspan> ' + escapeXml(label);
+    }).join(' ');
 }
 
 export function svgOf(rows: readonly Route[]): string {
@@ -1209,14 +328,18 @@ export function svgOf(rows: readonly Route[]): string {
     );
     let y = PAD + 12;
     const parts: string[] = [];
-    const legend =
-        'filled circle = offered verb (item or'
-        + ' operation)';
     parts.push(
         '  <text class="legend" fill="' + muted
         + '"' + LEGEND_ATTRIBUTES
         + ' x="' + PAD + '" y="'
-        + y + '">' + escapeXml(legend) + '</text>',
+        + y + '">' + tierLegendOf() + '</text>',
+    );
+    y += LEGEND_H;
+    parts.push(
+        '  <text class="legend" fill="' + muted
+        + '"' + LEGEND_ATTRIBUTES
+        + ' x="' + PAD + '" y="'
+        + y + '">' + escapeXml(OWN_DATA_NOTE) + '</text>',
     );
     y += LEGEND_H;
     HTTP_VERBS.forEach((verb, i) => {
@@ -1250,14 +373,14 @@ export function svgOf(rows: readonly Route[]): string {
                     const href = '#' + roomHashOf(
                         verb, row.segments,
                     );
+                    const tier = tierOf(row, verb);
                     parts.push(
                         '  <a href="'
-                        + escapeXml(href) + '">',
-                        '    <circle class="filled"'
-                        + ' fill="' + ink + '"'
-                        + ' cx="' + cx + '" cy="'
-                        + cy + '" r="' + CIRCLE_R
-                        + '"/>',
+                        + escapeXml(href) + '" data-tier="'
+                        + tier + '">',
+                        '    ' + tierShapeOf(
+                            tier, cx, cy, surface,
+                        ),
                         '  </a>',
                     );
                 } else {
@@ -1345,7 +468,13 @@ export function svgOf(rows: readonly Route[]): string {
         '        ' + MONO_FONT + ';',
         '        font-size: ' + URI_SIZE + 'px;',
         '        fill: ' + ink + '; }',
-        '      .filled { fill: ' + ink + '; }',
+        '      .tier-member { fill: '
+        + TIER_PAINTS.member.paint + '; }',
+        '      .tier-admin { fill: '
+        + TIER_PAINTS.admin.paint + '; }',
+        '      .tier-none { fill: ' + surface + ';',
+        '        stroke: ' + TIER_PAINTS.none.paint + ';',
+        '        stroke-width: ' + RING_W + '; }',
         '      .empty { fill: none;',
         '        stroke: ' + muted + ';',
         '        stroke-width: 1; }',
@@ -1368,48 +497,45 @@ export function svgOf(rows: readonly Route[]): string {
     ].join('\n');
 }
 
-interface CatalogRoom {
-    readonly hash: string;
-    readonly verb: string;
-    readonly uri: string;
-    readonly body: string;
-    readonly headers: readonly string[];
-    readonly responseHeaders: readonly string[];
-    readonly statuses: readonly string[];
+function answerOf({ code, line }: AnswerRule): ApiDocAnswer {
+    return { code: String(code), line };
 }
 
-interface CatalogStatus {
-    readonly hash: string;
-    readonly code: string;
-    readonly body: string;
+// The gate judges a route's query string on its GET and
+// its QUERY alone (api/api.ts), so only a read's room
+// names the parameters.
+function queryOf(
+    endpoint: Endpoint,
+): readonly ApiDocQueryParameter[] {
+    return endpoint.verb === 'get' || endpoint.verb === 'query'
+        ? queryParametersOf(endpoint.row)
+        : [];
 }
 
-function catalogRoomsOf(): CatalogRoom[] {
-    const rooms: CatalogRoom[] = [];
-    for (const row of routes) {
-        const uri = uriOf(row);
-        for (const verb of offeredVerbs(row)) {
-            const documented = headersFor(verb, uri);
-            rooms.push({
-                hash: roomHashOf(verb, row.segments),
-                verb: verb.toUpperCase(),
-                uri: wireUriOf(uri),
-                body: exampleBodyFor(uri, verb),
-                headers: documented.request,
-                responseHeaders: documented.response,
-                statuses: statusCodesFor(row, verb),
-            });
-        }
-    }
-    rooms.sort((a, b) =>
-        a.hash < b.hash
-            ? -1
-            : a.hash > b.hash ? 1 : 0,
-    );
-    return rooms;
+// One endpoint's room. `witnessed` is the status its
+// sample answered. A room with no sample has none, and
+// answersFor lists its verb's class default.
+function roomOf(
+    endpoint: Endpoint,
+    all: readonly Endpoint[],
+    sample: ApiDocSampleRef,
+    witnessed: number | undefined,
+): ApiDocRoom {
+    const { row, verb, hash } = endpoint;
+    return {
+        hash,
+        verb: verb.toUpperCase(),
+        uri: wireUriOf(uriOf(row)),
+        tier: tierOf(row, verb),
+        headerSets: headerSetsOf(endpoint),
+        query: queryOf(endpoint),
+        answers: answersFor(endpoint, witnessed).map(answerOf),
+        related: relatedOf(endpoint, all),
+        sample,
+    };
 }
 
-function catalogStatusesOf(): CatalogStatus[] {
+function catalogStatusesOf(): ApiDocStatus[] {
     return STATUS_DOCUMENTS.map((doc) => ({
         hash: 'statuses/' + String(doc.code),
         code: String(doc.code),
@@ -1419,6 +545,18 @@ function catalogStatusesOf(): CatalogStatus[] {
     }));
 }
 
+// Lint measures a line in bytes, so a generated module
+// stays ASCII: any other character is written as its \u
+// escape, one per UTF-16 code unit.
+const NOT_PRINTABLE_ASCII = /[^\x20-\x7e]/g;
+const HEXADECIMAL = 16;
+const UNICODE_ESCAPE_DIGITS = 4;
+
+function unicodeEscapeOf(unit: string): string {
+    return '\\u' + unit.charCodeAt(0).toString(HEXADECIMAL)
+        .padStart(UNICODE_ESCAPE_DIGITS, '0');
+}
+
 function tsQuoted(chunk: string): string {
     return "'"
         + chunk
@@ -1426,6 +564,7 @@ function tsQuoted(chunk: string): string {
             .replace(/'/g, "\\'")
             .replace(/\n/g, '\\n')
             .replace(/\r/g, '\\r')
+            .replace(NOT_PRINTABLE_ASCII, unicodeEscapeOf)
         + "'";
 }
 
@@ -1470,117 +609,154 @@ function emitConcatLines(
     return lines;
 }
 
-function emitField(
+const INDENT = '    ';
+
+function isList(value: unknown): value is readonly unknown[] {
+    return Array.isArray(value);
+}
+
+function isRecord(
+    value: unknown,
+): value is Readonly<Record<string, unknown>> {
+    return typeof value === 'object' && value !== null;
+}
+
+// Text that fits its line stays on it. Longer text is
+// folded: a field's below its name, a list item's from
+// its own indent.
+function emitText(
+    text: string,
+    indent: string,
+    lead: string,
+): string[] {
+    const one = indent + lead + tsQuoted(text) + ',';
+    if (one.length <= LINE_MAX) return [one];
+    if (lead === '') return emitConcatLines(text, indent, ',');
+    return [
+        indent + lead.trimEnd(),
+        ...emitConcatLines(text, indent + INDENT, ','),
+    ];
+}
+
+function notCatalogValue(value: unknown): Error {
+    return new Error(
+        'the catalog holds a ' + typeof value
+            + ', which is no text, list, or record',
+    );
+}
+
+// One catalog value as the lines of a TypeScript literal,
+// closed by a comma: text, a list, or a record, the only
+// kinds the catalog's shapes hold. `lead` opens the first
+// line: a field's `name: `, or nothing for a list's item.
+function emitLiteral(
+    value: unknown,
+    indent: string,
+    lead: string,
+): string[] {
+    if (typeof value === 'string') {
+        return emitText(value, indent, lead);
+    }
+    if (isList(value)) {
+        if (value.length === 0) return [indent + lead + '[],'];
+        return [
+            indent + lead + '[',
+            ...value.flatMap(
+                (item) => emitLiteral(item, indent + INDENT, ''),
+            ),
+            indent + '],',
+        ];
+    }
+    if (isRecord(value)) {
+        return [
+            indent + lead + '{',
+            ...Object.entries(value).flatMap(
+                ([name, field]) => emitLiteral(
+                    field, indent + INDENT, name + ': ',
+                ),
+            ),
+            indent + '},',
+        ];
+    }
+    throw notCatalogValue(value);
+}
+
+// The shapes the catalog's constants are declared with:
+// rooms.ts imports them and exports them again.
+const CATALOG_TYPES = [
+    'ApiDocAnswer',
+    'ApiDocHeaderSet',
+    'ApiDocRoom',
+    'ApiDocStatus',
+    'ApiDocStep',
+] as const;
+
+type CatalogType = (typeof CATALOG_TYPES)[number];
+
+function emitConstant(
     name: string,
-    value: string,
-    indent: string,
+    type: CatalogType | 'string',
+    items: readonly unknown[],
 ): string[] {
-    const one = indent + name + ': '
-        + tsQuoted(value) + ',';
-    if (one.length <= LINE_MAX) {
-        return [one];
-    }
     return [
-        indent + name + ':',
-        ...emitConcatLines(
-            value, indent + '    ', ',',
+        'export const ' + name + ': readonly ' + type + '[] = [',
+        ...items.flatMap((item) => emitLiteral(item, INDENT, '')),
+        '];',
+        '',
+    ];
+}
+
+// Everything rooms.ts holds, by the constant that holds it.
+export interface Catalog {
+    readonly rooms: readonly ApiDocRoom[];
+    readonly statuses: readonly ApiDocStatus[];
+    readonly steps: readonly ApiDocStep[];
+    readonly transport: readonly ApiDocHeaderSet[];
+    readonly genericAnswers: readonly ApiDocAnswer[];
+    readonly curlAdds: readonly string[];
+}
+
+function catalogOf(
+    rooms: readonly ApiDocRoom[],
+    steps: readonly ApiDocStep[],
+): Catalog {
+    return {
+        rooms,
+        statuses: catalogStatusesOf(),
+        steps,
+        transport: TRANSPORT_HEADERS,
+        genericAnswers: GENERIC_ANSWERS.map(answerOf),
+        curlAdds: CURL_ADDS,
+    };
+}
+
+export function roomsTsOf(catalog: Catalog): string {
+    const types = CATALOG_TYPES.map((name) => INDENT + name + ',');
+    return [
+        'import type {',
+        ...types,
+        "} from './shapes.ts';",
+        '',
+        'export type {',
+        ...types,
+        '};',
+        '',
+        ...emitConstant('API_DOC_ROOMS', 'ApiDocRoom', catalog.rooms),
+        ...emitConstant(
+            'API_DOC_STATUSES', 'ApiDocStatus', catalog.statuses,
         ),
-    ];
-}
-
-function emitStringArray(
-    values: readonly string[],
-    indent: string,
-): string[] {
-    if (values.length === 0) {
-        return [indent + '[],'];
-    }
-    const lines = [indent + '['];
-    for (const value of values) {
-        lines.push(...emitConcatLines(
-            value, indent + '    ', ',',
-        ));
-    }
-    lines.push(indent + '],');
-    return lines;
-}
-
-function emitRoomLiteral(
-    room: CatalogRoom,
-): string[] {
-    const i = '    ';
-    const i2 = '        ';
-    return [
-        i + '{',
-        ...emitField('hash', room.hash, i2),
-        ...emitField('verb', room.verb, i2),
-        ...emitField('uri', room.uri, i2),
-        ...emitField('body', room.body, i2),
-        i2 + 'headers:',
-        ...emitStringArray(room.headers, i2),
-        i2 + 'responseHeaders:',
-        ...emitStringArray(room.responseHeaders, i2),
-        i2 + 'statuses:',
-        ...emitStringArray(room.statuses, i2),
-        i + '},',
-    ];
-}
-
-function emitStatusLiteral(
-    status: CatalogStatus,
-): string[] {
-    const i = '    ';
-    const i2 = '        ';
-    return [
-        i + '{',
-        ...emitField('hash', status.hash, i2),
-        ...emitField('code', status.code, i2),
-        ...emitField('body', status.body, i2),
-        i + '},',
-    ];
-}
-
-const ROOMS_HEADER = [
-    'export interface ApiDocRoom {',
-    '    readonly hash: string;',
-    '    readonly verb: string;',
-    '    readonly uri: string;',
-    '    readonly body: string;',
-    '    readonly headers: readonly string[];',
-    '    readonly responseHeaders: readonly string[];',
-    '    readonly statuses: readonly string[];',
-    '}',
-    '',
-    'export interface ApiDocStatus {',
-    '    readonly hash: string;',
-    '    readonly code: string;',
-    '    readonly body: string;',
-    '}',
-    '',
-].join('\n');
-
-function roomsTsOf(
-    rooms: readonly CatalogRoom[],
-    statuses: readonly CatalogStatus[],
-): string {
-    const lines = [ROOMS_HEADER];
-    lines.push(
-        'export const API_DOC_ROOMS:',
-        '    readonly ApiDocRoom[] = [',
-    );
-    for (const room of rooms) {
-        lines.push(...emitRoomLiteral(room));
-    }
-    lines.push('];', '');
-    lines.push(
-        'export const API_DOC_STATUSES:',
-        '    readonly ApiDocStatus[] = [',
-    );
-    for (const status of statuses) {
-        lines.push(...emitStatusLiteral(status));
-    }
-    lines.push('];', '');
-    return lines.join('\n');
+        ...emitConstant('API_DOC_STEPS', 'ApiDocStep', catalog.steps),
+        ...emitConstant(
+            'API_DOC_TRANSPORT', 'ApiDocHeaderSet', catalog.transport,
+        ),
+        ...emitConstant(
+            'API_DOC_GENERIC_ANSWERS', 'ApiDocAnswer',
+            catalog.genericAnswers,
+        ),
+        ...emitConstant(
+            'API_DOC_CURL_ADDS', 'string', catalog.curlAdds,
+        ),
+    ].join('\n');
 }
 
 function elevationTsOf(svg: string): string {
@@ -1589,45 +765,20 @@ function elevationTsOf(svg: string): string {
         + chunks.join('\n') + '\n';
 }
 
-export function generateAll(): Map<string, string> {
-    const out = new Map<string, string>();
+const ROOMS_TS = 'rooms.ts';
+
+// Every file the run writes, by its path under the tree.
+function treeOf(
+    samples: Map<string, string>,
+    catalog: Catalog,
+): Map<string, string> {
     const svg = svgOf(routes);
-    const catalogRooms = catalogRoomsOf();
-    const catalogStatuses = catalogStatusesOf();
-    out.set('API.svg', svg);
-    out.set(
-        'rooms.ts',
-        roomsTsOf(catalogRooms, catalogStatuses),
-    );
-    out.set('elevation.ts', elevationTsOf(svg));
-    const rooms: { path: string; html: string }[] = [];
-    for (const row of routes) {
-        const uri = uriOf(row);
-        for (const verb of offeredVerbs(row)) {
-            rooms.push({
-                path: roomPathOf(verb, row.segments),
-                html: verbRoomHtml(
-                    verb,
-                    uri,
-                    statusCodesFor(row, verb),
-                    exampleBodyFor(uri, verb),
-                ),
-            });
-        }
-    }
-    rooms.sort((a, b) =>
-        a.path < b.path ? -1 : a.path > b.path ? 1 : 0,
-    );
-    for (const room of rooms) {
-        out.set(room.path, room.html);
-    }
-    for (const doc of STATUS_DOCUMENTS) {
-        out.set(
-            'statuses/' + doc.code + '/index.html',
-            statusRoomHtml(doc),
-        );
-    }
-    return out;
+    return new Map([
+        ['API.svg', svg],
+        ['elevation.ts', elevationTsOf(svg)],
+        [ROOMS_TS, roomsTsOf(catalog)],
+        ...samples,
+    ]);
 }
 
 function exists(path: string): boolean {
@@ -1675,45 +826,230 @@ function readTree(root: string): Map<string, string> {
     return out;
 }
 
-function mapsEqual(
+// The paths whose bytes on disk differ from the run's:
+// new, rewritten, or no longer generated.
+function changedPathsOf(
     next: Map<string, string>,
     disk: Map<string, string>,
-): boolean {
-    if (next.size !== disk.size) return false;
-    for (const [path, bytes] of next) {
-        if (disk.get(path) !== bytes) return false;
+): string[] {
+    const rewritten = [...next.keys()].filter(
+        (path) => disk.get(path) !== next.get(path),
+    );
+    const removed = [...disk.keys()].filter(
+        (path) => !next.has(path),
+    );
+    return [...rewritten, ...removed].sort();
+}
+
+// dirname's answer for a path with no directory.
+const TREE_ROOT = '.';
+
+// Removes each directory that removing `path` left empty,
+// from the file's own up to the tree's root.
+function removeEmptied(root: string, path: string): void {
+    for (
+        let directory = dirname(path);
+        directory !== TREE_ROOT;
+        directory = dirname(directory)
+    ) {
+        const abs = join(root, directory);
+        if ([...Deno.readDirSync(abs)].length > 0) return;
+        Deno.removeSync(abs);
     }
-    return true;
 }
 
 function writeTree(
     root: string,
     files: Map<string, string>,
+    changed: readonly string[],
 ): void {
-    Deno.mkdirSync(root, { recursive: true });
-    const disk = readTree(root);
-    for (const path of disk.keys()) {
-        if (!files.has(path)) {
-            Deno.removeSync(join(root, path));
+    for (const path of changed) {
+        const abs = join(root, path);
+        const bytes = files.get(path);
+        if (bytes === undefined) {
+            Deno.removeSync(abs);
+            removeEmptied(root, path);
+            continue;
+        }
+        Deno.mkdirSync(dirname(abs), { recursive: true });
+        Deno.writeTextFileSync(abs, bytes);
+    }
+}
+
+// Plan D7: a sample is its JSON indented two spaces, with
+// a final newline, at samples/<hash>.json. The catalog
+// names it by that path, relative to the page.
+const SAMPLES = 'samples/';
+const SAMPLE_INDENT = 2;
+
+function putSample(
+    files: Map<string, string>,
+    sample: ApiDocSample,
+): ApiDocSampleRef {
+    const path = SAMPLES + sample.hash + '.json';
+    files.set(
+        path,
+        JSON.stringify(sample, null, SAMPLE_INDENT) + '\n',
+    );
+    return { kind: 'sample', path };
+}
+
+interface Replayed {
+    // Each sample file, by its path under the tree.
+    readonly files: Map<string, string>;
+    readonly rooms: readonly ApiDocRoom[];
+    readonly steps: readonly ApiDocStep[];
+    // Every credential the replay carried or a sample
+    // replaced, and the seeded passwords, for the guard.
+    readonly known: readonly string[];
+}
+
+// Every endpoint, replayed by hash on a copy of its own,
+// then each step of the guided start: the sample each
+// writes, and the room or step that names it. A room's
+// answers take the status its own replay witnessed (plan
+// D16). planOf fails the run on an endpoint with no sample
+// and no NO_SAMPLE entry; every NO_SAMPLE entry must name
+// such an endpoint (plan D15).
+// A replay answered with anything but 2xx fails the run.
+async function replayedOf(): Promise<Replayed> {
+    const stage = await openReplayStage();
+    const cast = await castOf(stage);
+    const ledger = new SecretLedger();
+    const files = new Map<string, string>();
+    const endpoints = endpointsOf(routes);
+    const rooms: ApiDocRoom[] = [];
+    const unsampled = new Set<string>();
+    for (const endpoint of endpoints) {
+        const plan = await planOf(endpoint, cast, stage);
+        if (plan.kind === 'none') {
+            unsampled.add(endpoint.hash);
+            rooms.push(roomOf(
+                endpoint,
+                endpoints,
+                { kind: 'none', reason: plan.reason },
+                undefined,
+            ));
+            continue;
+        }
+        const exchange = succeeded(
+            await sendPlan(stage, plan, (request) => request),
+        );
+        const sample = putSample(files, sampleOf(
+            endpoint.hash,
+            sentPathIdsOf(plan, exchange),
+            [{ caller: plan.caller, exchange }],
+            ledger,
+        ));
+        rooms.push(roomOf(
+            endpoint, endpoints, sample, exchange.response.status,
+        ));
+    }
+    for (const hash of NO_SAMPLE.keys()) {
+        if (!unsampled.has(hash)) {
+            throw new Error(
+                'NO_SAMPLE names ' + hash
+                    + ', which is no endpoint left without a'
+                    + ' sample',
+            );
         }
     }
-    const paths = [...files.keys()].sort();
-    for (const path of paths) {
-        const abs = join(root, path);
-        Deno.mkdirSync(dirname(abs), { recursive: true });
-        Deno.writeTextFileSync(abs, files.get(path)!);
+    const steps: ApiDocStep[] = [];
+    for (const step of STEPS) {
+        const sample = await replayStep(
+            step.slug, cast, stage, ledger,
+        );
+        steps.push({
+            hash: sample.hash,
+            title: step.title,
+            prose: step.prose,
+            shell: step.shell,
+            sample: putSample(files, sample),
+        });
+    }
+    return {
+        files,
+        rooms,
+        steps,
+        known: [
+            ...ledger.known(),
+            ...cast.member.secrets,
+            ...cast.admin.secrets,
+            ...stage.credentials.identities.map(
+                ({ password }) => password,
+            ),
+        ],
+    };
+}
+
+// Every file the run writes or compares, searched before
+// it lands (spec, The hard rule). A finding names the
+// file and the kind, never the text.
+function guardTree(
+    files: Map<string, string>,
+    known: readonly string[],
+): void {
+    for (const [path, text] of files) {
+        const findings = credentialFindingsOf(text, known);
+        if (findings.length > 0) {
+            throw new Error(
+                'credential-shaped text in ' + path
+                    + ' (' + findings[0]!.kind + ')',
+            );
+        }
     }
 }
 
-function isCliEntry(): boolean {
-    return import.meta.main;
+// Every text a catalog value holds, whole.
+function textsOf(value: unknown): readonly string[] {
+    if (typeof value === 'string') return [value];
+    if (isList(value)) return value.flatMap(textsOf);
+    if (isRecord(value)) {
+        return Object.values(value).flatMap(textsOf);
+    }
+    throw notCatalogValue(value);
 }
 
-function runCli(): void {
-    if (Deno.args.includes('--check')) {
-        const next = generateAll();
-        const disk = readTree(OUT_ROOT);
-        if (!mapsEqual(next, disk)) {
+// rooms.ts folds long text at LINE_MAX, and a fold can cut
+// a credential in two, past guardTree. So the catalog's
+// texts are searched whole, before they are folded.
+export function guardCatalog(
+    catalog: Catalog,
+    known: readonly string[],
+): void {
+    guardTree(
+        new Map([[ROOMS_TS, textsOf(catalog).join('\n')]]),
+        known,
+    );
+}
+
+const CHECK_FLAG = '--check';
+const OUT_FLAG = '--out';
+
+// The tree the run writes or checks: OUT_ROOT unless
+// `--out DIR` names another.
+function outRootOf(args: readonly string[]): string {
+    const at = args.indexOf(OUT_FLAG);
+    if (at < 0) return OUT_ROOT;
+    const root = args[at + 1];
+    if (root === undefined) {
+        throw new Error(OUT_FLAG + ' names no directory');
+    }
+    return root;
+}
+
+export async function runCli(
+    args: readonly string[],
+): Promise<void> {
+    const root = outRootOf(args);
+    const replayed = await replayedOf();
+    const catalog = catalogOf(replayed.rooms, replayed.steps);
+    guardCatalog(catalog, replayed.known);
+    const next = treeOf(replayed.files, catalog);
+    guardTree(next, replayed.known);
+    const changed = changedPathsOf(next, readTree(root));
+    if (args.includes(CHECK_FLAG)) {
+        if (changed.length > 0) {
             Deno.stderr.writeSync(enc.encode(
                 'api-documentation is stale — run'
                 + ' ./generate-api-documentation\n',
@@ -1725,10 +1061,13 @@ function runCli(): void {
         ));
         return;
     }
-    writeTree(OUT_ROOT, generateAll());
+    if (changed.length === 0) {
+        Deno.stdout.writeSync(enc.encode(root + ' unchanged\n'));
+        return;
+    }
+    writeTree(root, next, changed);
     Deno.stdout.writeSync(enc.encode(
-        'wrote ' + OUT_ROOT + '\n',
+        'wrote ' + root + ' (' + String(changed.length)
+            + ' files changed)\n',
     ));
 }
-
-if (isCliEntry()) runCli();
