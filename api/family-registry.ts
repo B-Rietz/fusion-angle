@@ -2,13 +2,10 @@ import type { KeyReadRoles } from './served-response.ts';
 
 // The per-family registry: the single source of truth for a
 // family's cross-cutting properties — organization-nesting
-// tier and create-document body field —
-// that Phase 1 spread across parallel literal tables in
-// message-pair.ts (ORGANIZATION_NESTED_FIRST_SEGMENTS,
-// CREATE_BODY_ID_FIELDS). Ideas is the FIRST registered family
-// (Phase 2 Task 1); each later family's registration retires
-// its OWN entries from those literals, never both at once — a
-// registered family answers ONLY from here.
+// tier and create-document body field. A registered family
+// answers ONLY from here. Nesting has no literal table.
+// CREATE_BODY_ID_FIELDS in message-pair.ts remains only for
+// a create pattern that is not a family name.
 //
 // The standing rule: this registry is the single source of
 // family wiring. Slots grow only on per-family evidence — two

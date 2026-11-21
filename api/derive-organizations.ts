@@ -23,10 +23,8 @@ import {
 // identities: organizations IS the tenant root, so it is never
 // itself organization-nested — canonicalPath(undefined,
 // '/organizations/') resolves the SAME flat prefix whether or
-// not the family is registered (ORGANIZATION_NESTED_FIRST_
-// SEGMENTS's fallback in message-pair.ts and the eventual
-// registry row both say false — this task's own report
-// re-confirms the two branches are byte-identical).
+// not the family is registered. An unregistered first segment
+// stays flat, and the registry row says false.
 //
 // id-FIRST, matching the seven-sibling entityOf convention
 // (Task 5): organizationEntityOf re-runs the head pair's own

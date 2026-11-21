@@ -204,20 +204,10 @@ export interface WriteMessagePairInput {
     readonly emptyRequest?: true;
 }
 
-// Fallback for first path segments that are organization-
-// nested but not yet registered in family-registry.ts. A
-// registered family answers ONLY from its registration — its
-// entry here is deleted, never kept as a parallel truth. The
-// states/:id document retirement emptied this set; the
-// mechanism stays for any future un-registered nested segment.
-const ORGANIZATION_NESTED_FIRST_SEGMENTS: ReadonlySet<string> =
-    new Set([
-    ]);
-
 // The tier rule, exported so gate, seed, and derivations share
-// ONE prefix voice. A registered family's organizationNested
-// slot decides first; the literal set above is the fallback
-// for every not-yet-registered first segment.
+// ONE prefix voice. Nesting comes only from a registration's
+// organizationNested flag. An unregistered first segment
+// stays flat.
 export function canonicalPath(
     organization: Id | undefined,
     flatPrefix: string,
@@ -225,9 +215,7 @@ export function canonicalPath(
     const first = flatPrefix.split('/')[1] ?? '';
     const registered = familyRegistration(first);
     const nested = registered !== undefined
-        ? registered.organizationNested
-        : ORGANIZATION_NESTED_FIRST_SEGMENTS
-            .has(first);
+        && registered.organizationNested;
     if (organization !== undefined && nested) {
         return '/organizations/' + organization
             + flatPrefix;
@@ -1760,34 +1748,9 @@ export function createdEntityName(
     routePattern: string,
     body: Record<string, unknown> | undefined,
 ): string | undefined {
-    // A registered family's createBodyIdField serves a bare
-    // collection-POST create route whose pattern IS the family
-    // name. Ideas registered this slot in Task 1 for its own
-    // POST /ideas, which Phase 2 Task 3 (R1) retired — genesis
-    // folded into the document-class PUT ideas/:id, whose name
-    // pathAndNameOf already derives from the path segment, so
-    // this lookup never fires for ideas today. Projects (second
-    // family) registers the same inert slot: it has NO bare
-    // collection POST at all, so the registry consult here never
-    // fires for it either — the route-pattern==family-name
-    // coincidence remains unexercised by both registered
-    // families. Flows (third family, Phase 4 Task 1) is the
-    // first to exercise it: POST flows is a live bare
-    // collection-POST create route whose pattern is literally
-    // 'flows', so the registry consult now FIRES for real — the
-    // coincidence is no longer theoretical. Work-orders (fourth
-    // family, Phase 5 Task 1) is the second: POST work-orders is
-    // also a live bare collection-POST create route whose
-    // pattern is literally 'work-orders', so the coincidence now
-    // fires for TWO live routes. Flat POST records retired
-    // (Task 23); nested collection POST rides
-    // CREATE_BODY_ID_FIELDS above. Identities (twelfth
-    // family, Phase 10 Task 4) is the third live bare
-    // collection-POST create route whose pattern is literally
-    // 'identities' — the SAME slot the literal table above used
-    // to answer, now answered from the registry instead.
-    // Falls back to the literal table for every not-yet-
-    // registered pattern.
+    // A registered family takes createBodyIdField. The
+    // literal CREATE_BODY_ID_FIELDS table is only for a
+    // pattern that is not a family name.
     const stripped = routePattern.endsWith('/')
         ? routePattern.slice(0, -1)
         : routePattern;
