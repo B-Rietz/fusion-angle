@@ -89,10 +89,8 @@ export class Body<T = unknown> {
         );
     }
 
-    // The body decoded by its content-type: the whole value
-    // where toNumber(), toBoolean(), and toDate() return a
-    // leaf. The client asserts T at the wire and trusts it
-    // after (spec §7).
+    // The body decoded by its content-type. The client
+    // asserts T at the wire and trusts it after (spec §7).
     toValue(): T {
         return this.contentDecoded().#valueByType() as T;
     }
@@ -156,18 +154,6 @@ export class Body<T = unknown> {
     async decodedAsync(): Promise<Decoded> {
         const source = await this.contentDecodedAsync();
         return Decoded.of(source.#valueByType());
-    }
-
-    toNumber(): number {
-        return this.decoded().toNumber();
-    }
-
-    toBoolean(): boolean {
-        return this.decoded().toBoolean();
-    }
-
-    toDate(): Date {
-        return this.decoded().toDate();
     }
 
     #require(): Octets {

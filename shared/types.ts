@@ -1515,12 +1515,6 @@ export class Idea {
         return this.readinessValue() === 'ready';
     }
 
-    matchesSearch(term: string): boolean {
-        return this.#title
-            .toLowerCase()
-            .includes(term.toLowerCase());
-    }
-
     idForLink(): string {
         return this.#id;
     }
@@ -1594,10 +1588,6 @@ export class Project {
         this.#position = entity.position;
     }
 
-    isDeleted(): boolean {
-        return this.#state === 'deleted';
-    }
-
     isApproved(): boolean {
         return this.#state === 'approved';
     }
@@ -1629,12 +1619,6 @@ export class Project {
                     elapsed / total * 100,
                 ),
             ),
-        );
-    }
-
-    formattedCost(): string {
-        return formatCompactCurrency(
-            this.#estimatedCost,
         );
     }
 
@@ -1677,13 +1661,6 @@ export class Project {
     positionSortKey(): number {
         return this.#position;
     }
-
-    matchesSearch(term: string): boolean {
-        const lowerTerm = term.toLowerCase();
-        return this.#title
-            .toLowerCase()
-            .includes(lowerTerm);
-    }
 }
 
 export class RecordModel {
@@ -1719,10 +1696,6 @@ export class RecordModel {
         return this.#state === 'active';
     }
 
-    isArchived(): boolean {
-        return this.#state === 'archived';
-    }
-
     positionSortKey(): number {
         return this.#position;
     }
@@ -1733,13 +1706,6 @@ export class RecordModel {
 
     descriptionText(): string {
         return this.#description;
-    }
-
-    matchesSearch(term: string): boolean {
-        const lower = term.toLowerCase();
-        return this.#name
-            .toLowerCase()
-            .includes(lower);
     }
 }
 
