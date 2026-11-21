@@ -257,14 +257,13 @@ function tierShapeOf(
     surface: string,
 ): string {
     const { paint } = TIER_PAINTS[tier];
-    const tierClass = ' class="tier-' + tier + '"';
     switch (tier) {
         case 'member':
-            return '<circle' + tierClass + ' fill="' + paint
+            return '<circle fill="' + paint
                 + '" cx="' + cx + '" cy="' + cy + '" r="' + CIRCLE_R
                 + '"/>';
         case 'admin':
-            return '<polygon' + tierClass + ' fill="' + paint
+            return '<polygon fill="' + paint
                 + '" points="' + [
                     [cx, cy - DIAMOND_R],
                     [cx + DIAMOND_R, cy],
@@ -273,7 +272,7 @@ function tierShapeOf(
                 ].map((point) => point.join(',')).join(' ')
                 + '"/>';
         case 'none':
-            return '<circle' + tierClass + ' fill="' + surface
+            return '<circle fill="' + surface
                 + '" stroke="' + paint + '" stroke-width="'
                 + RING_W + '" cx="' + cx + '" cy="' + cy
                 + '" r="' + CIRCLE_R + '"/>';
@@ -304,12 +303,11 @@ function tierLegendOf(): string {
 }
 
 export function svgOf(rows: readonly Route[]): string {
-    // The page CSP drops this <style> block
-    // (style-src 'self'), so each paint and font is
-    // also a presentation attribute. hsl(var(--token))
-    // resolves on the inline SVG, as on the flow
-    // canvas. The style block keeps a standalone
-    // API.svg on the same tokens.
+    // Each paint and font is a presentation attribute.
+    // The page CSP is style-src 'self', so a <style>
+    // block in this SVG would not apply.
+    // hsl(var(--token)) resolves on the inline SVG, as
+    // on the flow canvas.
     const ink = 'hsl(var(--foreground))';
     const muted = 'hsl(var(--muted-foreground))';
     const surface = 'hsl(var(--background))';
@@ -347,14 +345,14 @@ export function svgOf(rows: readonly Route[]): string {
     let y = PAD + 12;
     const parts: string[] = [];
     parts.push(
-        '  <text class="legend" fill="' + muted
+        '  <text fill="' + muted
         + '"' + LEGEND_ATTRIBUTES
         + ' x="' + PAD + '" y="'
         + y + '">' + tierLegendOf() + '</text>',
     );
     y += LEGEND_H;
     parts.push(
-        '  <text class="legend" fill="' + muted
+        '  <text fill="' + muted
         + '"' + LEGEND_ATTRIBUTES
         + ' x="' + PAD + '" y="'
         + y + '">' + escapeXml(OWN_DATA_NOTE) + '</text>',
@@ -363,7 +361,7 @@ export function svgOf(rows: readonly Route[]): string {
     HTTP_VERBS.forEach((verb, i) => {
         const cx = verbColumnX(i) + VERB_W / 2;
         parts.push(
-            '  <text class="col" fill="' + muted
+            '  <text fill="' + muted
             + '"' + COL_ATTRIBUTES
             + ' x="' + cx + '" y="'
             + y + '">'
@@ -375,7 +373,7 @@ export function svgOf(rows: readonly Route[]): string {
     for (const name of wingNames) {
         y += 6;
         parts.push(
-            '  <text class="wing" fill="' + ink
+            '  <text fill="' + ink
             + '"' + WING_ATTRIBUTES
             + ' x="' + PAD + '" y="'
             + y + '">' + escapeXml(name) + '</text>',
@@ -406,7 +404,7 @@ export function svgOf(rows: readonly Route[]): string {
                     const rx = cx - EMPTY / 2;
                     const ry = cy - EMPTY / 2;
                     parts.push(
-                        '  <rect class="empty" x="'
+                        '  <rect x="'
                         + rx + '" y="' + ry
                         + '" width="' + EMPTY
                         + '" height="' + EMPTY
@@ -416,7 +414,7 @@ export function svgOf(rows: readonly Route[]): string {
                 }
             });
             parts.push(
-                '  <text class="uri" fill="' + ink
+                '  <text fill="' + ink
                 + '"' + URI_ATTRIBUTES
                 + ' x="' + uriX()
                 + '" y="' + (cy + 3) + '">'
@@ -429,7 +427,7 @@ export function svgOf(rows: readonly Route[]): string {
     if (backingFamilies.length > 0) {
         y += 6;
         parts.push(
-            '  <text class="wing" fill="' + ink
+            '  <text fill="' + ink
             + '"' + WING_ATTRIBUTES
             + ' x="' + PAD + '" y="'
             + y + '">' + escapeXml('backing')
@@ -449,7 +447,7 @@ export function svgOf(rows: readonly Route[]): string {
                 const rx = cx - EMPTY / 2;
                 const ry = cy - EMPTY / 2;
                 parts.push(
-                    '  <rect class="empty" x="'
+                    '  <rect x="'
                     + rx + '" y="' + ry
                     + '" width="' + EMPTY
                     + '" height="' + EMPTY
@@ -458,7 +456,7 @@ export function svgOf(rows: readonly Route[]): string {
                 );
             }
             parts.push(
-                '  <text class="uri" fill="' + ink
+                '  <text fill="' + ink
                 + '"' + URI_ATTRIBUTES
                 + ' x="' + uriX()
                 + '" y="' + (cy + 3) + '">'
@@ -469,44 +467,11 @@ export function svgOf(rows: readonly Route[]): string {
         y += 8;
     }
     const height = y + PAD;
-    const style = [
-        '    <style>',
-        '      .legend, .wing, .col { font-family:',
-        '        ' + SANS_FONT + ';',
-        '      }',
-        '      .legend { fill: ' + muted + ';',
-        '        font-size: ' + LEGEND_SIZE + 'px; }',
-        '      .wing { fill: ' + ink + ';',
-        '        font-size: ' + WING_SIZE + 'px;'
-        + ' font-weight: ' + WING_WEIGHT + '; }',
-        '      .col { fill: ' + muted + ';',
-        '        font-size: ' + COL_SIZE + 'px;'
-        + ' text-anchor: middle;',
-        '      }',
-        '      .uri { font-family:',
-        '        ' + MONO_FONT + ';',
-        '        font-size: ' + URI_SIZE + 'px;',
-        '        fill: ' + ink + '; }',
-        '      .tier-member { fill: '
-        + TIER_PAINTS.member.paint + '; }',
-        '      .tier-admin { fill: '
-        + TIER_PAINTS.admin.paint + '; }',
-        '      .tier-none { fill: ' + surface + ';',
-        '        stroke: ' + TIER_PAINTS.none.paint + ';',
-        '        stroke-width: ' + RING_W + '; }',
-        '      .empty { fill: none;',
-        '        stroke: ' + muted + ';',
-        '        stroke-width: 1; }',
-        '    </style>',
-    ];
     return [
         '<svg xmlns="http://www.w3.org/2000/svg" '
         + 'viewBox="0 0 ' + width + ' ' + height
         + '" width="' + width + '" height="'
         + height + '">',
-        '  <defs>',
-        ...style,
-        '  </defs>',
         '  <rect x="0" y="0" width="' + width
         + '" height="' + height
         + '" fill="' + surface + '"/>',

@@ -150,9 +150,9 @@ Deno.test('every status document has a catalog status',
     }
 });
 
-// The page CSP (style-src 'self') drops the svg's own
-// <style> block, so a font the width budget assumes
-// must ride on the text itself, as each fill does.
+// The page CSP (style-src 'self') would drop a <style>
+// block, so a font the width budget assumes rides on
+// the text itself, as each fill does.
 Deno.test('every elevation text carries its own font',
 () => {
     const texts = svgOf(routes).match(/<text [^>]*>/g);
