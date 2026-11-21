@@ -50,9 +50,11 @@ export async function systemStatusResponse(
             'git sha unavailable', HTTP_INTERNAL_ERROR,
         );
     }
-    const systemStatus = systemStatusOf(commit, {
-        postgres: await adapter.probe(),
-    });
+    const systemStatus = systemStatusOf(
+        commit,
+        { postgres: await adapter.probe() },
+        Date.now(),
+    );
     return Response.json(systemStatus, {
         status: systemStatus.up
             ? HTTP_OK

@@ -353,10 +353,11 @@ code comments cite; specs and plans written before the
   a dirty tree; on Render from the commit the build
   fetches from GitHub, named by the host's commit
   variable (`RENDER_GIT_COMMIT`), a name that stays at
-  the edge (item 0e). Today the build embeds the sha
-  and that commit's subject (`embeddedCommit`,
-  `server/git-sha.ts:31`), and `/status` and
-  `/api/status` report both. How the page bundle
+  the edge (item 0e). Today the build embeds the
+  commit log — the sha, subject, and commit time, then
+  the ten merges before it (`embeddedCommit`,
+  `server/git-sha.ts`) — and `/status` and
+  `/api/status` report it. How the page bundle
   learns it — embedded at build, or served — is this
   bullet's to settle. Nothing sends the token yet: no
   `user-agent` line appears under `client/`,

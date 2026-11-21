@@ -1,8 +1,9 @@
 #!/bin/bash
 # Sourced from repo root after the caller `cd "$ROOT"`.
 # Not a command. bundle_client composes the pages
-# and bundles the client into DEST; fetched_commit
-# reads a commit a build without a checkout embeds;
+# and bundles the client into DEST; commit_log reads
+# the commit log a build embeds, and fetched_commit
+# reads it for a build without a checkout;
 # ./bin/build owns the clean-tree gate, the
 # executable, and the ZIP.
 
@@ -129,26 +130,38 @@ bundle_client() {
         web-app/app/hash-static.ts --gzip "$dest"
 }
 
-# Print SHA and its subject, one per line, as fetched
-# from URL with no credential; print nothing and fail
-# when any git call fails or the fetch answers another
-# commit: a caller under `if !` runs with set -e off. The
-# scratch repository sits under TMPDIR, outside the
-# source tree, and the commit object is all it holds.
+# Print the commit log /status reads, from the repository
+# at DIR: REV's line, then the merges on its first-parent
+# line, newest first, one `%H %ct %s` line each. The
+# eleventh merge covers a REV that is itself a merge;
+# server/git-sha.ts keeps ten.
+commit_log() {
+    local dir="$1" rev="$2"
+    git -C "$dir" log -1 --format='%H %ct %s' "$rev" \
+        && git -C "$dir" log --merges --first-parent -n 11 \
+            --format='%H %ct %s' "$rev"
+}
+
+# Print SHA's commit log, as fetched from URL with no
+# credential; print nothing and fail when any git call
+# fails or the fetch answers another commit: a caller
+# under `if !` runs with set -e off. The scratch
+# repository sits under TMPDIR, outside the source tree,
+# and holds commit objects alone. The shallow fetch keeps
+# the history the log reads; a merge past it is absent.
 fetched_commit() {
-    local url="$1" sha="$2" scratch fetched subject
+    local url="$1" sha="$2" scratch fetched log
     scratch=$(mktemp -d \
         "${TMPDIR:-/tmp}/fusion-commit.XXXXXX")
     if ! git init --quiet "$scratch" \
         || ! GIT_TERMINAL_PROMPT=0 git -C "$scratch" \
             -c http.lowSpeedLimit=1000 \
             -c http.lowSpeedTime=30 \
-            fetch --quiet --depth 1 --filter=tree:0 \
+            fetch --quiet --depth 32 --filter=tree:0 \
             "$url" "$sha" >&2 \
         || ! fetched=$(git -C "$scratch" rev-parse \
             FETCH_HEAD) \
-        || ! subject=$(git -C "$scratch" log -1 \
-            --format=%s FETCH_HEAD); then
+        || ! log=$(commit_log "$scratch" FETCH_HEAD); then
         rm -rf "$scratch"
         return 1
     fi
@@ -156,5 +169,5 @@ fetched_commit() {
     if [ "$fetched" != "$sha" ]; then
         return 1
     fi
-    printf '%s\n%s\n' "$fetched" "$subject"
+    printf '%s\n' "$log"
 }

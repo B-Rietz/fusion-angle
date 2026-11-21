@@ -29,11 +29,19 @@ every request (`incomingContext`), then `dispatched`:
    is still 400. The step reads neither `Operation-ID`
    nor a bearer token, and stores no pair. GET runs
    the adapter's probe once and answers
-   `{ "git-sha", "git-subject", "up", "components": {
-   "postgres" } }`, where `postgres` is `up`, `down`, or
+   `{ "git-sha", "git-subject", "git-committed-at",
+   "git-age", "up", "components": { "postgres" },
+   "git-merges" }`, where `postgres` is `up`, `down`, or
    `timeout`: 200 when it is `up`, 503 when it is not.
    `git-subject` is absent when the commit has no
-   acceptable subject. The commit is
+   acceptable subject; `git-committed-at` (RFC 3339,
+   zulu) and `git-age` when it has no commit time.
+   `git-age` names the largest unit reached, alone and
+   rounded (`3 hours`, `2 weeks`), or `now`.
+   `git-merges` lists up to ten merges before the
+   commit on its first-parent line, newest first, each
+   with the same four commit keys, and is absent when
+   the commit carries none. The commit is
    the one the handler was built with
    (`requestHandlerFor`). `handleRequest` is the
    handler built with none, and its answer is 500

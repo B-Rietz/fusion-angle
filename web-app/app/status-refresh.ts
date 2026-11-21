@@ -1,8 +1,11 @@
 // The status page keeps itself current. It fetches its
 // own URL, and shows the card the server rendered there
 // only when that card's markup differs from the one on
-// screen, so an unchanged status touches nothing and the
-// live region announces only a change. A page that gets
+// screen, ages aside, so an unchanged status touches
+// nothing and the live region announces only a change. A
+// changed age is written in place, unannounced, and does
+// not count as a change, so the refresh still backs off.
+// The merges below the card are replaced when they differ. A page that gets
 // no answer shows the timeout card the server rendered
 // into its template. The server writes every card; this
 // script holds no markup. Loaded from a same-origin file
@@ -16,6 +19,8 @@ import {
 } from './status-backoff.ts';
 
 const CARD_ID = 'status-card';
+const MERGES_ID = 'status-merges';
+const AGE = '.git-age';
 
 function elementOf(id: string): HTMLElement {
     const element = document.getElementById(id);
@@ -74,17 +79,55 @@ async function answeredPage(): Promise<Document | undefined> {
     return new DOMParser().parseFromString(html, 'text/html');
 }
 
+function agelessMarkup(card: Element): string {
+    const copy = card.cloneNode(true) as Element;
+    for (const age of copy.querySelectorAll(AGE)) {
+        age.textContent = '';
+    }
+    return copy.outerHTML;
+}
+
+// Called only when the two cards differ in ages alone, so
+// their ages pair up one for one.
+function copyAges(from: Element, to: Element): void {
+    const ages = to.querySelectorAll(AGE);
+    from.querySelectorAll(AGE).forEach((age, index) => {
+        const target = ages[index];
+        if (target !== undefined
+            && target.textContent !== age.textContent) {
+            target.textContent = age.textContent;
+        }
+    });
+}
+
 (function refreshStatus(): void {
     const live = elementOf('status-live');
     const timeout = templateOf('status-timeout');
-    let shown = cardIn(document).outerHTML;
     let changedAt = performance.now();
 
     function showCard(card: Element): void {
-        if (card.outerHTML !== shown) {
+        const shown = cardIn(document);
+        if (agelessMarkup(card) !== agelessMarkup(shown)) {
             live.replaceChildren(document.importNode(card, true));
-            shown = card.outerHTML;
             changedAt = performance.now();
+            return;
+        }
+        copyAges(card, shown);
+    }
+
+    function showMerges(answer: Document): void {
+        const shown = document.getElementById(MERGES_ID);
+        const served = answer.getElementById(MERGES_ID);
+        if (served === null) {
+            shown?.remove();
+            return;
+        }
+        if (shown?.outerHTML === served.outerHTML) return;
+        const merges = document.importNode(served, true);
+        if (shown === null) {
+            live.after(merges);
+        } else {
+            shown.replaceWith(merges);
         }
     }
 
@@ -101,6 +144,7 @@ async function answeredPage(): Promise<Document | undefined> {
             answer?.getElementById(CARD_ID)
                 ?? cardIn(timeout.content),
         );
+        if (answer !== undefined) showMerges(answer);
     }
 
     // An error no branch expects still shows the timeout

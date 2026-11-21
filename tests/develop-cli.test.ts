@@ -599,13 +599,9 @@ Deno.test('develop does not compile or build an image',
     assertMatch(src, /server\/develop-main\.ts/);
     assertMatch(
         src,
-        /export GIT_SHA="\$\(git rev-parse HEAD\)"/,
+        /export GIT_COMMIT_LOG="\$\(commit_log \. HEAD\)"/,
     );
-    assertMatch(
-        src,
-        /export GIT_SUBJECT="\$\(git log -1 --format=%s "\$GIT_SHA"\)"/,
-    );
-    assertMatch(src, /ALLOW_ENV="\$ALLOW_ENV,GIT_SHA,GIT_SUBJECT"/);
+    assertMatch(src, /ALLOW_ENV="\$ALLOW_ENV,GIT_COMMIT_LOG"/);
     assertNotMatch(src, /server\/develop-watch\.ts/);
     const trapAt = src.indexOf(
         "trap 'RESTARTING=1' USR1",

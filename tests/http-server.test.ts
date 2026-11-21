@@ -661,15 +661,40 @@ async () => {
     const expected = await runningCommitFor(undefined);
     assert(expected !== undefined, 'worktree commit');
     assert(expected.subject !== undefined, 'HEAD subject');
+    assert(expected.committedAt !== undefined, 'HEAD time');
+    assert(expected.merges !== undefined, 'HEAD merges');
+    // An age is read at the request's own clock: each is
+    // checked for its shape, and set aside.
+    const unaged = (
+        { 'git-age': age, ...rest }: Record<string, unknown>,
+    ): Record<string, unknown> => {
+        assertMatch(String(age), /^(now|\d+ [a-z]+)$/);
+        return rest;
+    };
     await withServer({}, undefined, async (base) => {
         const res = await fetch(base + '/status', JSON_ASK);
         assertStrictEquals(res.status, HTTP_OK);
-        assertEquals(await res.json(), {
+        const document = await res.json();
+        const merges: Record<string, unknown>[] =
+            document['git-merges'];
+        assertEquals(unaged(document), {
             'git-sha': expected.sha,
             'git-subject': expected.subject,
+            'git-committed-at': expected.committedAt,
             up: true,
             components: { api: 'up' },
+            'git-merges': merges,
         });
+        assertEquals(
+            merges.map(unaged),
+            expected.merges?.map((merge) => ({
+                'git-sha': merge.sha,
+                ...(merge.subject !== undefined
+                    ? { 'git-subject': merge.subject }
+                    : {}),
+                'git-committed-at': merge.committedAt,
+            })),
+        );
     });
 });
 
