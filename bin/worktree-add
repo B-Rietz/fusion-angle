@@ -51,12 +51,16 @@ COMMON_DIR=$(clean_git -C "$SCRIPT_ROOT" rev-parse \
 ROOT=$(dirname "$COMMON_DIR")
 
 # A filter or an included file is code the checkout would
-# run outside the sandbox; refuse rather than run it.
-if clean_git config --file "$COMMON_DIR/config" \
-    --get-regexp '^(filter|include|includeif)\.' \
-    > /dev/null; then
-    echo "Error: .git/config names a filter or an" \
-        "include; refusing to check out" >&2
+# run outside the sandbox. Ask git for every source it
+# reads; refuse on a match, and on any failure to answer.
+set +e
+clean_git -C "$ROOT" config --show-origin \
+    --get-regexp '^(filter|include|includeif)\.' > /dev/null
+CONFIG_STATUS=$?
+set -e
+if [ "$CONFIG_STATUS" -ne 1 ]; then
+    echo "Error: git config names a filter or an include," \
+        "or could not be read; refusing to check out" >&2
     exit 1
 fi
 
