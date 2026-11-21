@@ -755,3 +755,32 @@ Deno.test(
         }
     },
 );
+
+Deno.test(
+    'Return regenerates the API documentation before it '
+        + 'recomposes',
+    () => {
+        const text = Deno.readTextFileSync('bin/develop');
+        const start = text.indexOf('read_return() {');
+        const body = text.slice(
+            start,
+            text.indexOf('\n}\n', start),
+        );
+        const generateAt = body.indexOf(
+            'generate-api-documentation',
+        );
+        const bundleAt = body.indexOf('bundle_client');
+        assert(generateAt > 0);
+        assert(bundleAt > generateAt);
+        const line = body.slice(
+            body.lastIndexOf('\n', generateAt) + 1,
+            body.indexOf('\n', generateAt),
+        );
+        assertMatch(body.slice(generateAt), /\|\|/);
+        assert(
+            line.includes('||')
+                || body.slice(generateAt, bundleAt)
+                    .includes('||'),
+        );
+    },
+);

@@ -1,0 +1,276 @@
+{
+  "hash": "start/unattended",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    },
+    {
+      "name": ":id",
+      "value": "FhAKglKyHsH4xsv9MgqEJw",
+      "source": "post/organizations/id/memberships"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "admin",
+      "request": {
+        "method": "POST",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/memberships/",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "content-length",
+            "197"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"id\":\"FhAKglKyHsH4xsv9MgqEJw\",\"kind\":\"service\",\"membership\":{\"type\":\"member\",\"at\":\"2020-01-01T00:00:02.560000Z\"},\"service\":{\"name\":\"Nightly export\",\"description\":\"Exports the day's work orders.\"}}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "206"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "etag",
+            "\"WEFJd8mzL7MinYDvMMWweA\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "location",
+            "/organizations/AjdvjuECVZEgZoFajaIEkg/invitations/AjdvjuECVZEgZoFajaIEkg:FhAKglKyHsH4xsv9MgqEJw"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "request-id",
+            "_lIT_Nji11_e0BrSHs8riA"
+          ],
+          [
+            "requester-identity-id",
+            "XXZruirZyAOoRpNxaDnpSA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:02.563000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"at\":\"2020-01-01T00:00:02.560000Z\",\"id\":\"AjdvjuECVZEgZoFajaIEkg:FhAKglKyHsH4xsv9MgqEJw\",\"identity_id\":\"FhAKglKyHsH4xsv9MgqEJw\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"state\":\"accepted\",\"type\":\"member\"}"
+        }
+      },
+      "curl": "curl -i -X POST \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/memberships/\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"content-type: application/json\" \\\n  -H \"operation-id: $OPERATION_ID\" \\\n  -d '{\"id\":\"FhAKglKyHsH4xsv9MgqEJw\",\"kind\":\"service\",\"membership\":{\"type\":\"member\",\"at\":\"2020-01-01T00:00:02.560000Z\"},\"service\":{\"name\":\"Nightly export\",\"description\":\"Exports the day'\\''s work orders.\"}}'"
+    },
+    {
+      "caller": "admin",
+      "request": {
+        "method": "PUT",
+        "target": "/api/identities/FhAKglKyHsH4xsv9MgqEJw/registration",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "if-none-match",
+            "*"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "content-length",
+            "272"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"grant_types\":\"client_credentials\",\"redirect_uris\":\"\",\"jwks\":\"{\\\"keys\\\":[{\\\"kty\\\":\\\"EC\\\",\\\"crv\\\":\\\"P-256\\\",\\\"x\\\":\\\"$JWK_X\\\",\\\"y\\\":\\\"$JWK_Y\\\"}]}\",\"aud\":\"/api/authentication/token\",\"status\":\"active\"}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "302"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "etag",
+            "\"mfRpfeRZpDwox4hE3srQ0Q\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "request-id",
+            "b0hAHuna-f5bnzdxlXhL2Q"
+          ],
+          [
+            "requester-identity-id",
+            "XXZruirZyAOoRpNxaDnpSA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:02.566000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"aud\":\"/api/authentication/token\",\"grant_types\":\"client_credentials\",\"id\":\"FhAKglKyHsH4xsv9MgqEJw\",\"jwks\":\"{\\\"keys\\\":[{\\\"kty\\\":\\\"EC\\\",\\\"crv\\\":\\\"P-256\\\",\\\"x\\\":\\\"$JWK_X\\\",\\\"y\\\":\\\"$JWK_Y\\\"}]}\",\"redirect_uris\":\"\",\"status\":\"active\"}"
+        }
+      },
+      "curl": "curl -i -X PUT \"$ORIGIN/api/identities/FhAKglKyHsH4xsv9MgqEJw/registration\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"content-type: application/json\" \\\n  -H \"if-none-match: *\" \\\n  -H \"operation-id: $OPERATION_ID\" \\\n  -d '{\"grant_types\":\"client_credentials\",\"redirect_uris\":\"\",\"jwks\":\"{\\\"keys\\\":[{\\\"kty\\\":\\\"EC\\\",\\\"crv\\\":\\\"P-256\\\",\\\"x\\\":\\\"'\"$JWK_X\"'\\\",\\\"y\\\":\\\"'\"$JWK_Y\"'\\\"}]}\",\"aud\":\"/api/authentication/token\",\"status\":\"active\"}'"
+    },
+    {
+      "caller": "none",
+      "request": {
+        "method": "POST",
+        "target": "/api/authentication/token",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $CLIENT_ASSERTION"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "content-length",
+            "72"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"grant_type\":\"client_credentials\",\"client_id\":\"FhAKglKyHsH4xsv9MgqEJw\"}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "authentication-info",
+            "access_token=\"$TOKEN\""
+          ],
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "40"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "etag",
+            "\"ltJKdNq2GO1b7LKDp4sFGQ\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "request-id",
+            "ERTUnnp9kZZFXfKe6GoIfg"
+          ],
+          [
+            "requester-identity-id",
+            "FhAKglKyHsH4xsv9MgqEJw"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:02.572000Z"
+          ],
+          [
+            "set-cookie",
+            "refresh_token=$REFRESH_TOKEN; HttpOnly; SameSite=Strict; Path=/api/authentication; Secure"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"expires_in\":900,\"token_type\":\"Bearer\"}"
+        }
+      },
+      "curl": "curl -i -X POST \"$ORIGIN/api/authentication/token\" \\\n  -H \"authorization: Bearer $CLIENT_ASSERTION\" \\\n  -H \"content-type: application/json\" \\\n  -H \"operation-id: $OPERATION_ID\" \\\n  -d '{\"grant_type\":\"client_credentials\",\"client_id\":\"FhAKglKyHsH4xsv9MgqEJw\"}'"
+    }
+  ]
+}

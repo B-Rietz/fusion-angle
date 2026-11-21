@@ -1,0 +1,102 @@
+{
+  "hash": "post/organizations/id/flows/id/undo",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    },
+    {
+      "name": ":id",
+      "value": "esKujtyQFYUJaVSXWwavzA",
+      "source": "get/organizations/id/flows"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "POST",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/flows/esKujtyQFYUJaVSXWwavzA/undo",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "if-match",
+            "\"fxGEl-qO1KCuGzMQraOaGw\""
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "content-length",
+            "71"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"eventId\":\"GR6bwBWZVchukZcV03T-EA\",\"at\":\"2020-01-01T00:00:02.108000Z\"}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "4272"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "etag",
+            "\"a1YK6YiWK9vVjKKWaaYxIA\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "request-id",
+            "I-oGeMLIGQ2CyjO0U2oeYQ"
+          ],
+          [
+            "requester-identity-id",
+            "MQFcPtrZPIGjMCRAXtZUnA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:02.117000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"graph\":{\"edges\":[{\"fromNodeId\":\"xmghdGZDgLKilxByetrBoA\",\"id\":\"BQCWYtMcBEfKIkKBTFuVDA\",\"name\":\"approve\",\"toNodeId\":\"DkyhupXfDAcrWBojIzHlRQ\"},{\"fromNodeId\":\"xmghdGZDgLKilxByetrBoA\",\"id\":\"DYcnMktqUpTdZuEBnLBppw\",\"name\":\"needs revision\",\"toNodeId\":\"KWpWgeKhKyoyBDEymUgcmg\"},{\"fromNodeId\":\"KWpWgeKhKyoyBDEymUgcmg\",\"id\":\"JZJrLAteZStrqAvzZiamtA\",\"name\":\"submit\",\"toNodeId\":\"xmghdGZDgLKilxByetrBoA\"},{\"fromNodeId\":\"laXQcGGyWrbEiExtgkyCcw\",\"id\":\"PuLOAtGBPYhsnldPEyGaQw\",\"name\":\"begin\",\"toNodeId\":\"KWpWgeKhKyoyBDEymUgcmg\"}],\"nodes\":[{\"attributes\":[],\"id\":\"DkyhupXfDAcrWBojIzHlRQ\",\"isArchive\":true,\"isCreate\":false,\"memberIds\":[],\"name\":\"Archive\",\"positionX\":680,\"positionY\":370,\"taskInstructions\":\"\"},{\"attributes\":[{\"attribute_id\":\"CPJmMPXRaBIiNdGBofUPVg\",\"isRequired\":true,\"mode\":\"editable\"},{\"attribute_id\":\"oeqelDVElwxHYWkWRVTCYw\",\"isRequired\":true,\"mode\":\"editable\"},{\"attribute_id\":\"kxbdVhmkaEzkJvghWKFzkw\",\"isRequired\":false,\"mode\":\"editable\"},{\"attribute_id\":\"QHzHnEAmqGSgiEfkXoWMTw\",\"isRequired\":false,\"mode\":\"editable\"},{\"attribute_id\":\"AXxvHyKNpNYXYKOorywqRQ\",\"isRequired\":false,\"mode\":\"editable\"},{\"attribute_id\":\"DfkwfBiyfyCyRHvsHnDiqQ\",\"isRequired\":false,\"mode\":\"editable\"},{\"attribute_id\":\"UflxQeBtbrxfofrceJgVaA\",\"isRequired\":false,\"mode\":\"editable\"},{\"attribute_id\":\"nHzjBAeemLwpexXjdPBZHQ\",\"isRequired\":false,\"mode\":\"editable\"},{\"attribute_id\":\"zCttybnQPmYzJGmvOxWwBQ\",\"isRequired\":false,\"mode\":\"editable\"}],\"id\":\"KWpWgeKhKyoyBDEymUgcmg\",\"isArchive\":false,\"isCreate\":false,\"memberIds\":[\"SsVAZghfSzMZRZmxNKIizw\",\"XXZruirZyAOoRpNxaDnpSA\"],\"name\":\"Data Capture\",\"positionX\":260,\"positionY\":140,\"taskInstructions\":\"\"},{\"attributes\":[],\"id\":\"laXQcGGyWrbEiExtgkyCcw\",\"isArchive\":false,\"isCreate\":true,\"memberIds\":[],\"name\":\"Create\",\"positionX\":40,\"positionY\":30,\"taskInstructions\":\"\"},{\"attributes\":[{\"attribute_id\":\"CPJmMPXRaBIiNdGBofUPVg\",\"isRequired\":false,\"mode\":\"readonly\"},{\"attribute_id\":\"oeqelDVElwxHYWkWRVTCYw\",\"isRequired\":false,\"mode\":\"readonly\"},{\"attribute_id\":\"ElVKgkCreTEHQXJZPBJDKw\",\"isRequired\":true,\"mode\":\"editable\"}],\"id\":\"xmghdGZDgLKilxByetrBoA\",\"isArchive\":false,\"isCreate\":false,\"memberIds\":[\"MQFcPtrZPIGjMCRAXtZUnA\",\"CJrglMsNBxOWWfbihHQSeg\"],\"name\":\"Review\",\"positionX\":480,\"positionY\":250,\"taskInstructions\":\"\"}]},\"graphDelta\":{\"attributeEvents\":[],\"deletions\":[],\"edges\":[{\"at\":\"2020-01-01T00:00:02.108000Z\",\"flow_id\":\"esKujtyQFYUJaVSXWwavzA\",\"from_node_id\":\"xmghdGZDgLKilxByetrBoA\",\"id\":\"BQCWYtMcBEfKIkKBTFuVDA\",\"name\":\"approve\",\"to_node_id\":\"DkyhupXfDAcrWBojIzHlRQ\"},{\"at\":\"2020-01-01T00:00:02.108000Z\",\"flow_id\":\"esKujtyQFYUJaVSXWwavzA\",\"from_node_id\":\"xmghdGZDgLKilxByetrBoA\",\"id\":\"DYcnMktqUpTdZuEBnLBppw\",\"name\":\"needs revision\",\"to_node_id\":\"KWpWgeKhKyoyBDEymUgcmg\"},{\"at\":\"2020-01-01T00:00:02.108000Z\",\"flow_id\":\"esKujtyQFYUJaVSXWwavzA\",\"from_node_id\":\"KWpWgeKhKyoyBDEymUgcmg\",\"id\":\"JZJrLAteZStrqAvzZiamtA\",\"name\":\"submit\",\"to_node_id\":\"xmghdGZDgLKilxByetrBoA\"},{\"at\":\"2020-01-01T00:00:02.108000Z\",\"flow_id\":\"esKujtyQFYUJaVSXWwavzA\",\"from_node_id\":\"laXQcGGyWrbEiExtgkyCcw\",\"id\":\"PuLOAtGBPYhsnldPEyGaQw\",\"name\":\"begin\",\"to_node_id\":\"KWpWgeKhKyoyBDEymUgcmg\"}],\"memberEvents\":[],\"nodes\":[{\"at\":\"2020-01-01T00:00:02.108000Z\",\"flow_id\":\"esKujtyQFYUJaVSXWwavzA\",\"id\":\"DkyhupXfDAcrWBojIzHlRQ\",\"is_archive\":true,\"is_create\":false,\"name\":\"Archive\",\"position_x\":680,\"position_y\":370,\"task_instructions\":\"\"},{\"at\":\"2020-01-01T00:00:02.108000Z\",\"flow_id\":\"esKujtyQFYUJaVSXWwavzA\",\"id\":\"KWpWgeKhKyoyBDEymUgcmg\",\"is_archive\":false,\"is_create\":false,\"name\":\"Data Capture\",\"position_x\":260,\"position_y\":140,\"task_instructions\":\"\"},{\"at\":\"2020-01-01T00:00:02.108000Z\",\"flow_id\":\"esKujtyQFYUJaVSXWwavzA\",\"id\":\"laXQcGGyWrbEiExtgkyCcw\",\"is_archive\":false,\"is_create\":true,\"name\":\"Create\",\"position_x\":40,\"position_y\":30,\"task_instructions\":\"\"},{\"at\":\"2020-01-01T00:00:02.108000Z\",\"flow_id\":\"esKujtyQFYUJaVSXWwavzA\",\"id\":\"xmghdGZDgLKilxByetrBoA\",\"is_archive\":false,\"is_create\":false,\"name\":\"Review\",\"position_x\":480,\"position_y\":250,\"task_instructions\":\"\"}]},\"id\":\"esKujtyQFYUJaVSXWwavzA\",\"is_auto_fit\":true,\"is_auto_layout\":true,\"is_locked\":false,\"lock_timeout\":28800,\"name\":\"Customer Onboarding\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"revivals\":[],\"state\":\"updated\",\"state_at\":\"2020-01-01T00:00:02.108000Z\",\"state_event_id\":\"GR6bwBWZVchukZcV03T-EA\"}"
+        }
+      },
+      "curl": "curl -i -X POST \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/flows/esKujtyQFYUJaVSXWwavzA/undo\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"content-type: application/json\" \\\n  -H \"if-match: $ETAG\" \\\n  -H \"operation-id: $OPERATION_ID\" \\\n  -d '{\"eventId\":\"GR6bwBWZVchukZcV03T-EA\",\"at\":\"2020-01-01T00:00:02.108000Z\"}'"
+    }
+  ]
+}

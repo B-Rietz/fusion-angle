@@ -1,0 +1,111 @@
+{
+  "hash": "get/organizations/organization-id/record-types",
+  "pathIds": [
+    {
+      "name": ":organization-id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "GET",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/record-types/",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "694"
+          ],
+          [
+            "content-type",
+            "multipart/mixed; boundary=666923ff-41ec-43d3-bcf4-0861d72d7e8d"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "request-id",
+            "uUAF4TDCWmt-rIdQuuEPBA"
+          ]
+        ],
+        "body": {
+          "kind": "multipart",
+          "boundary": "666923ff-41ec-43d3-bcf4-0861d72d7e8d",
+          "parts": [
+            {
+              "status": 200,
+              "headers": [
+                [
+                  "content-length",
+                  "212"
+                ],
+                [
+                  "content-type",
+                  "application/json"
+                ],
+                [
+                  "date",
+                  "Wed, 01 Jan 2020 00:00:02 GMT"
+                ],
+                [
+                  "etag",
+                  "\"56xZASWGb6xwBsrJshyMqQ\""
+                ],
+                [
+                  "last-modified",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "operation-id",
+                  "Do7ka5xQg75U4IdGUp8q6w"
+                ],
+                [
+                  "request-id",
+                  "uUAF4TDCWmt-rIdQuuEPBA"
+                ],
+                [
+                  "requester-identity-id",
+                  "AAAAAAAAAAAAAAAAAAAAAA"
+                ],
+                [
+                  "response-at",
+                  "2020-01-01T00:00:01.628000Z"
+                ]
+              ],
+              "body": {
+                "kind": "text",
+                "mediaType": "application/json",
+                "text": "{\"description\":\"Company-side facts captured during onboarding and sales pursuits.\",\"id\":\"sJxkGGTrPegHqFbQAkXnjw\",\"name\":\"Customer Profile\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"position\":1,\"state\":\"active\"}"
+              }
+            }
+          ],
+          "more": 0
+        }
+      },
+      "curl": "curl -i -X GET \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/record-types/\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

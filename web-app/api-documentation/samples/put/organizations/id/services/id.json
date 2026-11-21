@@ -1,0 +1,102 @@
+{
+  "hash": "put/organizations/id/services/id",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    },
+    {
+      "name": ":id",
+      "value": "wC0VG1YgA2uSHTXucRFo_Q",
+      "source": "post/organizations/id/memberships"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "admin",
+      "request": {
+        "method": "PUT",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/services/wC0VG1YgA2uSHTXucRFo_Q",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "if-match",
+            "\"jwJTt86oUzeLdAMLAu7W1w\""
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "content-length",
+            "73"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"name\":\"Nightly archive\",\"description\":\"Exports the day's work orders.\"}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "103"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "etag",
+            "\"d4jBwJACLchP45lnV_j1JQ\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "request-id",
+            "9BKamlYsW8B-aeYfWsPxiw"
+          ],
+          [
+            "requester-identity-id",
+            "XXZruirZyAOoRpNxaDnpSA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:02.347000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"description\":\"Exports the day's work orders.\",\"id\":\"wC0VG1YgA2uSHTXucRFo_Q\",\"name\":\"Nightly archive\"}"
+        }
+      },
+      "curl": "curl -i -X PUT \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/services/wC0VG1YgA2uSHTXucRFo_Q\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"content-type: application/json\" \\\n  -H \"if-match: $ETAG\" \\\n  -H \"operation-id: $OPERATION_ID\" \\\n  -d '{\"name\":\"Nightly archive\",\"description\":\"Exports the day'\\''s work orders.\"}'"
+    }
+  ]
+}

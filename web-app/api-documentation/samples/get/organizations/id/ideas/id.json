@@ -1,0 +1,88 @@
+{
+  "hash": "get/organizations/id/ideas/id",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    },
+    {
+      "name": ":id",
+      "value": "eizcntIrQMWrajcGkQZvUA",
+      "source": "get/organizations/id/ideas"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "GET",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/ideas/eizcntIrQMWrajcGkQZvUA",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "558"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "etag",
+            "\"AgNpqsbGKcv-mN6NXoTvhg\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "operation-id",
+            "BCrMWQJMFE1IpxlWMFDiPA"
+          ],
+          [
+            "request-id",
+            "QjAH62Wu4ayTHIW8GBD5_Q"
+          ],
+          [
+            "requester-identity-id",
+            "CJrglMsNBxOWWfbihHQSeg"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:01.628000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"expected_outcome\":\"Achieve 15% reduction in energy costs and meet annual ESG reporting requirements.\",\"id\":\"eizcntIrQMWrajcGkQZvUA\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"position\":9,\"problem_statement\":\"No centralized view of energy, water, and waste metrics across facilities.\",\"proposed_solution\":\"Build a dashboard that aggregates utility data and tracks ESG goals in real time.\",\"state\":\"in_review\",\"success_metrics\":\"15% energy cost reduction, ESG report delivery on schedule\",\"target_users\":\"\",\"title\":\"Sustainability Dashboard for Operations\"}"
+        }
+      },
+      "curl": "curl -i -X GET \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/ideas/eizcntIrQMWrajcGkQZvUA\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

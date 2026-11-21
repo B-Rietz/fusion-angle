@@ -1,0 +1,116 @@
+{
+  "hash": "get/organizations/id/flows/id/records",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    },
+    {
+      "name": ":id",
+      "value": "esKujtyQFYUJaVSXWwavzA",
+      "source": "get/organizations/id/flows"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "GET",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/flows/esKujtyQFYUJaVSXWwavzA/records/",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "620"
+          ],
+          [
+            "content-type",
+            "multipart/mixed; boundary=4ba2ef5e-1874-44fe-83c0-1e6e8c9ac175"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "request-id",
+            "E9H3PdmNbz3TvU1WKAgC3w"
+          ]
+        ],
+        "body": {
+          "kind": "multipart",
+          "boundary": "4ba2ef5e-1874-44fe-83c0-1e6e8c9ac175",
+          "parts": [
+            {
+              "status": 200,
+              "headers": [
+                [
+                  "content-length",
+                  "138"
+                ],
+                [
+                  "content-type",
+                  "application/json"
+                ],
+                [
+                  "date",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "etag",
+                  "\"Yexu2xAtu9ocITdc1l-Lug\""
+                ],
+                [
+                  "last-modified",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "operation-id",
+                  "WILkQO-rUsX4fM-V0HtYMA"
+                ],
+                [
+                  "request-id",
+                  "E9H3PdmNbz3TvU1WKAgC3w"
+                ],
+                [
+                  "requester-identity-id",
+                  "AAAAAAAAAAAAAAAAAAAAAA"
+                ],
+                [
+                  "response-at",
+                  "2020-01-01T00:00:01.628000Z"
+                ]
+              ],
+              "body": {
+                "kind": "text",
+                "mediaType": "application/json",
+                "text": "{\"at\":\"2019-11-02T09:00:00.000000Z\",\"flow_id\":\"esKujtyQFYUJaVSXWwavzA\",\"id\":\"dDmnfQddFbigpThjftUlWg\",\"record_id\":\"sJxkGGTrPegHqFbQAkXnjw\"}"
+              }
+            }
+          ],
+          "more": 0
+        }
+      },
+      "curl": "curl -i -X GET \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/flows/esKujtyQFYUJaVSXWwavzA/records/\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

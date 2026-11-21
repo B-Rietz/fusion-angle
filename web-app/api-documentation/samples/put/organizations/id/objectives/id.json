@@ -1,0 +1,102 @@
+{
+  "hash": "put/organizations/id/objectives/id",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    },
+    {
+      "name": ":id",
+      "value": "VhxqyRIQytSnUArslwxyog",
+      "source": "get/organizations/id/objectives"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "PUT",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/objectives/VhxqyRIQytSnUArslwxyog",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "if-match",
+            "\"Hj9Foe11edJv2lFkwamevA\""
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "content-length",
+            "31"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"position\":3,\"state\":\"active\"}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "104"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "etag",
+            "\"Hj9Foe11edJv2lFkwamevA\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "operation-id",
+            "hGJKpSlXSMqf-A_Vsb-daQ"
+          ],
+          [
+            "request-id",
+            "hD23K2er_ExP0pTrgV58Sg"
+          ],
+          [
+            "requester-identity-id",
+            "MQFcPtrZPIGjMCRAXtZUnA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:01.628000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"id\":\"VhxqyRIQytSnUArslwxyog\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"position\":3,\"state\":\"active\"}"
+        }
+      },
+      "curl": "curl -i -X PUT \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/objectives/VhxqyRIQytSnUArslwxyog\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"content-type: application/json\" \\\n  -H \"if-match: $ETAG\" \\\n  -H \"operation-id: $OPERATION_ID\" \\\n  -d '{\"position\":3,\"state\":\"active\"}'"
+    }
+  ]
+}

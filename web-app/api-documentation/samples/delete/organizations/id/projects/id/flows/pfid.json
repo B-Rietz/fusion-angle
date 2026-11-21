@@ -1,0 +1,87 @@
+{
+  "hash": "delete/organizations/id/projects/id/flows/pfid",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    },
+    {
+      "name": ":id",
+      "value": "wqGTTFdYUGnmBxWCppmkOQ",
+      "source": "get/organizations/id/projects"
+    },
+    {
+      "name": ":pfid",
+      "value": "ECsMuhiPqBaILNBzyRlVqQ",
+      "source": "get/organizations/id/projects/id/flows"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "DELETE",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/projects/wqGTTFdYUGnmBxWCppmkOQ/flows/ECsMuhiPqBaILNBzyRlVqQ",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "if-match",
+            "\"JQH5bitPbZWPHI6tgLvmrQ\""
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 204,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "etag",
+            "\"gJqTl8H0vnySP_bmEI2JAQ\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "request-id",
+            "6mqhApSfe9BQhKDS5U12hw"
+          ],
+          [
+            "requester-identity-id",
+            "MQFcPtrZPIGjMCRAXtZUnA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:01.702000Z"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "curl": "curl -i -X DELETE \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/projects/wqGTTFdYUGnmBxWCppmkOQ/flows/ECsMuhiPqBaILNBzyRlVqQ\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"if-match: $ETAG\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

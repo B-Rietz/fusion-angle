@@ -1,0 +1,111 @@
+{
+  "hash": "get/identities/id/invitations",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "MQFcPtrZPIGjMCRAXtZUnA",
+      "source": ""
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "GET",
+        "target": "/api/identities/MQFcPtrZPIGjMCRAXtZUnA/invitations/",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "688"
+          ],
+          [
+            "content-type",
+            "multipart/mixed; boundary=68dc71a3-d692-4e87-8c71-bbf3ad5ed52d"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "request-id",
+            "l_B_xoGYzDUPlkF9L2iKvw"
+          ]
+        ],
+        "body": {
+          "kind": "multipart",
+          "boundary": "68dc71a3-d692-4e87-8c71-bbf3ad5ed52d",
+          "parts": [
+            {
+              "status": 200,
+              "headers": [
+                [
+                  "content-length",
+                  "206"
+                ],
+                [
+                  "content-type",
+                  "application/json"
+                ],
+                [
+                  "date",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "etag",
+                  "\"nZgxJQxCZNLeDJgev6h7_w\""
+                ],
+                [
+                  "last-modified",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "operation-id",
+                  "yv5OE6HIbF696GkoQgK2ug"
+                ],
+                [
+                  "request-id",
+                  "l_B_xoGYzDUPlkF9L2iKvw"
+                ],
+                [
+                  "requester-identity-id",
+                  "AAAAAAAAAAAAAAAAAAAAAA"
+                ],
+                [
+                  "response-at",
+                  "2020-01-01T00:00:01.628000Z"
+                ]
+              ],
+              "body": {
+                "kind": "text",
+                "mediaType": "application/json",
+                "text": "{\"at\":\"2026-01-01T00:00:00.000000Z\",\"id\":\"AjdvjuECVZEgZoFajaIEkg:MQFcPtrZPIGjMCRAXtZUnA\",\"identity_id\":\"MQFcPtrZPIGjMCRAXtZUnA\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"state\":\"accepted\",\"type\":\"member\"}"
+              }
+            }
+          ],
+          "more": 0
+        }
+      },
+      "curl": "curl -i -X GET \"$ORIGIN/api/identities/MQFcPtrZPIGjMCRAXtZUnA/invitations/\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

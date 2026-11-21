@@ -1,0 +1,97 @@
+{
+  "hash": "put/identities/id/registration",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "TWKCXaifsihr47MTBCQIlA",
+      "source": "post/organizations/id/memberships"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "admin",
+      "request": {
+        "method": "PUT",
+        "target": "/api/identities/TWKCXaifsihr47MTBCQIlA/registration",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "if-none-match",
+            "*"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "content-length",
+            "130"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"grant_types\":\"client_credentials\",\"redirect_uris\":\"\",\"jwks\":\"{\\\"keys\\\":[]}\",\"aud\":\"/api/authentication/token\",\"status\":\"active\"}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "160"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "etag",
+            "\"stYOMZ6IxJDVRj47x3t3jw\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "request-id",
+            "OyeeIWeFX0reO5TkCY8WHg"
+          ],
+          [
+            "requester-identity-id",
+            "XXZruirZyAOoRpNxaDnpSA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:02.206000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"aud\":\"/api/authentication/token\",\"grant_types\":\"client_credentials\",\"id\":\"TWKCXaifsihr47MTBCQIlA\",\"jwks\":\"{\\\"keys\\\":[]}\",\"redirect_uris\":\"\",\"status\":\"active\"}"
+        }
+      },
+      "curl": "curl -i -X PUT \"$ORIGIN/api/identities/TWKCXaifsihr47MTBCQIlA/registration\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"content-type: application/json\" \\\n  -H \"if-none-match: *\" \\\n  -H \"operation-id: $OPERATION_ID\" \\\n  -d '{\"grant_types\":\"client_credentials\",\"redirect_uris\":\"\",\"jwks\":\"{\\\"keys\\\":[]}\",\"aud\":\"/api/authentication/token\",\"status\":\"active\"}'"
+    }
+  ]
+}

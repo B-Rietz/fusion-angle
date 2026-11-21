@@ -1,0 +1,151 @@
+{
+  "hash": "get/identities",
+  "pathIds": [],
+  "exchanges": [
+    {
+      "caller": "admin",
+      "request": {
+        "method": "GET",
+        "target": "/api/identities/",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "6037"
+          ],
+          [
+            "content-type",
+            "multipart/mixed; boundary=e443de30-1549-45ec-beb4-2effaa7d851c"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "request-id",
+            "jFv5GcibkGM81N1tsc0dPA"
+          ]
+        ],
+        "body": {
+          "kind": "multipart",
+          "boundary": "e443de30-1549-45ec-beb4-2effaa7d851c",
+          "parts": [
+            {
+              "status": 200,
+              "headers": [
+                [
+                  "content-length",
+                  "48"
+                ],
+                [
+                  "content-type",
+                  "application/json"
+                ],
+                [
+                  "date",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "etag",
+                  "\"HEDS-PSW4qqqN7H_CHrH8Q\""
+                ],
+                [
+                  "last-modified",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "operation-id",
+                  "e8oCPH2D_syVi7SOtqoC5w"
+                ],
+                [
+                  "request-id",
+                  "jFv5GcibkGM81N1tsc0dPA"
+                ],
+                [
+                  "requester-identity-id",
+                  "AAAAAAAAAAAAAAAAAAAAAA"
+                ],
+                [
+                  "response-at",
+                  "2020-01-01T00:00:01.628000Z"
+                ]
+              ],
+              "body": {
+                "kind": "text",
+                "mediaType": "application/json",
+                "text": "{\"id\":\"TUEVODaACdRpdCoetLSzZg\",\"kind\":\"service\"}"
+              }
+            },
+            {
+              "status": 200,
+              "headers": [
+                [
+                  "content-length",
+                  "239"
+                ],
+                [
+                  "content-type",
+                  "application/json"
+                ],
+                [
+                  "date",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "etag",
+                  "\"L7es0mvUZ81eXL_KRBSlBw\""
+                ],
+                [
+                  "last-modified",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "operation-id",
+                  "G8cjgZuk28HfWVscj89wmw"
+                ],
+                [
+                  "request-id",
+                  "jFv5GcibkGM81N1tsc0dPA"
+                ],
+                [
+                  "requester-identity-id",
+                  "AAAAAAAAAAAAAAAAAAAAAA"
+                ],
+                [
+                  "response-at",
+                  "2020-01-01T00:00:01.628000Z"
+                ]
+              ],
+              "body": {
+                "kind": "text",
+                "mediaType": "application/json",
+                "text": "{\"department\":\"Product\",\"id\":\"XXZruirZyAOoRpNxaDnpSA\",\"kind\":\"person\",\"strengths\":[\"Strategic Planning\",\"Data Analysis\",\"Stakeholder Management\"],\"team_dimensions\":{\"amiable\":80,\"analytical\":80,\"driver\":80,\"expressive\":80},\"title\":\"Admin\"}"
+              }
+            }
+          ],
+          "more": 8
+        }
+      },
+      "curl": "curl -i -X GET \"$ORIGIN/api/identities/\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

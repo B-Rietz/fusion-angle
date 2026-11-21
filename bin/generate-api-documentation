@@ -6,5 +6,6 @@ ROOT="$(cd "$BIN/.." && pwd)"
 cd "$ROOT"
 
 deno run --frozen --allow-read \
+    --allow-env=JWT_HMAC_SIGNING_KEY \
     --allow-write=web-app/api-documentation \
-    web-app/app/generate-api-documentation.ts "$@"
+    web-app/app/generate-api-documentation-main.ts "$@"

@@ -1,0 +1,157 @@
+{
+  "hash": "get/organizations/id/memberships",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "GET",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/memberships/",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "7190"
+          ],
+          [
+            "content-type",
+            "multipart/mixed; boundary=7526a496-4067-4b5f-89ab-bc490f587145"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "request-id",
+            "n2rFD1ShTfCHb4fIvDqEiw"
+          ]
+        ],
+        "body": {
+          "kind": "multipart",
+          "boundary": "7526a496-4067-4b5f-89ab-bc490f587145",
+          "parts": [
+            {
+              "status": 200,
+              "headers": [
+                [
+                  "content-length",
+                  "301"
+                ],
+                [
+                  "content-type",
+                  "application/json"
+                ],
+                [
+                  "date",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "etag",
+                  "\"GcziroliUxsIWE2X7oPEtQ\""
+                ],
+                [
+                  "last-modified",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "operation-id",
+                  "gYkebNYV8BiTxhFTMv2xEw"
+                ],
+                [
+                  "request-id",
+                  "n2rFD1ShTfCHb4fIvDqEiw"
+                ],
+                [
+                  "requester-identity-id",
+                  "AAAAAAAAAAAAAAAAAAAAAA"
+                ],
+                [
+                  "response-at",
+                  "2020-01-01T00:00:01.628000Z"
+                ]
+              ],
+              "body": {
+                "kind": "text",
+                "mediaType": "application/json",
+                "text": "{\"at\":\"2026-01-01T00:00:00.000000Z\",\"id\":\"AjdvjuECVZEgZoFajaIEkg:SsVAZghfSzMZRZmxNKIizw\",\"identity_id\":\"SsVAZghfSzMZRZmxNKIizw\",\"identity_kind\":\"person\",\"invitee_email\":\"marcus@acmecorp.com\",\"invitee_name\":\"Marcus Johnson\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"state\":\"accepted\",\"type\":\"member\"}"
+              }
+            },
+            {
+              "status": 200,
+              "headers": [
+                [
+                  "content-length",
+                  "304"
+                ],
+                [
+                  "content-type",
+                  "application/json"
+                ],
+                [
+                  "date",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "etag",
+                  "\"K9G0UANYq5gWe8OGBjeY3Q\""
+                ],
+                [
+                  "last-modified",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "operation-id",
+                  "d6kdri7ZW30xWL3J7GTSNQ"
+                ],
+                [
+                  "request-id",
+                  "n2rFD1ShTfCHb4fIvDqEiw"
+                ],
+                [
+                  "requester-identity-id",
+                  "AAAAAAAAAAAAAAAAAAAAAA"
+                ],
+                [
+                  "response-at",
+                  "2020-01-01T00:00:01.628000Z"
+                ]
+              ],
+              "body": {
+                "kind": "text",
+                "mediaType": "application/json",
+                "text": "{\"at\":\"2026-01-01T00:00:00.000000Z\",\"id\":\"AjdvjuECVZEgZoFajaIEkg:zyGBRshxOnKHUfcyFRqowg\",\"identity_id\":\"zyGBRshxOnKHUfcyFRqowg\",\"identity_kind\":\"person\",\"invitee_email\":\"jessica.park@company.com\",\"invitee_name\":\"Jessica Park\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"state\":\"accepted\",\"type\":\"member\"}"
+              }
+            }
+          ],
+          "more": 8
+        }
+      },
+      "curl": "curl -i -X GET \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/memberships/\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

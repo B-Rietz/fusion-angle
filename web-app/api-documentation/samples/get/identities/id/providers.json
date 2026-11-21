@@ -1,0 +1,53 @@
+{
+  "hash": "get/identities/id/providers",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "XXZruirZyAOoRpNxaDnpSA",
+      "source": ""
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "admin",
+      "request": {
+        "method": "GET",
+        "target": "/api/identities/XXZruirZyAOoRpNxaDnpSA/providers/",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 204,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "request-id",
+            "J3PxDM3PJXBDb13yuTMRqQ"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "curl": "curl -i -X GET \"$ORIGIN/api/identities/XXZruirZyAOoRpNxaDnpSA/providers/\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

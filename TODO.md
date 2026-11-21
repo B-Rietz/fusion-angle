@@ -2056,8 +2056,8 @@ Off the critical path; each with its oracle.
     content-hashed `assets/app.<hash>.js`,
     `styles.<hash>.css`, and `pages-*.<hash>.css`,
     `site/asset-manifest.json`, the woff2 fonts, the 18
-    page directories, and the verb/status rooms generated
-    separately from `PAGE_REGISTRY` (A1, A2, J3) — Layer
+    page directories, and the API documentation's catalog and
+    samples generated separately from `PAGE_REGISTRY` (A1, A2, J3) — Layer
     1, an integration test in the shape of
     `tests/deploy-cli.test.ts` that spawns `./bin/build
     --no-zip` into a temp dir; today the 29 is pinned in
@@ -2714,27 +2714,59 @@ Off the critical path; each with its oracle.
   and the loser's DDL gone; a second applies a table step
   to a database seeded from an older binary, and the new
   binary boots.
-- Seed pairs present no credentials. A seed row's
-  secrets columns hold zero bytes where a live write
-  stores its `authorization` line, and a seed pair
-  carries no `request-id` line: the ledger-seed spec's
-  Decision 3, a named departure from the axiom that a
-  pair stores what was received
+- Seed through the API. The seed writes beneath the
+  gate: it forms each pair itself and runs its ops on
+  a scratch memory backend (`rehearse`,
+  `api/ledger-seed.ts:295`; `rehearseMockData`,
+  `api/mock-data.ts:362`), never through
+  `handleRequest`. So a seeded row is not an exchange,
+  in three ways. It stores zero bytes where a live
+  write stores its request (`withoutRequest`,
+  `api/ledger-seed.ts:143`, applied to every row at
+  `:335`). Its secrets columns hold zero bytes where a
+  live write stores its `authorization` line. And it
+  carries no `request-id` line. The last two are the
+  ledger-seed spec's Decision 3, a named departure
+  from the axiom that a pair stores what was received
   (`docs/superpowers/specs/2026-09-23-ledger-seed-design.md:135-143`,
-  `:627-629`). A pair identical to the app's needs a
-  bearer per requester, minted by a simulated login
-  whose own pairs land too, and the seed runs without
-  the signing key (`tests/pg-seed.test.ts:433`).
-  SCHEMA.md says the reverse: its `fa_request_id_of`
-  index entry reads "A seed pair stores one"
-  (`SCHEMA.md:96`), while `withoutRequestIdLine`
-  strips the line from every seed row and throws on a
-  row without one (`api/ledger-seed.ts:113-126`).
-  Oracle: a seeded write pair's secrets hold the line
-  its requester would have sent, or SCHEMA.md names the
-  seed as the axiom's one exception; either way
-  SCHEMA.md's index entry matches what a seed pair
-  stores
+  `:627-629`). Sent through `handleRequest` on the
+  rehearsal's scratch backend, each seeded write would
+  be the pair its own request produced, and the axiom
+  would hold with no exception. Landing stays the
+  owner's, beneath the adapter: only the rehearsal
+  changes. It needs a bearer per requester, minted by
+  a simulated login whose own pairs land too, and the
+  seed runs without the signing key
+  (`tests/pg-seed.test.ts:433`). It is within reach:
+  in the API documentation overhaul's review, a
+  sign-in answered through `handleRequest` on memory,
+  and the seed's own write bodies
+  (`buildMockDataInvocations`,
+  `api/mock-data/seed-message-pairs.ts:1227`), re-sent
+  there with `If-Match`, answered 200 on 11 of 12 PUT
+  routes; the invitation item answered 400, so that
+  body is one the gate refuses today. Its cost is not
+  measured: the memory seed loads in 1.7 s with a
+  cheap hasher, and the gate adds validation and
+  authorization to each of 2,553 rows. Beyond the
+  axiom it buys two things. The seed could no longer
+  write a body the gate would refuse. And the API
+  documentation generator could take a write sample's
+  request from the ledger, where today it must go
+  back to the seed's builders.
+  SCHEMA.md says the reverse of what the seed does:
+  its `fa_request_id_of` index entry reads "A seed
+  pair stores one" (`SCHEMA.md:96`), while
+  `withoutRequestIdLine` strips the line from every
+  seed row and throws on a row without one
+  (`api/ledger-seed.ts:113-126`).
+  Oracle: every seeded write row stores the request
+  `handleRequest` received for it — its body, its
+  `authorization` line in the secrets, its
+  `request-id` line — and no seed code forms a pair;
+  or SCHEMA.md names the seed as the axiom's one
+  exception; either way SCHEMA.md's index entry
+  matches what a seed pair stores
 - Immutable document types. A family declares itself
   immutable where it declares its conditional; every
   write is a genesis under the never-written latch, so a
@@ -3979,6 +4011,28 @@ Off the critical path; each with its oracle.
   the lens, its cycle dash) can swap then. Oracle:
   `findCycleEdgeIds` orders its inputs by id itself,
   and one pin shuffles both arrays to the same result.
+- Declare and prove handler role narrowing. Each rule
+  that narrows a tier (self only; invitee or
+  organization admin) is declared beside its route, a
+  test proves it by calling as the wrong person, and
+  the API documentation page shows it. The header unit
+  (`declared-request-headers`) is the pattern. Oracle:
+  every narrowing rule has a declaration beside its
+  route, a test that is red when the wrong person is
+  admitted, and a line on the page.
+- A machine-readable OpenAPI file, once body shapes
+  exist as schemas. The documentation's catalog names
+  routes, statuses and headers but not body shapes.
+  Oracle: a generated OpenAPI file validates against
+  the OpenAPI schema and names every catalog route.
+- Mark uncacheable what carries a reader's credential.
+  When the documentation page fills a signed-in
+  reader's real credentials into a sample (the live
+  layer), every response and every page rendering that
+  can carry that credential is marked uncacheable with
+  standard caching headers (`Cache-Control: no-store`).
+  Oracle: a test fetches each such response and page
+  and asserts the header, red when one lacks it.
 
 ## Sequencing
 

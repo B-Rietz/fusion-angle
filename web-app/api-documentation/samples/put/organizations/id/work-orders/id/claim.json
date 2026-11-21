@@ -1,0 +1,102 @@
+{
+  "hash": "put/organizations/id/work-orders/id/claim",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    },
+    {
+      "name": ":id",
+      "value": "nTIlwHvYCLLpcgDPpZfJsw",
+      "source": "get/organizations/id/work-orders"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "PUT",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/work-orders/nTIlwHvYCLLpcgDPpZfJsw/claim",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "if-match",
+            "\"KTrJ8g9tAmQeotAdN7z_Ow\""
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "content-length",
+            "163"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"claimEventId\":\"bkSrSt069GZKq1LUN9FOpg\",\"claimAt\":\"2020-01-01T00:00:02.365000Z\",\"expireEventId\":\"Y-9p8QHNOFxtNoH2KzfT2Q\",\"expireAt\":\"2020-01-01T00:00:02.364000Z\"}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "2926"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "etag",
+            "\"FJ1NAwPpB60Qg9NUSLiDsg\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "request-id",
+            "06jgMu6-odhQI_0Ae1J5Ng"
+          ],
+          [
+            "requester-identity-id",
+            "MQFcPtrZPIGjMCRAXtZUnA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:02.368000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"claim\":{\"at\":\"2020-01-01T00:00:02.365000Z\",\"expires_at\":\"2020-01-01T08:00:02.365000Z\",\"member_id\":\"MQFcPtrZPIGjMCRAXtZUnA\"},\"events\":[{\"at\":\"2020-01-01T00:00:02.364000Z\",\"field_values\":[],\"id\":\"Y-9p8QHNOFxtNoH2KzfT2Q\",\"member_id\":\"MQFcPtrZPIGjMCRAXtZUnA\",\"state\":\"claim_expired\"},{\"at\":\"2020-01-01T00:00:02.365000Z\",\"field_values\":[],\"id\":\"bkSrSt069GZKq1LUN9FOpg\",\"member_id\":\"MQFcPtrZPIGjMCRAXtZUnA\",\"state\":\"claimed\"}],\"flow_graph\":{\"edges\":[{\"fromNodeId\":\"laXQcGGyWrbEiExtgkyCcw\",\"id\":\"PuLOAtGBPYhsnldPEyGaQw\",\"name\":\"begin\",\"toNodeId\":\"KWpWgeKhKyoyBDEymUgcmg\"},{\"fromNodeId\":\"KWpWgeKhKyoyBDEymUgcmg\",\"id\":\"JZJrLAteZStrqAvzZiamtA\",\"name\":\"submit\",\"toNodeId\":\"xmghdGZDgLKilxByetrBoA\"},{\"fromNodeId\":\"xmghdGZDgLKilxByetrBoA\",\"id\":\"DYcnMktqUpTdZuEBnLBppw\",\"name\":\"needs revision\",\"toNodeId\":\"KWpWgeKhKyoyBDEymUgcmg\"},{\"fromNodeId\":\"xmghdGZDgLKilxByetrBoA\",\"id\":\"BQCWYtMcBEfKIkKBTFuVDA\",\"name\":\"approve\",\"toNodeId\":\"DkyhupXfDAcrWBojIzHlRQ\"}],\"lockTimeout\":28800,\"name\":\"Customer Onboarding\",\"nodes\":[{\"attributes\":[],\"id\":\"laXQcGGyWrbEiExtgkyCcw\",\"isArchive\":false,\"isCreate\":true,\"memberIds\":[],\"name\":\"Create\",\"positionX\":40,\"positionY\":30,\"taskInstructions\":\"\"},{\"attributes\":[{\"attribute_id\":\"CPJmMPXRaBIiNdGBofUPVg\",\"isRequired\":true,\"mode\":\"editable\"},{\"attribute_id\":\"oeqelDVElwxHYWkWRVTCYw\",\"isRequired\":true,\"mode\":\"editable\"},{\"attribute_id\":\"kxbdVhmkaEzkJvghWKFzkw\",\"isRequired\":false,\"mode\":\"editable\"},{\"attribute_id\":\"QHzHnEAmqGSgiEfkXoWMTw\",\"isRequired\":false,\"mode\":\"editable\"},{\"attribute_id\":\"AXxvHyKNpNYXYKOorywqRQ\",\"isRequired\":false,\"mode\":\"editable\"},{\"attribute_id\":\"DfkwfBiyfyCyRHvsHnDiqQ\",\"isRequired\":false,\"mode\":\"editable\"},{\"attribute_id\":\"UflxQeBtbrxfofrceJgVaA\",\"isRequired\":false,\"mode\":\"editable\"},{\"attribute_id\":\"nHzjBAeemLwpexXjdPBZHQ\",\"isRequired\":false,\"mode\":\"editable\"},{\"attribute_id\":\"zCttybnQPmYzJGmvOxWwBQ\",\"isRequired\":false,\"mode\":\"editable\"}],\"id\":\"KWpWgeKhKyoyBDEymUgcmg\",\"isArchive\":false,\"isCreate\":false,\"memberIds\":[\"SsVAZghfSzMZRZmxNKIizw\",\"XXZruirZyAOoRpNxaDnpSA\"],\"name\":\"Data Capture\",\"positionX\":260,\"positionY\":140,\"taskInstructions\":\"\"},{\"attributes\":[{\"attribute_id\":\"CPJmMPXRaBIiNdGBofUPVg\",\"isRequired\":false,\"mode\":\"readonly\"},{\"attribute_id\":\"oeqelDVElwxHYWkWRVTCYw\",\"isRequired\":false,\"mode\":\"readonly\"},{\"attribute_id\":\"ElVKgkCreTEHQXJZPBJDKw\",\"isRequired\":true,\"mode\":\"editable\"}],\"id\":\"xmghdGZDgLKilxByetrBoA\",\"isArchive\":false,\"isCreate\":false,\"memberIds\":[\"MQFcPtrZPIGjMCRAXtZUnA\",\"CJrglMsNBxOWWfbihHQSeg\"],\"name\":\"Review\",\"positionX\":480,\"positionY\":250,\"taskInstructions\":\"\"},{\"attributes\":[],\"id\":\"DkyhupXfDAcrWBojIzHlRQ\",\"isArchive\":true,\"isCreate\":false,\"memberIds\":[],\"name\":\"Archive\",\"positionX\":680,\"positionY\":370,\"taskInstructions\":\"\"}]},\"id\":\"nTIlwHvYCLLpcgDPpZfJsw\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"position\":32,\"state\":\"KWpWgeKhKyoyBDEymUgcmg\",\"transition\":{\"at\":\"2019-12-25T08:12:00.000000Z\",\"member_id\":\"MQFcPtrZPIGjMCRAXtZUnA\"}}"
+        }
+      },
+      "curl": "curl -i -X PUT \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/work-orders/nTIlwHvYCLLpcgDPpZfJsw/claim\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"content-type: application/json\" \\\n  -H \"if-match: $ETAG\" \\\n  -H \"operation-id: $OPERATION_ID\" \\\n  -d '{\"claimEventId\":\"bkSrSt069GZKq1LUN9FOpg\",\"claimAt\":\"2020-01-01T00:00:02.365000Z\",\"expireEventId\":\"Y-9p8QHNOFxtNoH2KzfT2Q\",\"expireAt\":\"2020-01-01T00:00:02.364000Z\"}'"
+    }
+  ]
+}

@@ -1,0 +1,97 @@
+{
+  "hash": "post/organizations/id/objectives",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "POST",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/objectives/",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "content-length",
+            "374"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"id\":\"f8w9wGYE8E_YmOCgheWDzA\",\"objective\":{\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"position\":1},\"revisionId\":\"HK5QtnWF_NFcvhJrMCb9pw\",\"revision\":{\"objective_id\":\"f8w9wGYE8E_YmOCgheWDzA\",\"name\":\"Lower expenses\",\"description\":\"Reduce operational outlay across the business\",\"member_id\":\"zyGBRshxOnKHUfcyFRqowg\",\"at\":\"2026-01-01T00:00:00.000000Z\"},\"initialState\":\"active\"}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "104"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "etag",
+            "\"g_RguRso6Fmuq4fBN0u8qg\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "location",
+            "f8w9wGYE8E_YmOCgheWDzA"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "request-id",
+            "74J9Q590I5en4K3PGxaeBA"
+          ],
+          [
+            "requester-identity-id",
+            "MQFcPtrZPIGjMCRAXtZUnA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:02.139000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"id\":\"f8w9wGYE8E_YmOCgheWDzA\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"position\":1,\"state\":\"active\"}"
+        }
+      },
+      "curl": "curl -i -X POST \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/objectives/\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"content-type: application/json\" \\\n  -H \"operation-id: $OPERATION_ID\" \\\n  -d '{\"id\":\"f8w9wGYE8E_YmOCgheWDzA\",\"objective\":{\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"position\":1},\"revisionId\":\"HK5QtnWF_NFcvhJrMCb9pw\",\"revision\":{\"objective_id\":\"f8w9wGYE8E_YmOCgheWDzA\",\"name\":\"Lower expenses\",\"description\":\"Reduce operational outlay across the business\",\"member_id\":\"zyGBRshxOnKHUfcyFRqowg\",\"at\":\"2026-01-01T00:00:00.000000Z\"},\"initialState\":\"active\"}'"
+    }
+  ]
+}

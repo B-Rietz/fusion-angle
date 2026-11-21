@@ -1,0 +1,93 @@
+{
+  "hash": "get/organizations/id/services/id/versions/etag",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    },
+    {
+      "name": ":id",
+      "value": "spUuRj5giwf4Kh4aWO5pNw",
+      "source": "post/organizations/id/memberships"
+    },
+    {
+      "name": ":etag",
+      "value": "AvgAJUIFFHqcOzutuAlTgw",
+      "source": "get/organizations/id/services/id"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "GET",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/services/spUuRj5giwf4Kh4aWO5pNw/versions/AvgAJUIFFHqcOzutuAlTgw",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "102"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "etag",
+            "\"AvgAJUIFFHqcOzutuAlTgw\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "operation-id",
+            "KYr_XnRD5VgR3fzh_seGMQ"
+          ],
+          [
+            "request-id",
+            "laqRD3TpoWLTkGeuTQPG0w"
+          ],
+          [
+            "requester-identity-id",
+            "XXZruirZyAOoRpNxaDnpSA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:02.006000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"description\":\"Exports the day's work orders.\",\"id\":\"spUuRj5giwf4Kh4aWO5pNw\",\"name\":\"Nightly export\"}"
+        }
+      },
+      "curl": "curl -i -X GET \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/services/spUuRj5giwf4Kh4aWO5pNw/versions/AvgAJUIFFHqcOzutuAlTgw\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

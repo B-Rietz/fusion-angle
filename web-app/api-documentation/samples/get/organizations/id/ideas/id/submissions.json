@@ -1,0 +1,116 @@
+{
+  "hash": "get/organizations/id/ideas/id/submissions",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    },
+    {
+      "name": ":id",
+      "value": "eizcntIrQMWrajcGkQZvUA",
+      "source": "get/organizations/id/ideas"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "GET",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/ideas/eizcntIrQMWrajcGkQZvUA/submissions/",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "620"
+          ],
+          [
+            "content-type",
+            "multipart/mixed; boundary=e0c6f27c-174a-44a1-8c77-613e800f8703"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "request-id",
+            "qqR_-j-YttOHdJ4WgOjR2Q"
+          ]
+        ],
+        "body": {
+          "kind": "multipart",
+          "boundary": "e0c6f27c-174a-44a1-8c77-613e800f8703",
+          "parts": [
+            {
+              "status": 200,
+              "headers": [
+                [
+                  "content-length",
+                  "138"
+                ],
+                [
+                  "content-type",
+                  "application/json"
+                ],
+                [
+                  "date",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "etag",
+                  "\"1V6J4Pz0IKFDT1pI2tz3Nw\""
+                ],
+                [
+                  "last-modified",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "operation-id",
+                  "ggv5LwbUoN9WpC5hBO4jAQ"
+                ],
+                [
+                  "request-id",
+                  "qqR_-j-YttOHdJ4WgOjR2Q"
+                ],
+                [
+                  "requester-identity-id",
+                  "CJrglMsNBxOWWfbihHQSeg"
+                ],
+                [
+                  "response-at",
+                  "2020-01-01T00:00:01.628000Z"
+                ]
+              ],
+              "body": {
+                "kind": "text",
+                "mediaType": "application/json",
+                "text": "{\"at\":\"2019-12-02T09:00:00.000000Z\",\"id\":\"RiylIfXqZbLtQacHWFSnFA\",\"idea_id\":\"eizcntIrQMWrajcGkQZvUA\",\"member_id\":\"CJrglMsNBxOWWfbihHQSeg\"}"
+              }
+            }
+          ],
+          "more": 0
+        }
+      },
+      "curl": "curl -i -X GET \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/ideas/eizcntIrQMWrajcGkQZvUA/submissions/\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

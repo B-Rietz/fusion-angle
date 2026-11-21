@@ -11,6 +11,7 @@ import {
     type Reader,
     type Transmission,
 } from './served-response.ts';
+import { RESPONSE_HEADERS } from './response-header-names.ts';
 import { rankedBySearch } from '../shared/search-match.ts';
 import { bodyOf, DELETED_STATE } from './derive-documents.ts';
 import {
@@ -383,7 +384,10 @@ function locatedResponse(served: string, location: string): string {
         ...model,
         fields: placedLines(
             model.fields,
-            [{ name: 'content-location', value: location }],
+            [{
+                name: RESPONSE_HEADERS.contentLocation,
+                value: location,
+            }],
         ),
     });
 }
@@ -415,7 +419,10 @@ function multipartAnswer(
 ): Response {
     const lines = [
         { name: 'date', value: transmission.date },
-        { name: 'request-id', value: transmission.requestId },
+        {
+            name: RESPONSE_HEADERS.requestId,
+            value: transmission.requestId,
+        },
     ];
     if (parts.length === 0) {
         return responseOfWire(serializeWire({

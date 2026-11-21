@@ -1,0 +1,97 @@
+{
+  "hash": "post/organizations/id/invitations",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "admin",
+      "request": {
+        "method": "POST",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/invitations/",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "content-length",
+            "114"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"email\":\"mike.thompson@company.com\",\"at\":\"2026-01-01T00:00:00.000000Z\",\"expiresAt\":\"2027-01-01T00:00:00.000000Z\"}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "248"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "etag",
+            "\"cJ-qWxLx1wBoA0wgeDwLpA\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "location",
+            "/organizations/AjdvjuECVZEgZoFajaIEkg/invitations/AjdvjuECVZEgZoFajaIEkg:VvzFEpfYONDAsCCwNlIFCQ"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "request-id",
+            "aSJYm4PxvH3l6BCSA-ONbg"
+          ],
+          [
+            "requester-identity-id",
+            "XXZruirZyAOoRpNxaDnpSA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:02.132000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"at\":\"2026-01-01T00:00:00.000000Z\",\"expires_at\":\"2027-01-01T00:00:00.000000Z\",\"id\":\"AjdvjuECVZEgZoFajaIEkg:VvzFEpfYONDAsCCwNlIFCQ\",\"identity_id\":\"VvzFEpfYONDAsCCwNlIFCQ\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"state\":\"pending\",\"type\":\"member\"}"
+        }
+      },
+      "curl": "curl -i -X POST \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/invitations/\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"content-type: application/json\" \\\n  -H \"operation-id: $OPERATION_ID\" \\\n  -d '{\"email\":\"mike.thompson@company.com\",\"at\":\"2026-01-01T00:00:00.000000Z\",\"expiresAt\":\"2027-01-01T00:00:00.000000Z\"}'"
+    }
+  ]
+}

@@ -35,7 +35,9 @@ import {
     PII_DOCUMENT_NAME,
     runStateWrite,
     runWrite,
+    staleIfMatchRefusal,
 } from './message-pair.ts';
+import { ORGANIZATIONS_PATH } from './organization-hold.ts';
 import {
     REQUEST_HEADERS,
     requestFieldOf,
@@ -412,6 +414,15 @@ async function refuseLastAdmin(
     if (refusal !== undefined) {
         throw new ApiError(refusal, HTTP_CONFLICT);
     }
+}
+
+async function organizationExists(
+    db: DbAdapter,
+    organizationId: Id,
+): Promise<boolean> {
+    return await db.messagePairs.getHeadPair(
+        ORGANIZATIONS_PATH, organizationId,
+    ) !== null;
 }
 
 async function readHead(
@@ -1003,6 +1014,16 @@ async function putMembership(
     // A tag that names another head stores nothing.
     // The statement answers 412 before any actor rule.
     if (!latchAgrees(received, head)) {
+        // An organization never written holds no invitation,
+        // and no genesis row a roster statement could hold:
+        // its latch fails here, as the statement fails any
+        // other absent invitation's.
+        if (
+            head === null
+            && !await organizationExists(db, parsed.organizationId)
+        ) {
+            return staleIfMatchRefusal(MEMBERSHIPS_PATH + name);
+        }
         const stale = await landMembership(
             db, 'PUT', actor, requestAt, operationId,
             received, payload, name, request.state,

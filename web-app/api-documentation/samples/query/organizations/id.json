@@ -1,0 +1,175 @@
+{
+  "hash": "query/organizations/id",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "QUERY",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "content-length",
+            "16"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"q\":\"Customer\"}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "4248"
+          ],
+          [
+            "content-type",
+            "multipart/mixed; boundary=0b6536b5-c001-404b-a4a8-4c22cc1a5e5d"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "request-id",
+            "iDLawm1p5RUpNNqhRpezDA"
+          ]
+        ],
+        "body": {
+          "kind": "multipart",
+          "boundary": "0b6536b5-c001-404b-a4a8-4c22cc1a5e5d",
+          "parts": [
+            {
+              "status": 200,
+              "headers": [
+                [
+                  "content-length",
+                  "677"
+                ],
+                [
+                  "content-location",
+                  "/organizations/AjdvjuECVZEgZoFajaIEkg/ideas/YvOylAxOjQcgmNmsSoVBPQ"
+                ],
+                [
+                  "content-type",
+                  "application/json"
+                ],
+                [
+                  "date",
+                  "Wed, 01 Jan 2020 00:00:02 GMT"
+                ],
+                [
+                  "etag",
+                  "\"SqhhF77Wd2-u0ashQbBZKA\""
+                ],
+                [
+                  "last-modified",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "operation-id",
+                  "UcBVQz4irJAr4ZaJstXG4w"
+                ],
+                [
+                  "request-id",
+                  "iDLawm1p5RUpNNqhRpezDA"
+                ],
+                [
+                  "requester-identity-id",
+                  "MQFcPtrZPIGjMCRAXtZUnA"
+                ],
+                [
+                  "response-at",
+                  "2020-01-01T00:00:01.628000Z"
+                ]
+              ],
+              "body": {
+                "kind": "text",
+                "mediaType": "application/json",
+                "text": "{\"expected_outcome\":\"Reduce segmentation time by 80% and increase conversion rates by 25%.\",\"id\":\"YvOylAxOjQcgmNmsSoVBPQ\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"position\":1,\"problem_statement\":\"Marketing team spends 20+ hours weekly manually segmenting customers, leading to delayed campaigns and missed opportunities.\",\"proposed_solution\":\"Implement machine learning model to automatically segment customers based on behavior patterns.\",\"state\":\"in_review\",\"success_metrics\":\"80% reduction in manual segmentation time, 25% increase in campaign conversion rates\",\"target_users\":\"Marketing team, campaign managers, data analysts\",\"title\":\"AI-Powered Customer Segmentation\"}"
+              }
+            },
+            {
+              "status": 200,
+              "headers": [
+                [
+                  "content-length",
+                  "657"
+                ],
+                [
+                  "content-location",
+                  "/organizations/AjdvjuECVZEgZoFajaIEkg/ideas/MmMKBsQBLxNfbMAOlAaKkQ"
+                ],
+                [
+                  "content-type",
+                  "application/json"
+                ],
+                [
+                  "date",
+                  "Wed, 01 Jan 2020 00:00:02 GMT"
+                ],
+                [
+                  "etag",
+                  "\"bLR6eXdRE9HJcYDcNSqehQ\""
+                ],
+                [
+                  "last-modified",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "operation-id",
+                  "NATgCuehtkbiHMvD6ZW2qg"
+                ],
+                [
+                  "request-id",
+                  "iDLawm1p5RUpNNqhRpezDA"
+                ],
+                [
+                  "requester-identity-id",
+                  "MQFcPtrZPIGjMCRAXtZUnA"
+                ],
+                [
+                  "response-at",
+                  "2020-01-01T00:00:01.628000Z"
+                ]
+              ],
+              "body": {
+                "kind": "text",
+                "mediaType": "application/json",
+                "text": "{\"expected_outcome\":\"Deflect 60% of tier-1 tickets and cut average response time to under 30 seconds.\",\"id\":\"MmMKBsQBLxNfbMAOlAaKkQ\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"position\":8,\"problem_statement\":\"Support team handles 500+ tier-1 tickets daily, with average response time of 4 hours.\",\"proposed_solution\":\"Deploy an AI chatbot trained on historical tickets to resolve common inquiries instantly.\",\"state\":\"in_review\",\"success_metrics\":\"60% ticket deflection rate, CSAT above 4.5, average response time under 30 seconds\",\"target_users\":\"Customer support team, customers, support operations manager\",\"title\":\"AI-Powered Customer Support Chatbot\"}"
+              }
+            }
+          ],
+          "more": 2
+        }
+      },
+      "curl": "curl -i -X QUERY \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"content-type: application/json\" \\\n  -H \"operation-id: $OPERATION_ID\" \\\n  -d '{\"q\":\"Customer\"}'"
+    }
+  ]
+}

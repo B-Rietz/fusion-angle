@@ -1,0 +1,93 @@
+{
+  "hash": "get/organizations/organization-id/record-types/record-type-id/instances/instance-id",
+  "pathIds": [
+    {
+      "name": ":organization-id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    },
+    {
+      "name": ":record-type-id",
+      "value": "sJxkGGTrPegHqFbQAkXnjw",
+      "source": "get/organizations/organization-id/record-types"
+    },
+    {
+      "name": ":instance-id",
+      "value": "RUvEF1xhBZdYhz3igwrThA",
+      "source": "get/organizations/organization-id/record-types/record-type-id/instances"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "GET",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/record-types/sJxkGGTrPegHqFbQAkXnjw/instances/RUvEF1xhBZdYhz3igwrThA",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "575"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "etag",
+            "\"1yBxoKLeGwllXzsrzj4sWg\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "operation-id",
+            "iWwSwEhD4j0tSOTEfRXY8Q"
+          ],
+          [
+            "request-id",
+            "BRZBwWU_uZOvbO0-c2dg_A"
+          ],
+          [
+            "requester-identity-id",
+            "MQFcPtrZPIGjMCRAXtZUnA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:01.631000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"id\":\"RUvEF1xhBZdYhz3igwrThA\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"record_type_id\":\"sJxkGGTrPegHqFbQAkXnjw\",\"values\":[{\"attribute_id\":\"AXxvHyKNpNYXYKOorywqRQ\",\"value\":\"5000000\"},{\"attribute_id\":\"CPJmMPXRaBIiNdGBofUPVg\",\"value\":\"Acme Corp\"},{\"attribute_id\":\"DfkwfBiyfyCyRHvsHnDiqQ\",\"value\":\"250\"},{\"attribute_id\":\"ElVKgkCreTEHQXJZPBJDKw\",\"value\":\"Approved. Strong fit.\"},{\"attribute_id\":\"QHzHnEAmqGSgiEfkXoWMTw\",\"value\":\"Technology\"},{\"attribute_id\":\"kxbdVhmkaEzkJvghWKFzkw\",\"value\":\"+1-555-0100\"},{\"attribute_id\":\"oeqelDVElwxHYWkWRVTCYw\",\"value\":\"onboard@acme.com\"}]}"
+        }
+      },
+      "curl": "curl -i -X GET \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/record-types/sJxkGGTrPegHqFbQAkXnjw/instances/RUvEF1xhBZdYhz3igwrThA\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

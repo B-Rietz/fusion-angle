@@ -99,7 +99,7 @@ import {
     type FramedContext,
     type IncomingContext,
 } from './request-context.ts';
-import { REQUEST_ID_HEADER } from '../shared/message-id-fields.ts';
+import { RESPONSE_HEADERS } from './response-header-names.ts';
 import {
     isIdentifier,
 } from '../shared/identifier.ts';
@@ -478,7 +478,7 @@ function finish(
     response: Response,
 ): Response {
     response.headers.set(
-        REQUEST_ID_HEADER, ctx.requestId,
+        RESPONSE_HEADERS.requestId, ctx.requestId,
     );
     return response;
 }
@@ -1027,7 +1027,8 @@ async function dispatched(
                     return new Response(null, {
                         status: HTTP_NO_CONTENT,
                         headers: {
-                            'Operation-ID': ctx.operationId,
+                            [RESPONSE_HEADERS.operationId]:
+                                ctx.operationId,
                         },
                     });
                 }

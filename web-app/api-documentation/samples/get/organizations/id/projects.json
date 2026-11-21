@@ -1,0 +1,157 @@
+{
+  "hash": "get/organizations/id/projects",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "GET",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/projects/",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "13091"
+          ],
+          [
+            "content-type",
+            "multipart/mixed; boundary=192a5c24-5608-4482-89fc-277c123765f5"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "request-id",
+            "DCpigb3LWkBLgoE8z2HUlQ"
+          ]
+        ],
+        "body": {
+          "kind": "multipart",
+          "boundary": "192a5c24-5608-4482-89fc-277c123765f5",
+          "parts": [
+            {
+              "status": 200,
+              "headers": [
+                [
+                  "content-length",
+                  "370"
+                ],
+                [
+                  "content-type",
+                  "application/json"
+                ],
+                [
+                  "date",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "etag",
+                  "\"AGN6cy3tVdx1x_9fXas3RQ\""
+                ],
+                [
+                  "last-modified",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "operation-id",
+                  "B4zJrUNmbRWxCA6NHdkZzw"
+                ],
+                [
+                  "request-id",
+                  "DCpigb3LWkBLgoE8z2HUlQ"
+                ],
+                [
+                  "requester-identity-id",
+                  "AAAAAAAAAAAAAAAAAAAAAA"
+                ],
+                [
+                  "response-at",
+                  "2020-01-01T00:00:01.628000Z"
+                ]
+              ],
+              "body": {
+                "kind": "text",
+                "mediaType": "application/json",
+                "text": "{\"actual_cost\":0,\"description\":\"NLP pipeline that scores brand sentiment across social and news feeds, freshly submitted for review.\",\"estimated_cost\":42000,\"id\":\"PIfhHMLQQxTxKFDdabXbOw\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"position\":16,\"progress\":0,\"start_date\":\"2019-12-27\",\"state\":\"submitted\",\"target_end_date\":\"2020-04-30\",\"title\":\"Market Sentiment Analyzer\"}"
+              }
+            },
+            {
+              "status": 200,
+              "headers": [
+                [
+                  "content-length",
+                  "389"
+                ],
+                [
+                  "content-type",
+                  "application/json"
+                ],
+                [
+                  "date",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "etag",
+                  "\"Amyr_Hf2R7RTVa8b8fes0Q\""
+                ],
+                [
+                  "last-modified",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "operation-id",
+                  "-GJ8eMkFQHAVq9pvad-6bQ"
+                ],
+                [
+                  "request-id",
+                  "DCpigb3LWkBLgoE8z2HUlQ"
+                ],
+                [
+                  "requester-identity-id",
+                  "AAAAAAAAAAAAAAAAAAAAAA"
+                ],
+                [
+                  "response-at",
+                  "2020-01-01T00:00:01.628000Z"
+                ]
+              ],
+              "body": {
+                "kind": "text",
+                "mediaType": "application/json",
+                "text": "{\"actual_cost\":3500,\"description\":\"AI training assistant that delivers personalized learning paths and answers procedural questions for new hires.\",\"estimated_cost\":60000,\"id\":\"ObmAspkIgRMWsTRDWpkSUw\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"position\":7,\"progress\":10,\"start_date\":\"2019-12-20\",\"state\":\"under_review\",\"target_end_date\":\"2020-04-20\",\"title\":\"Employee Training Assistant\"}"
+              }
+            }
+          ],
+          "more": 14
+        }
+      },
+      "curl": "curl -i -X GET \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/projects/\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

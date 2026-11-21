@@ -52,6 +52,52 @@ const ALGORITHM_PROFILES: Readonly<
     },
 };
 
+// The algorithms an assertion may be signed with.
+export const ASSERTION_ALGORITHMS: readonly string[] =
+    Object.keys(ALGORITHM_PROFILES);
+
+export interface AssertionClaim {
+    readonly name: string;
+    // What the claim must hold, as claimsFault judges it.
+    readonly rule: string;
+    readonly required: boolean;
+}
+
+// The claims claimsFault reads, in the order it reads them.
+export const ASSERTION_CLAIMS: readonly AssertionClaim[] = [
+    {
+        name: 'iss',
+        rule: 'the client id',
+        required: true,
+    },
+    {
+        name: 'sub',
+        rule: 'the client id',
+        required: true,
+    },
+    {
+        name: 'aud',
+        rule: "the audience the client's registration names",
+        required: true,
+    },
+    {
+        name: 'exp',
+        rule: 'a time in epoch seconds, still in the future',
+        required: true,
+    },
+    {
+        name: 'nbf',
+        rule: 'when sent, a time in epoch seconds already past',
+        required: false,
+    },
+    {
+        name: 'jti',
+        rule: 'a fresh id of letters, digits, _ and -;'
+            + ' an assertion is spent once',
+        required: true,
+    },
+];
+
 // A JWT segment is base64url-wrapped JSON; either layer can be
 // corrupt independently, and both faults mean the same thing
 // to the caller: not a JSON object segment.

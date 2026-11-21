@@ -1,0 +1,157 @@
+{
+  "hash": "get/organizations/id/ai-agents",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "GET",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/ai-agents/",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "2611"
+          ],
+          [
+            "content-type",
+            "multipart/mixed; boundary=cf457d72-0ddd-4d82-935f-70061213c5bd"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "request-id",
+            "NLE8oBltX_WHbXQHRdRd0g"
+          ]
+        ],
+        "body": {
+          "kind": "multipart",
+          "boundary": "cf457d72-0ddd-4d82-935f-70061213c5bd",
+          "parts": [
+            {
+              "status": 200,
+              "headers": [
+                [
+                  "content-length",
+                  "222"
+                ],
+                [
+                  "content-type",
+                  "application/json"
+                ],
+                [
+                  "date",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "etag",
+                  "\"T4jR3MPK21ZCHfTf7B7S1w\""
+                ],
+                [
+                  "last-modified",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "operation-id",
+                  "tf13QXVY4WbCDhTwpLJCSA"
+                ],
+                [
+                  "request-id",
+                  "NLE8oBltX_WHbXQHRdRd0g"
+                ],
+                [
+                  "requester-identity-id",
+                  "AAAAAAAAAAAAAAAAAAAAAA"
+                ],
+                [
+                  "response-at",
+                  "2020-01-01T00:00:01.628000Z"
+                ]
+              ],
+              "body": {
+                "kind": "text",
+                "mediaType": "application/json",
+                "text": "{\"description\":\"Anthropic flagship — long context, deep reasoning.\",\"id\":\"wUkEhqRIJPaecPaeCOKZUg\",\"model\":\"nqNVXnBkUBLoKlenbyPIZQ\",\"name\":\"Claude Opus 4.8\",\"skill_focus\":\"Long-context analysis and multi-step reasoning.\"}"
+              }
+            },
+            {
+              "status": 200,
+              "headers": [
+                [
+                  "content-length",
+                  "207"
+                ],
+                [
+                  "content-type",
+                  "application/json"
+                ],
+                [
+                  "date",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "etag",
+                  "\"UgzJ9JP4J32p6I7E5EjjKg\""
+                ],
+                [
+                  "last-modified",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "operation-id",
+                  "fuzpce1Dp8CAB4Qzepn_3Q"
+                ],
+                [
+                  "request-id",
+                  "NLE8oBltX_WHbXQHRdRd0g"
+                ],
+                [
+                  "requester-identity-id",
+                  "AAAAAAAAAAAAAAAAAAAAAA"
+                ],
+                [
+                  "response-at",
+                  "2020-01-01T00:00:01.628000Z"
+                ]
+              ],
+              "body": {
+                "kind": "text",
+                "mediaType": "application/json",
+                "text": "{\"description\":\"Anthropic mid-tier — fast and capable.\",\"id\":\"MNwbRSuoYKwmVvCyxZCdwA\",\"model\":\"SPZPLkuAEWHeIabekzLYbg\",\"name\":\"Claude Sonnet 4.6\",\"skill_focus\":\"Fast drafting and everyday task execution.\"}"
+              }
+            }
+          ],
+          "more": 2
+        }
+      },
+      "curl": "curl -i -X GET \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/ai-agents/\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

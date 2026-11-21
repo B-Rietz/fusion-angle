@@ -1,0 +1,111 @@
+{
+  "hash": "get/organizations/id/versions",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "GET",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/versions/",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "659"
+          ],
+          [
+            "content-type",
+            "multipart/mixed; boundary=2bb4758b-b390-4983-8ca1-0a8e75d65a9c"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "request-id",
+            "WsszfjaWSexRF2gPkAPEvQ"
+          ]
+        ],
+        "body": {
+          "kind": "multipart",
+          "boundary": "2bb4758b-b390-4983-8ca1-0a8e75d65a9c",
+          "parts": [
+            {
+              "status": 200,
+              "headers": [
+                [
+                  "content-length",
+                  "177"
+                ],
+                [
+                  "content-type",
+                  "application/json"
+                ],
+                [
+                  "date",
+                  "Wed, 01 Jan 2020 00:00:02 GMT"
+                ],
+                [
+                  "etag",
+                  "\"aOytvPhzPSV5_QTjrIbX6Q\""
+                ],
+                [
+                  "last-modified",
+                  "Wed, 01 Jan 2020 00:00:01 GMT"
+                ],
+                [
+                  "operation-id",
+                  "DfmM3LtjAjah7tI0Yr7ZSQ"
+                ],
+                [
+                  "request-id",
+                  "WsszfjaWSexRF2gPkAPEvQ"
+                ],
+                [
+                  "requester-identity-id",
+                  "AAAAAAAAAAAAAAAAAAAAAA"
+                ],
+                [
+                  "response-at",
+                  "2020-01-01T00:00:01.628000Z"
+                ]
+              ],
+              "body": {
+                "kind": "text",
+                "mediaType": "application/json",
+                "text": "{\"domain\":\"acmecorp.com\",\"id\":\"AjdvjuECVZEgZoFajaIEkg\",\"ideas_limit\":1000,\"name\":\"Stark Industries\",\"next_billing\":\"2020-10-27T00:00:00.000000Z\",\"projects_limit\":50,\"seats\":200}"
+              }
+            }
+          ],
+          "more": 0
+        }
+      },
+      "curl": "curl -i -X GET \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/versions/\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "hash": "get/identities/id/registration",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "HcELG6lBIgbikv-M01veqg",
+      "source": "post/organizations/id/memberships"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "admin",
+      "request": {
+        "method": "GET",
+        "target": "/api/identities/HcELG6lBIgbikv-M01veqg/registration",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "160"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "etag",
+            "\"dp_Sm2hWu8-znrYL48Jy1A\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "operation-id",
+            "CSJGUEpJ7hSJkitltJ8t-A"
+          ],
+          [
+            "request-id",
+            "2uS6mwouGSOmwdXdllnH2Q"
+          ],
+          [
+            "requester-identity-id",
+            "XXZruirZyAOoRpNxaDnpSA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:01.796000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"aud\":\"/api/authentication/token\",\"grant_types\":\"client_credentials\",\"id\":\"HcELG6lBIgbikv-M01veqg\",\"jwks\":\"{\\\"keys\\\":[]}\",\"redirect_uris\":\"\",\"status\":\"active\"}"
+        }
+      },
+      "curl": "curl -i -X GET \"$ORIGIN/api/identities/HcELG6lBIgbikv-M01veqg/registration\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

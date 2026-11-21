@@ -1,0 +1,88 @@
+{
+  "hash": "get/identities/id/token-revocations/rid",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "XXZruirZyAOoRpNxaDnpSA",
+      "source": ""
+    },
+    {
+      "name": ":rid",
+      "value": "bJ1FbJgh5iKyDH88hmrNYA",
+      "source": "put/identities/id/token-revocations/rid"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "admin",
+      "request": {
+        "method": "GET",
+        "target": "/api/identities/XXZruirZyAOoRpNxaDnpSA/token-revocations/bJ1FbJgh5iKyDH88hmrNYA",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "105"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "etag",
+            "\"9g11EnMWucpIS5fmV9o38A\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "operation-id",
+            "SEUkfs7_KidHd7NiKrwphw"
+          ],
+          [
+            "request-id",
+            "YfpBqAetv3aInf7gzwG_Wg"
+          ],
+          [
+            "requester-identity-id",
+            "XXZruirZyAOoRpNxaDnpSA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:01.802000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"at\":\"2020-01-01T00:00:00.000000Z\",\"id\":\"bJ1FbJgh5iKyDH88hmrNYA\",\"identity_id\":\"XXZruirZyAOoRpNxaDnpSA\"}"
+        }
+      },
+      "curl": "curl -i -X GET \"$ORIGIN/api/identities/XXZruirZyAOoRpNxaDnpSA/token-revocations/bJ1FbJgh5iKyDH88hmrNYA\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

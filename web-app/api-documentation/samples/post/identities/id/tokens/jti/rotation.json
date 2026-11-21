@@ -1,0 +1,98 @@
+{
+  "hash": "post/identities/id/tokens/jti/rotation",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "MQFcPtrZPIGjMCRAXtZUnA",
+      "source": ""
+    },
+    {
+      "name": ":jti",
+      "value": "G4H0_nAYLbTBb0HzPTOdCQ",
+      "source": "get/identities/id/tokens"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "POST",
+        "target": "/api/identities/MQFcPtrZPIGjMCRAXtZUnA/tokens/G4H0_nAYLbTBb0HzPTOdCQ/rotation",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "content-length",
+            "2"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "228"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "etag",
+            "\"E1t0kRj10FgBEgmIhYNl4w\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "request-id",
+            "sZVwVJJMFJ5x7UbnpdDyZw"
+          ],
+          [
+            "requester-identity-id",
+            "MQFcPtrZPIGjMCRAXtZUnA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:02.101000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"action\":\"issued\",\"at\":\"2020-01-01T00:00:02.099000Z\",\"chain_id\":\"wFyiUP16cHwqjtMWgUnJhQ\",\"id\":\"8kPmRH7ykB-xYDk6Zj_G0w\",\"identity_id\":\"MQFcPtrZPIGjMCRAXtZUnA\",\"jti\":\"8kPmRH7ykB-xYDk6Zj_G0w\",\"parent_jti\":\"G4H0_nAYLbTBb0HzPTOdCQ\"}"
+        }
+      },
+      "curl": "curl -i -X POST \"$ORIGIN/api/identities/MQFcPtrZPIGjMCRAXtZUnA/tokens/G4H0_nAYLbTBb0HzPTOdCQ/rotation\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"content-type: application/json\" \\\n  -H \"operation-id: $OPERATION_ID\" \\\n  -d '{}'"
+    }
+  ]
+}

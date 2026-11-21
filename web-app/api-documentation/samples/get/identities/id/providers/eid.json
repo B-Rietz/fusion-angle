@@ -1,0 +1,88 @@
+{
+  "hash": "get/identities/id/providers/eid",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "XXZruirZyAOoRpNxaDnpSA",
+      "source": ""
+    },
+    {
+      "name": ":eid",
+      "value": "-MQD-HYSDJM3gBk5uPPzKg",
+      "source": "put/identities/id/providers/eid"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "admin",
+      "request": {
+        "method": "GET",
+        "target": "/api/identities/XXZruirZyAOoRpNxaDnpSA/providers/-MQD-HYSDJM3gBk5uPPzKg",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ]
+        ],
+        "body": {
+          "kind": "empty"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "187"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "etag",
+            "\"wV_jfszcdbZ6HWewXufGKg\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "operation-id",
+            "uuYfxB7h3yHgs3ViZOUyVQ"
+          ],
+          [
+            "request-id",
+            "kyAXGzHdoh9TOZ_EqVkcVQ"
+          ],
+          [
+            "requester-identity-id",
+            "XXZruirZyAOoRpNxaDnpSA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:01.786000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"action\":\"linked\",\"at\":\"2020-01-01T00:00:01.783000Z\",\"id\":\"-MQD-HYSDJM3gBk5uPPzKg\",\"identity_id\":\"XXZruirZyAOoRpNxaDnpSA\",\"provider\":\"google\",\"provider_subject\":\"StWsY8jQuNkYkpe3sq5C_w\"}"
+        }
+      },
+      "curl": "curl -i -X GET \"$ORIGIN/api/identities/XXZruirZyAOoRpNxaDnpSA/providers/-MQD-HYSDJM3gBk5uPPzKg\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"operation-id: $OPERATION_ID\""
+    }
+  ]
+}

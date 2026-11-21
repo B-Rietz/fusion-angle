@@ -1,0 +1,102 @@
+{
+  "hash": "put/organizations/id/projects/id",
+  "pathIds": [
+    {
+      "name": ":id",
+      "value": "AjdvjuECVZEgZoFajaIEkg",
+      "source": "get/identities/id/organizations"
+    },
+    {
+      "name": ":id",
+      "value": "wqGTTFdYUGnmBxWCppmkOQ",
+      "source": "get/organizations/id/projects"
+    }
+  ],
+  "exchanges": [
+    {
+      "caller": "member",
+      "request": {
+        "method": "PUT",
+        "target": "/api/organizations/AjdvjuECVZEgZoFajaIEkg/projects/wqGTTFdYUGnmBxWCppmkOQ",
+        "headers": [
+          [
+            "authorization",
+            "Bearer $TOKEN"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "if-match",
+            "\"YJUh5uYbMkXhwJXPhb-yhg\""
+          ],
+          [
+            "operation-id",
+            "$OPERATION_ID"
+          ],
+          [
+            "content-length",
+            "358"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"title\":\"AI-Powered Customer Segmentation\",\"description\":\"Machine-learning model that segments customers in real time from behavior, purchase history, and engagement.\",\"progress\":67,\"start_date\":\"2019-11-02\",\"target_end_date\":\"2020-01-31\",\"estimated_cost\":88000,\"actual_cost\":51000,\"position\":1,\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"state\":\"approved\"}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": [
+          [
+            "cache-control",
+            "no-store"
+          ],
+          [
+            "content-length",
+            "388"
+          ],
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Wed, 01 Jan 2020 00:00:02 GMT"
+          ],
+          [
+            "etag",
+            "\"YJUh5uYbMkXhwJXPhb-yhg\""
+          ],
+          [
+            "last-modified",
+            "Wed, 01 Jan 2020 00:00:01 GMT"
+          ],
+          [
+            "operation-id",
+            "TKeO2R8eg6HfeFOKG6VVTA"
+          ],
+          [
+            "request-id",
+            "2eyRPtxmU2KY0pTfG_85_Q"
+          ],
+          [
+            "requester-identity-id",
+            "AAAAAAAAAAAAAAAAAAAAAA"
+          ],
+          [
+            "response-at",
+            "2020-01-01T00:00:01.628000Z"
+          ]
+        ],
+        "body": {
+          "kind": "text",
+          "mediaType": "application/json",
+          "text": "{\"actual_cost\":51000,\"description\":\"Machine-learning model that segments customers in real time from behavior, purchase history, and engagement.\",\"estimated_cost\":88000,\"id\":\"wqGTTFdYUGnmBxWCppmkOQ\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"position\":1,\"progress\":67,\"start_date\":\"2019-11-02\",\"state\":\"approved\",\"target_end_date\":\"2020-01-31\",\"title\":\"AI-Powered Customer Segmentation\"}"
+        }
+      },
+      "curl": "curl -i -X PUT \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/projects/wqGTTFdYUGnmBxWCppmkOQ\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"content-type: application/json\" \\\n  -H \"if-match: $ETAG\" \\\n  -H \"operation-id: $OPERATION_ID\" \\\n  -d '{\"title\":\"AI-Powered Customer Segmentation\",\"description\":\"Machine-learning model that segments customers in real time from behavior, purchase history, and engagement.\",\"progress\":67,\"start_date\":\"2019-11-02\",\"target_end_date\":\"2020-01-31\",\"estimated_cost\":88000,\"actual_cost\":51000,\"position\":1,\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"state\":\"approved\"}'"
+    }
+  ]
+}

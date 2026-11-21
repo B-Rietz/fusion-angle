@@ -69,7 +69,10 @@ own, so neither touches an operator's stack. Each needs
 `./bin/develop PORT --postgres mock-data|bootstrap`
 is the edit session. It `deno run`s the server
 against a `bundle_client` directory. Press
-Return to redeploy. Return recomposes the site
+Return to redeploy. Return first regenerates the API
+documentation and logs whether files changed; a
+failed generation prints its error and does not
+block the redeploy. Return then recomposes the site
 and restarts the server. The request log is a
 file beside the site; its path prints at
 startup. The process creates a fresh Postgres
@@ -353,10 +356,14 @@ when asked.
   where a design changes the drawing, which the golden
   test compares the renderer against byte for byte),
   `css-declaration.ts` (read one declaration from a
-  stylesheet, for tests that pin a CSS rule), and
+  stylesheet, for tests that pin a CSS rule),
   `create-archive-graph.ts` (the least graph the flow
   gate accepts, one Create node and one Archive node,
-  and the delta a flow is born with);
+  and the delta a flow is born with), and
+  `api-documentation-pane.ts` (the API documentation's
+  message pane at the side-by-side width, which the
+  pane-height test derives from and the browser
+  checks);
   `client-init.ts` (the test composition
   root) and `in-page-facade.ts` (the in-process
   transport)

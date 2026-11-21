@@ -19,6 +19,7 @@ import { imfFixdate } from '../shared/pair-root.ts';
 import { HTTP_OK } from '../shared/http-errors.ts';
 import type { MessagePairEntity } from '../shared/types.ts';
 import { rolesCanRead } from './attribute-acl.ts';
+import { RESPONSE_HEADERS } from './response-header-names.ts';
 
 // A read serves what was stored (spec §6): status 200,
 // this transmission's date and request-id, the pair's
@@ -122,11 +123,11 @@ export function servedResponse(
         ...lengthLine,
         { name: 'date', value: transmission.date },
         {
-            name: 'last-modified',
+            name: RESPONSE_HEADERS.lastModified,
             value: imfFixdate(envelope.responseAt),
         },
         {
-            name: 'request-id',
+            name: RESPONSE_HEADERS.requestId,
             value: transmission.requestId,
         },
         {
