@@ -61,7 +61,9 @@ attribute-level mutation per animation frame (node
 transform, affected edge `d`/label, marquee rect, viewBox
 + grid, connect-preview layer), built from the same pure
 geometry the full rebuild uses (`computeEdgeGeometry`,
-`buildConnectPreview`, `marqueeDrawRect`). The presenter
+`buildConnectPreview`, `marqueeDrawRect`), with each pair's
+return edge found by `findCycleEdgeIds` as the rebuild
+finds it. The presenter
 snapshot stays at the gesture-start state; pointer-up
 lands the final state through the sanctioned seam and a
 full rebuild. With Auto-Fit on, the camera re-fits at
@@ -272,6 +274,20 @@ pieces, so the two cannot drift:
   and the design-system showcase size a label alike with
   no DOM. A character outside the table takes the table's
   widest advance.
+  A two-way pair draws as a lens. `u` is the unit normal
+  of the line between the two centres that points up and
+  to the left; the forward edge takes `u`'s side and the
+  return edge, the pair's loop-back by
+  `findCycleEdgeIds`, the other, so the forward edge is
+  on top of a horizontal pair and on the left of a
+  vertical one whichever way it runs. Each edge runs from
+  where its lane, `LANE_OFFSET` off the centre line,
+  leaves the source to where it enters the target, as one
+  arc bowing outward by `min(chord * BOW_FRAC, BOW_MAX)`.
+  Its label sits `LABEL_GAP` beyond the arc's apex
+  tangent, outside the pair. A routed pair keeps its
+  waypoints between the same lane points. States that
+  touch or overlap draw their pair as one-way edges.
 - **Camera.** `flow-camera.ts` (see `## Camera rules`) owns
   zoom, pan, and resize. `statsFitCamera`
   (`flow-stats-camera.ts`) is the designer's `fitBoxToCanvas`
@@ -313,7 +329,24 @@ flow where the designer would crop'; 'it spans each port's
 circle'; tests/browser/flow-stats.test.ts 'stats lays the flow
 out as the designer does'; 'with Auto Fit on, stats frames
 the flow as the designer does'; tests/presenter-flow-stats.test.ts
-'the page carries no Auto Layout or Auto Fit control'.
+'the page carries no Auto Layout or Auto Fit control';
+tests/flow-graph-geometry.test.ts 'a one-way edge's path and
+label centre are unchanged'; 'a pair's attachments sit
+LANE_OFFSET either side of the centre line'; 'a label box
+sits LABEL_GAP beyond its arc's apex tangent'; 'a pair's
+labels face each other across the centre line and never
+overlap'; 'the forward label sits above a horizontal pair and
+left of a vertical one'; 'the pair swaps sides across the
+down-right diagonal and across no other'; 'a pair exactly on
+the down-right diagonal puts its forward label up and to the
+right'; 'with equal label widths each edge is the other
+turned half a turn'; 'neither arc enters either state'; 'a
+short pair bows by its chord and a long pair stops at
+BOW_MAX'; 'touching and overlapping states emit finite
+numbers'; 'a routed pair keeps its waypoints and gains the
+outside label'; tests/browser/canvas-gestures.test.ts 'a
+dragged two-way pair draws mid-drag what it draws once
+dropped'.
 
 Pan and zoom exist only with Auto Fit off
 (`flow-stats-pan-zoom.ts`, `bindStatsPanZoom`). A drag pans

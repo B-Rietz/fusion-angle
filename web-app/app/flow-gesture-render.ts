@@ -39,6 +39,7 @@ import {
 import {
     applyDragPreview,
 } from './flow-designer-actions.ts';
+import { findCycleEdgeIds } from './flow-cycle-edges.ts';
 import {
     setHtml, trusted,
 } from './safe-html.ts';
@@ -151,6 +152,9 @@ function renderDragFrame(
     }
     const aimOffsets =
         computeEdgeAimOffsets(graph.edges);
+    const cycleEdgeIds = findCycleEdgeIds(
+        graph.nodes, graph.edges,
+    );
     const edgeEls = elementsByAttr(
         svg, 'data-edge-ref',
     );
@@ -167,9 +171,14 @@ function renderDragFrame(
         const to = byId.get(edge.toNodeId);
         const el = edgeEls.get(edge.id);
         if (!from || !to || !el) continue;
+        const labelW = computeEdgeLabelWidth(
+            edge.name,
+        );
         const geo = computeEdgeGeometry(
             from, to,
             aimOffsets.get(edge.id)!,
+            cycleEdgeIds.has(edge.id),
+            labelW,
             graph.edgeWaypoints.get(edge.id)
                 ?? [],
         );
@@ -178,9 +187,6 @@ function renderDragFrame(
         for (const p of paths) {
             p.setAttribute('d', geo.pathD);
         }
-        const labelW = computeEdgeLabelWidth(
-            edge.name,
-        );
         const bg = el.querySelector('rect');
         if (bg) {
             bg.setAttribute(

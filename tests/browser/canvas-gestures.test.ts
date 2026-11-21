@@ -1,4 +1,7 @@
-import { assert, assertNotEquals, assertStrictEquals } from '@std/assert';
+import {
+    assert, assertEquals, assertNotEquals, assertStrictEquals,
+} from '@std/assert';
+import { pollUntil } from '../../web-app/app/cdp-client.ts';
 import {
     SHIFT, stays, useBrowser, withAdminPage, type Page,
     type Point,
@@ -603,4 +606,104 @@ Deno.test('a port press after Auto Layout toggles holds'
         );
         assertStrictEquals(await nodeCount(page), nodes);
     });
+});
+
+// One of the two-way pair's edges as the browser shows
+// it: every path's d, the label box's x and y, and the
+// label text's x and y.
+type PairEdge = {
+    label: string; paths: string[]; box: string[]; text: string[];
+};
+const PAIR_LABEL =
+    '/^(Review to Data Capture|Data Capture to Review): /';
+const PAIR_EDGES =
+    `[...document.querySelectorAll('${EDGE}')]
+        .filter((g) =>
+            ${PAIR_LABEL}.test(g.getAttribute('aria-label')))
+        .map((g) => ({
+            label: g.getAttribute('aria-label'),
+            paths: [...g.querySelectorAll('path')]
+                .map((p) => p.getAttribute('d')),
+            box: ['x', 'y'].map((a) =>
+                g.querySelector('rect').getAttribute(a)),
+            text: ['x', 'y'].map((a) =>
+                g.querySelector('text').getAttribute(a)),
+        }))`;
+// A frame requested after the last move runs after the
+// in-gesture mutator's paint of that move.
+const ONE_FRAME = 'new Promise((done) =>'
+    + ' requestAnimationFrame(() => done(true)))';
+const MOVE_STEPS = 8;
+const SAVE_TIMEOUT_MS = 5_000;
+// The pointer-down rebuild drew this canvas; the drop's
+// rebuild replaces it.
+const HOLD_GESTURE_CANVAS =
+    `globalThis.gestureCanvas = document.querySelector('${CANVAS}')`;
+const GESTURE_CANVAS_REPLACED =
+    '!globalThis.gestureCanvas.isConnected';
+// Where Review's centre lands, in Data Capture body
+// heights down and to the right of Data Capture's centre.
+// A pair takes its side from its centre line, and that
+// side swaps across the down-right diagonal, so one drop
+// leaves the line shallower than the diagonal and one
+// steeper. Each sits at least half a height below Data
+// Capture's body, so the bodies never overlap, and both
+// land inside the canvas.
+const DROPS = [
+    { across: 3, down: 1.5 },
+    { across: 1.5, down: 3 },
+];
+
+Deno.test('a dragged two-way pair draws mid-drag what it'
++ ' draws once dropped', async () => {
+    for (const drop of DROPS) {
+        await withAdminPage(browser.get(), async (page, origin) => {
+            const flowId = await openFlow(page, origin, ONBOARDING);
+            // Auto Layout would re-lay the drop out.
+            await page.click('#flow-auto-layout-switch');
+            await pollUntil(
+                'Auto Layout off saved', SAVE_TIMEOUT_MS,
+                async () => !(await flowGraph(origin, flowId))
+                    .is_auto_layout,
+            );
+            const review = `${nodeSelector(
+                await nodeIdNamed(page, 'Review'),
+            )} > rect`;
+            const capture = await page.rect(`${nodeSelector(
+                await nodeIdNamed(page, 'Data Capture'),
+            )} > rect`);
+            const from = await page.center(review);
+            const to = {
+                x: capture.x + capture.width / 2
+                    + capture.height * drop.across,
+                y: capture.y + capture.height / 2
+                    + capture.height * drop.down,
+            };
+            const before =
+                await page.evaluate<PairEdge[]>(PAIR_EDGES);
+            assertStrictEquals(
+                before.length, 2, 'the pair draws two edges',
+            );
+            await page.press(from);
+            for (let step = 1; step <= MOVE_STEPS; step += 1) {
+                await page.move({
+                    x: from.x + (to.x - from.x) * step / MOVE_STEPS,
+                    y: from.y + (to.y - from.y) * step / MOVE_STEPS,
+                });
+            }
+            await page.evaluate(ONE_FRAME);
+            const midDrag =
+                await page.evaluate<PairEdge[]>(PAIR_EDGES);
+            assertNotEquals(midDrag, before, 'the drag moved');
+            await page.evaluate(HOLD_GESTURE_CANVAS);
+            await page.release(to);
+            await page.until(
+                GESTURE_CANVAS_REPLACED, 'the drop rebuilt',
+            );
+            assertEquals(
+                await page.evaluate<PairEdge[]>(PAIR_EDGES),
+                midDrag,
+            );
+        });
+    }
 });

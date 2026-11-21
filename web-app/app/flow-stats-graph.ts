@@ -153,8 +153,9 @@ function buildEdge(
     highlight: Highlight | null,
     isCycle: boolean,
 ): string {
+    const labelW = computeEdgeLabelWidth(edge.name);
     const geo = computeEdgeGeometry(
-        fromNode, toNode, aimOffset, waypoints,
+        fromNode, toNode, aimOffset, isCycle, labelW, waypoints,
     );
     const cycleAttr = isCycle ? ' data-cycle="true"' : '';
     const pathAttrs = highlightAttrs(
@@ -163,7 +164,6 @@ function buildEdge(
 
     let label = '';
     if (!fromNode.isCreate) {
-        const labelW = computeEdgeLabelWidth(edge.name);
         label = '<rect'
             + ' class="flow-stats-edge-label-bg"'
             + ' x="' + String(geo.labelX - labelW / 2) + '"'

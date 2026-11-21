@@ -3953,6 +3953,15 @@ Off the critical path; each with its oracle.
   the select glow above; and the design-system do/don't
   card borders at 390px, below the 8000px capture cap.
   Oracle: the walk scores each by eye.
+- A two-way pair's return edge follows array order.
+  `findCycleEdgeIds` (`web-app/app/flow-cycle-edges.ts`)
+  walks the nodes and edges as given. The server sorts
+  both by id, so stats and the designer agree at rest;
+  right after a local add, a random id sits last until
+  the save echo lands, and a pair's sides (as before
+  the lens, its cycle dash) can swap then. Oracle:
+  `findCycleEdgeIds` orders its inputs by id itself,
+  and one pin shuffles both arrays to the same result.
 
 ## Sequencing
 

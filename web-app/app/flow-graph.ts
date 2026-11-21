@@ -105,11 +105,17 @@ const HIT_TARGET_WIDTH = 12;
 const CURVE_TENSION = 0.25;
 const MAX_CONTROL_ARM = 50;
 const BEZIER_MIDPOINT = 0.5;
-const BIDI_SPREAD_FRAC = 0.08;
-const BIDI_SPREAD_MIN = 20;
-const BIDI_SPREAD_MAX = 80;
-const BIDI_LABEL_T = 0.47;
-const BIDI_LABEL_OFFSET = 12;
+
+// The two-way lens, set by the operator's eye and tuned
+// here alone. A lane runs LANE_OFFSET beside the centre
+// line, less than half a state's height so it always
+// crosses both states. A bow proportional to the chord
+// keeps the arrow's angle into a state the same at any
+// distance; BOW_MAX keeps a long pair from ballooning.
+export const LANE_OFFSET = 8;
+export const BOW_FRAC = 0.045;
+export const BOW_MAX = 16;
+export const LABEL_GAP = 8;
 
 // Exported: the design-system showcase renders edge
 // labels with the same geometry — one source, no copy
@@ -671,83 +677,57 @@ function buildWaypointPath(
 
 // The drawable geometry of one edge: the routed path
 // and the label anchor along it. Pure math shared by
-// the full SVG rebuild (buildEdge) and the narrow
-// in-gesture mutator (flow-gesture-render.ts) — one
-// truth, so a dragged edge can never drift from its
-// rebuilt form.
+// the full SVG rebuild (buildEdge), the narrow
+// in-gesture mutator (flow-gesture-render.ts), and the
+// stats renderer (flow-stats-graph.ts) — one truth, so
+// a dragged edge can never drift from its rebuilt form
+// and stats never differ from the designer.
 export interface EdgeGeometry {
     pathD: string;
     labelX: number;
     labelY: number;
 }
 
-export function computeEdgeGeometry(
+// An edge aimed centre to centre, its label at the
+// middle of its path: every edge without a partner, and
+// a pair whose states leave no room for a lens.
+function computeOneWayGeometry(
     fromNode: GraphNode,
     toNode: GraphNode,
-    aimOffset: number,
+    from: { x: number; y: number },
+    to: { x: number; y: number },
     waypoints: readonly {
         x: number;
         y: number;
     }[],
 ): EdgeGeometry {
-    const fromCx =
-        fromNode.positionX
-        + NODE_WIDTH / 2;
-    const fromCy =
-        fromNode.positionY
-        + NODE_HEIGHT / 2;
-    const toCx =
-        toNode.positionX
-        + NODE_WIDTH / 2;
-    const toCy =
-        toNode.positionY
-        + NODE_HEIGHT / 2;
-
-    let pathD: string;
-
-    let aimFromX = toCx;
-    let aimFromY = toCy;
-    let aimToX = fromCx;
-    let aimToY = fromCy;
-
-    let perpX = 0;
-    let perpY = 0;
-    let spread = 0;
-
-    if (aimOffset !== 0) {
-        const dx = toCx - fromCx;
-        const dy = toCy - fromCy;
-        const len = Math.hypot(dx, dy);
-        if (len > 0) {
-            perpX = -dy / len;
-            perpY = dx / len;
-            spread =
-                aimOffset * Math.min(
-                    BIDI_SPREAD_MAX,
-                    Math.max(
-                        BIDI_SPREAD_MIN,
-                        len * BIDI_SPREAD_FRAC,
-                    ),
-                );
-            aimFromX = toCx + perpX * spread;
-            aimFromY = toCy + perpY * spread;
-            aimToX = fromCx + perpX * spread;
-            aimToY = fromCy + perpY * spread;
-        }
-    }
-
     const startPt = perimeterPoint(
         fromNode.positionX,
         fromNode.positionY,
         NODE_WIDTH, NODE_HEIGHT,
-        aimFromX, aimFromY,
+        to.x, to.y,
     );
     const endPt = perimeterPoint(
         toNode.positionX,
         toNode.positionY,
         NODE_WIDTH, NODE_HEIGHT,
-        aimToX, aimToY,
+        from.x, from.y,
     );
+    // A waypoint edge is a Q/T polyline, so anchor along
+    // it — bezierAt is for the cubic case only.
+    if (waypoints.length > 0) {
+        const mid = pointAlongPolyline(
+            [startPt, ...waypoints, endPt],
+            BEZIER_MIDPOINT,
+        );
+        return {
+            pathD: buildWaypointPath(
+                startPt, endPt, waypoints,
+            ),
+            labelX: mid.x,
+            labelY: mid.y,
+        };
+    }
     const dist = Math.hypot(
         endPt.x - startPt.x,
         endPt.y - startPt.y,
@@ -764,52 +744,191 @@ export function computeEdgeGeometry(
         toNode.positionY,
         NODE_WIDTH, NODE_HEIGHT,
     );
-    if (waypoints.length > 0) {
-        pathD = buildWaypointPath(
-            startPt, endPt, waypoints,
-        );
-    } else {
-        const startControl =
-            controlOffset(startEdge, dist);
-        const endControl =
-            controlOffset(endEdge, dist);
-        const cp1X =
-            startPt.x + startControl.dx;
-        const cp1Y =
-            startPt.y + startControl.dy;
-        const cp2X =
-            endPt.x + endControl.dx;
-        const cp2Y =
-            endPt.y + endControl.dy;
-        pathD = 'M '
-            + String(startPt.x) + ' '
-            + String(startPt.y)
-            + ' C '
-            + String(cp1X) + ' '
-            + String(cp1Y) + ', '
-            + String(cp2X) + ' '
-            + String(cp2Y) + ', '
-            + String(endPt.x) + ' '
-            + String(endPt.y);
-    }
-
-    const labelT = aimOffset === 0
-        ? BEZIER_MIDPOINT
-        : BIDI_LABEL_T;
-    // Base anchor on the routed path; the perpendicular offset
-    // below is the INTENTIONAL nudge that keeps two-way edge
-    // labels legible. A waypoint edge is a Q/T polyline, so
-    // anchor along it — bezierAt is for the cubic case only.
-    const mid = waypoints.length > 0
-        ? pointAlongPolyline(
-            [startPt, ...waypoints, endPt], labelT)
-        : bezierAt(pathD, labelT);
+    const startControl =
+        controlOffset(startEdge, dist);
+    const endControl =
+        controlOffset(endEdge, dist);
+    const cp1X =
+        startPt.x + startControl.dx;
+    const cp1Y =
+        startPt.y + startControl.dy;
+    const cp2X =
+        endPt.x + endControl.dx;
+    const cp2Y =
+        endPt.y + endControl.dy;
+    const pathD = 'M '
+        + String(startPt.x) + ' '
+        + String(startPt.y)
+        + ' C '
+        + String(cp1X) + ' '
+        + String(cp1Y) + ', '
+        + String(cp2X) + ' '
+        + String(cp2Y) + ', '
+        + String(endPt.x) + ' '
+        + String(endPt.y);
+    const mid = bezierAt(pathD, BEZIER_MIDPOINT);
     return {
         pathD,
-        labelX: mid.x
-            + perpX * BIDI_LABEL_OFFSET,
-        labelY: mid.y
-            + perpY * BIDI_LABEL_OFFSET,
+        labelX: mid.x,
+        labelY: mid.y,
+    };
+}
+
+// The centre line's normal that points up and to the
+// left. It belongs to the pair, not to either edge: the
+// two edges run opposite ways along one line, and both
+// get the same answer. On the exact down-right diagonal
+// both normals sum to zero, and the one pointing up wins.
+function upperLeftNormal(
+    d: { x: number; y: number },
+): { x: number; y: number } {
+    const normal = { x: -d.y, y: d.x };
+    const sum = normal.x + normal.y;
+    return sum < 0 || (sum === 0 && normal.y < 0)
+        ? normal
+        : { x: -normal.x, y: -normal.y };
+}
+
+// Where the lane `origin + t * d` enters and leaves the
+// state centred at `centre`, as values of t: the slab
+// method, one axis at a time. A lane parallel to a slab
+// lies inside it, because LANE_OFFSET is less than half
+// a state's height, so that slab bounds nothing.
+function laneCrossing(
+    centre: { x: number; y: number },
+    origin: { x: number; y: number },
+    d: { x: number; y: number },
+): { enter: number; leave: number } {
+    const slabs = [
+        {
+            offset: origin.x - centre.x,
+            step: d.x,
+            half: NODE_WIDTH / 2,
+        },
+        {
+            offset: origin.y - centre.y,
+            step: d.y,
+            half: NODE_HEIGHT / 2,
+        },
+    ];
+    let enter = -Infinity;
+    let leave = Infinity;
+    for (const slab of slabs) {
+        if (slab.step === 0) continue;
+        const toLowSide =
+            (-slab.half - slab.offset) / slab.step;
+        const toHighSide =
+            (slab.half - slab.offset) / slab.step;
+        enter = Math.max(
+            enter, Math.min(toLowSide, toHighSide),
+        );
+        leave = Math.min(
+            leave, Math.max(toLowSide, toHighSide),
+        );
+    }
+    return { enter, leave };
+}
+
+// A two-way pair is a lens: each edge on its own lane
+// beside the centre line, bowing away from its partner,
+// its label outside its own arc. The side is the pair's
+// up-left normal for the forward edge and its opposite
+// for the return edge — the one isCycle marks — so it
+// follows the pair's orientation, never the direction
+// of travel.
+export function computeEdgeGeometry(
+    fromNode: GraphNode,
+    toNode: GraphNode,
+    aimOffset: number,
+    isCycle: boolean,
+    labelWidth: number,
+    waypoints: readonly {
+        x: number;
+        y: number;
+    }[],
+): EdgeGeometry {
+    const from = {
+        x: fromNode.positionX + NODE_WIDTH / 2,
+        y: fromNode.positionY + NODE_HEIGHT / 2,
+    };
+    const to = {
+        x: toNode.positionX + NODE_WIDTH / 2,
+        y: toNode.positionY + NODE_HEIGHT / 2,
+    };
+    const length = Math.hypot(to.x - from.x, to.y - from.y);
+    if (aimOffset === 0 || length === 0) {
+        return computeOneWayGeometry(
+            fromNode, toNode, from, to, waypoints,
+        );
+    }
+    const d = {
+        x: (to.x - from.x) / length,
+        y: (to.y - from.y) / length,
+    };
+    const u = upperLeftNormal(d);
+    const n = isCycle ? { x: -u.x, y: -u.y } : u;
+    const lane = {
+        x: from.x + n.x * LANE_OFFSET,
+        y: from.y + n.y * LANE_OFFSET,
+    };
+    const leaveSource = laneCrossing(from, lane, d).leave;
+    const enterTarget = laneCrossing(to, lane, d).enter;
+    const chord = enterTarget - leaveSource;
+    // Touching or overlapping states: the lane is still
+    // inside the source where it reaches the target.
+    if (chord <= 0) {
+        return computeOneWayGeometry(
+            fromNode, toNode, from, to, waypoints,
+        );
+    }
+    const start = {
+        x: lane.x + d.x * leaveSource,
+        y: lane.y + d.y * leaveSource,
+    };
+    const end = {
+        x: lane.x + d.x * enterTarget,
+        y: lane.y + d.y * enterTarget,
+    };
+    // The label box's half-extent along n.
+    const h = Math.abs(n.x) * labelWidth / 2
+        + Math.abs(n.y) * LABEL_HEIGHT / 2;
+    if (waypoints.length > 0) {
+        const anchor = pointAlongPolyline(
+            [start, ...waypoints, end], BEZIER_MIDPOINT,
+        );
+        return {
+            pathD: buildWaypointPath(start, end, waypoints),
+            labelX: anchor.x + n.x * (LABEL_GAP + h),
+            labelY: anchor.y + n.y * (LABEL_GAP + h),
+        };
+    }
+    const bow = Math.min(chord * BOW_FRAC, BOW_MAX);
+    const middle = {
+        x: (start.x + end.x) / 2,
+        y: (start.y + end.y) / 2,
+    };
+    const apex = {
+        x: middle.x + n.x * bow,
+        y: middle.y + n.y * bow,
+    };
+    // A quadratic's middle is halfway from its chord to
+    // its control point, so the control stands twice the
+    // bow out to put the apex one bow out.
+    const control = {
+        x: middle.x + n.x * 2 * bow,
+        y: middle.y + n.y * 2 * bow,
+    };
+    return {
+        pathD: 'M '
+            + String(start.x) + ' '
+            + String(start.y)
+            + ' Q '
+            + String(control.x) + ' '
+            + String(control.y) + ' '
+            + String(end.x) + ' '
+            + String(end.y),
+        labelX: apex.x + n.x * (LABEL_GAP + h),
+        labelY: apex.y + n.y * (LABEL_GAP + h),
     };
 }
 
@@ -860,8 +979,11 @@ function buildEdge(
     }[],
     isLocked: boolean,
 ): SafeHtml {
+    const labelW =
+        computeEdgeLabelWidth(edge.name);
     const geo = computeEdgeGeometry(
-        fromNode, toNode, aimOffset, waypoints,
+        fromNode, toNode, aimOffset,
+        isCycle, labelW, waypoints,
     );
     const pathD = geo.pathD;
 
@@ -932,8 +1054,6 @@ function buildEdge(
         truncateEdgeLabel(edge.name);
     const labelEsc =
         escapeForHtml(truncEdge);
-    const labelW =
-        computeEdgeLabelWidth(edge.name);
 
     const labelBg = '<rect'
         + ` x="${midX - labelW / 2}"`

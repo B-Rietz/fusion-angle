@@ -13,7 +13,8 @@ import type {
 // are re-pinned only where a design changes the drawing
 // on purpose, and only in the bytes that design names:
 // so far for snug edge labels (each label box's x and
-// width).
+// width) and for the two-way lens (the pair's paths and
+// its labels' places).
 
 // One flow that reaches every branch a shared helper
 // feeds: a state name and a transition name over their
