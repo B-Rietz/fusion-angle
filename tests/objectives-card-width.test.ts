@@ -1,23 +1,47 @@
-import { assert } from '@std/assert';
+import { assert, assertEquals } from '@std/assert';
+import { cssDeclaration } from './fixtures/css-declaration.ts';
 
-// C4 / K27 covenant: the Objectives box is two gauge
-// columns wide on desktop, its right edge under Cost's,
-// and full-width only under 768px. The TEST-PLAN copy
-// states it; this pin keeps the CSS honest.
+// C4 / K27 covenant: the Objectives box fills the
+// remaining width beside the stacked gauge column on
+// desktop, at matching height, and the two stack full
+// width only under 768px. The TEST-PLAN copy states it;
+// this pin keeps the CSS honest.
 
-Deno.test('the Objectives card is two gauge columns wide',
-() => {
-    const src = Deno.readTextFileSync(
-        'web-app/app/styles/components-metrics.css',
-    );
-    const rule = '.objective-aggregates-card {\n'
-        + '    width:'
-        + ' calc((100% - 2 * var(--space-6)) / 3 * 2\n'
-        + '        + var(--space-6));';
-    assert(src.includes(rule));
-});
+const dashboardSrc = Deno.readTextFileSync(
+    'web-app/app/styles/pages-dashboard.css',
+);
 
-Deno.test('the Objectives card is full-width under 768px',
+Deno.test(
+    'the Objectives card fills the overview grid column',
+    () => {
+        assertEquals(
+            cssDeclaration(
+                dashboardSrc,
+                '.dashboard-overview-objectives'
+                + ' .objective-aggregates-card',
+                'width',
+            ),
+            '100%',
+        );
+    },
+);
+
+Deno.test(
+    'the Objectives card matches the gauge column height',
+    () => {
+        assertEquals(
+            cssDeclaration(
+                dashboardSrc,
+                '.dashboard-overview-objectives'
+                + ' .objective-aggregates-card',
+                'height',
+            ),
+            '100%',
+        );
+    },
+);
+
+Deno.test('the overview grid stacks full-width under 768px',
 () => {
     const src = Deno.readTextFileSync(
         'web-app/app/styles/responsive.css',
@@ -25,12 +49,12 @@ Deno.test('the Objectives card is full-width under 768px',
     const media = src.indexOf(
         '@media (max-width: 767px) {',
     );
-    const auto = src.indexOf(
-        '.objective-aggregates-card'
-        + ' { width: auto; }',
+    const stacked = src.indexOf(
+        '.dashboard-overview-grid'
+        + ' { grid-template-columns: 1fr; }',
     );
     const close = src.indexOf('\n}', media);
     assert(media >= 0);
-    assert(auto > media);
-    assert(auto < close);
+    assert(stacked > media);
+    assert(stacked < close);
 });

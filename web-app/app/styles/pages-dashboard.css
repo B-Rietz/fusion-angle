@@ -1,0 +1,56 @@
+/* Dashboard overview: gauges stacked in a narrow left
+    column, Objectives filling the remaining width at
+    matching height. Full width only under 768px. */
+
+.dashboard-overview-grid {
+    display: grid;
+    grid-template-columns: minmax(260px, 320px) 1fr;
+    gap: var(--space-6);
+    align-items: stretch;
+}
+
+.dashboard-overview-gauges.gauge-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+}
+
+.dashboard-overview-gauges .gauge-card {
+    padding: var(--space-3) var(--space-5) var(--space-3);
+}
+
+.dashboard-overview-gauges .gauge-arc-container {
+    margin-top: -2.8rem;
+}
+
+.dashboard-overview-gauges .gauge-arc-container svg {
+    width: 100%;
+    height: auto;
+    max-width: 180px;
+}
+
+.dashboard-overview-objectives {
+    display: flex;
+    min-width: 0;
+}
+
+.dashboard-overview-objectives #objective-aggregates-card {
+    width: 100%;
+    display: flex;
+}
+
+/* Replaces components-metrics.css's two-gauge-column
+    calc(): the card now fills the remaining grid column
+    instead of a fraction of a three-column gauge row. */
+.dashboard-overview-objectives .objective-aggregates-card {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.dashboard-overview-objectives .objective-aggregates-rows {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
