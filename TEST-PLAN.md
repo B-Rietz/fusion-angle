@@ -1970,12 +1970,13 @@ the second organization.
   ratio arc-gauges — dual concentric semicircles: outer
   baseline track + inner actual fill; Impact is a bipolar
   arc — left/right split from a center apex; all three
-  share the same card chrome) and, below the grid, an
-  Objectives box two gauge columns wide, its right edge
-  under the Cost card's (`.objective-aggregates-card`,
-  `calc((100% - 2 * var(--space-6)) / 3 * 2
-  + var(--space-6))`; full width only under 768px; card
-  title "Objectives"). Sign in as
+  share the same card chrome), stacked in a narrow left
+  column, and beside them an Objectives box filling the
+  remaining width at matching height
+  (`.dashboard-overview-objectives
+  .objective-aggregates-card`, `width: 100%`,
+  `height: 100%`); the two stack full width only under
+  768px; card title "Objectives"). Sign in as
   the demo admin (`demo@example.com`, Tony Stark) with
   Stark Industries active — surfaces carry seeded scores,
   not zeros. PASS: all 4 render with baseline and current
@@ -2000,9 +2001,11 @@ the second organization.
        tests/presenter-dashboard-objective-aggregates.test.ts
        'heading reads "Objectives"';
        tests/objectives-card-width.test.ts 'the
-       Objectives card is two gauge columns wide';
+       Objectives card fills the overview grid column';
        tests/objectives-card-width.test.ts 'the
-       Objectives card is full-width under 768px';
+       Objectives card matches the gauge column height';
+       tests/objectives-card-width.test.ts 'the overview
+       grid stacks full-width under 768px';
        exploratory — the visual order/layout of the 4
        surfaces and the painted dual-concentric and
        bipolar arcs
@@ -7255,9 +7258,9 @@ NPS", and "Improve employee morale" are not.
 - [ ] **K27** Open dashboard; PASS if four surfaces
   render: three arc-gauge cards sharing one card shell
   (Time and Cost are ratio arc-gauges; Impact is a
-  bipolar arc) and an Objectives box (below the grid, two
-  gauge columns wide, its right edge under Cost's; card
-  title "Objectives").
+  bipolar arc), stacked in a narrow left column, and an
+  Objectives box beside them filling the remaining width
+  at matching height (card title "Objectives").
   Pin: tests/adapters-dashboard.test.ts
        'getDashboardGauges returns the three sibling
        gauges'; tests/adapters-dashboard.test.ts
@@ -7269,8 +7272,8 @@ NPS", and "Improve employee morale" are not.
        tests/presenter-dashboard-objective-aggregates.test.ts
        'heading reads "Objectives"';
        tests/objectives-card-width.test.ts 'the
-       Objectives card is two gauge columns wide';
-       exploratory — the live grid placement below the
+       Objectives card fills the overview grid column';
+       exploratory — the live grid placement beside the
        three gauge cards
 - [ ] **K28** Inspect the Impact gauge. PASS if:
   - The arc has muted background visible at all values

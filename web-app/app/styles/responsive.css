@@ -23,7 +23,10 @@
     .convert-grid { grid-template-columns: 1fr !important; }
     .detail-grid { grid-template-columns: 1fr !important; }
     .gauge-grid { grid-template-columns: 1fr; }
-    .objective-aggregates-card { width: auto; }
+    .dashboard-overview-grid { grid-template-columns: 1fr; }
+    .dashboard-overview-objectives { min-height: 0; }
+    .dashboard-overview-objectives
+    .objective-aggregates-card { height: auto; }
     /* The aggregates row's two fixed columns outgrow a
         narrow phone; put label and gauge on one line and
         the sparkline full-width beneath. */

@@ -57,6 +57,7 @@ export const PAGE_REGISTRY: Record<
         sourceFile: 'index',
         icon: iconHome,
         keywords: 'home overview',
+        cssBundles: ['pages-dashboard'],
         loader: () => import('../dashboard/index.ts'),
     },
     organization: {
