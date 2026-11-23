@@ -80,9 +80,9 @@ code comments cite; specs and plans written before the
   compose's service and container names, the hosted
   service names, the test-only `CHROME` and
   `CHROME_DEBUG_URL`, and the scripts' and tests'
-  `FUSION_ANGLE_STATIC_ROOT` (`bin/test-browser:43`,
+  `FUSION_ANGLE_STATIC_ROOT` (`bin/test-browser:47`,
   `tests/browser/fixtures.ts:236`),
-  `FUSION_ANGLE_BROWSER_SEED` (`bin/test-browser:55`;
+  `FUSION_ANGLE_BROWSER_SEED` (`bin/test-browser:60`;
   named at `tests/browser/fixtures.ts:75`, read at `:226`
   and `tests/browser/run-seed.test.ts:6`), and
   `SHA_RESULT_CACHE_ROOT`

@@ -14,6 +14,8 @@ cd "$ROOT"
 
 # shellcheck source=build-lib
 source "$BIN/build-lib"
+# shellcheck source=sha-result-cache-lib
+source "$BIN/sha-result-cache-lib"
 
 if [ -z "${CHROME_DEBUG_URL:-}" ]; then
     CHROME="${CHROME:-/Applications/Google Chrome.app}"
@@ -32,64 +34,89 @@ fi
 
 export JWT_HMAC_SIGNING_KEY="${JWT_HMAC_SIGNING_KEY:-test-hmac-signing-key}"
 
-# One directory holds the run: the bundle, and every temp
-# directory the suite makes, each Chrome's profile among
-# them. The trap removes it whole, so an interrupted run
-# leaves no profile behind.
-RUN_DIR="$(mktemp -d "${TMPDIR:-/tmp}/fusion-browser.XXXXXX")"
-trap 'rm -rf "$RUN_DIR"' EXIT
-BUNDLE="$RUN_DIR/site"
-bundle_client "$BUNDLE" > /dev/null
-export FUSION_ANGLE_STATIC_ROOT="$BUNDLE"
-mkdir "$RUN_DIR/tmp"
+browser_suite() {
+    # One directory holds the run: the bundle, and every
+    # temp directory the suite makes, each Chrome's profile
+    # among them. The trap removes it whole, so an
+    # interrupted run leaves no profile behind. It is made
+    # here, inside the step, so a replay makes none.
+    RUN_DIR="$(mktemp -d "${TMPDIR:-/tmp}/fusion-browser.XXXXXX")"
+    trap 'rm -rf "$RUN_DIR"' EXIT
+    BUNDLE="$RUN_DIR/site"
+    bundle_client "$BUNDLE" > /dev/null
+    export FUSION_ANGLE_STATIC_ROOT="$BUNDLE"
+    mkdir "$RUN_DIR/tmp"
 
-# One mock seed for the run, landed here before any file
-# starts, into a file the seed creates read-only and no
-# file writes. Each file rebuilds its backend from those
-# rows (tests/browser/fixtures.ts) in place of a seed of
-# its own. The file lives and dies with the run's
-# directory, so no run ever reads another run's seed. A
-# seed that fails stops the run here, before any test.
-# The landing reads one variable, the signing key that
-# tests/hmac-test-key.ts sets when it is absent.
-export FUSION_ANGLE_BROWSER_SEED="$RUN_DIR/seed.json"
-TZ=UTC deno run --frozen --allow-env=JWT_HMAC_SIGNING_KEY \
-    --allow-write="$RUN_DIR" \
-    tests/browser/land-run-seed.ts "$FUSION_ANGLE_BROWSER_SEED"
+    # One mock seed for the run, landed here before any
+    # file starts, into a file the seed creates read-only
+    # and no file writes. Each file rebuilds its backend
+    # from those rows (tests/browser/fixtures.ts) in place
+    # of a seed of its own. The file lives and dies with
+    # the run's directory, so no run ever reads another
+    # run's seed. A seed that fails stops the run here,
+    # before any test. The landing reads one variable, the
+    # signing key that tests/hmac-test-key.ts sets when it
+    # is absent.
+    export FUSION_ANGLE_BROWSER_SEED="$RUN_DIR/seed.json"
+    TZ=UTC deno run --frozen --allow-env=JWT_HMAC_SIGNING_KEY \
+        --allow-write="$RUN_DIR" \
+        tests/browser/land-run-seed.ts "$FUSION_ANGLE_BROWSER_SEED"
 
-# A launched Chrome is one per file, so the files run
-# together, four at a time. The operator often runs
-# other threads beside a suite, so it takes four workers
-# and never a worker per CPU, where each worker also
-# drives a Chrome of several processes. A DENO_JOBS the
-# shell exports wins. An attached Chrome is one browser
-# for every file, so those files run one at a time.
-BROWSER_FILE_WORKERS=4
-SCHEDULE=''
-if [ -z "${CHROME_DEBUG_URL:-}" ]; then
-    SCHEDULE='--parallel'
-    export DENO_JOBS="${DENO_JOBS:-$BROWSER_FILE_WORKERS}"
+    # A launched Chrome is one per file, so the files run
+    # together, four at a time. The operator often runs
+    # other threads beside a suite, so it takes four
+    # workers and never a worker per CPU, where each worker
+    # also drives a Chrome of several processes. A
+    # DENO_JOBS the shell exports wins. An attached Chrome
+    # is one browser for every file, so those files run one
+    # at a time.
+    BROWSER_FILE_WORKERS=4
+    SCHEDULE=''
+    if [ -z "${CHROME_DEBUG_URL:-}" ]; then
+        SCHEDULE='--parallel'
+        export DENO_JOBS="${DENO_JOBS:-$BROWSER_FILE_WORKERS}"
+    fi
+
+    # Per-test bound lives in tests/browser/fixtures.ts
+    # (withTimeout). deno test has no per-test timeout flag.
+    # --allow-env is unscoped: Chrome spawn copies the env bag.
+    # Resources only, no --sanitize-ops: useBrowser() opens the
+    # CDP WebSocket once per file in Deno.test.beforeAll, so its
+    # pending receive always crosses a test boundary and the ops
+    # sanitizer fails every test in the file. Closing the socket
+    # per test means one Chrome per test, against the one Chrome
+    # per file this suite is built on.
+    # worker-name-prefix.ts: files run together are workers in
+    # one process, where BroadcastChannel and navigator.locks
+    # name process-wide buses and locks. The prefix gives each
+    # worker names of its own, as it does for ./test.
+    TMPDIR="$RUN_DIR/tmp" TZ=UTC \
+        deno test --frozen --no-check $SCHEDULE \
+        --sanitize-resources \
+        --allow-env --allow-read --allow-write \
+        --allow-net --allow-run \
+        --preload ./tests/hmac-test-key.ts \
+        --preload ./tests/local-storage-stub.ts \
+        --preload ./tests/worker-name-prefix.ts \
+        tests/browser/*.test.ts
+}
+
+# A suite that passed on this SHA, in this browser,
+# replays instead of running again. Chrome replaces
+# itself in place, so the browser is named by what it
+# says it is, never by its path; a Chrome that says
+# nothing runs the suite every time. The name carries
+# the schedule with it: an attached run is named by its
+# URL and runs its files one at a time, a launched one
+# by its version and runs them together. The worker
+# count is left out: it sets how many files run at once,
+# never which tests run or what they assert.
+if [ -n "${CHROME_DEBUG_URL:-}" ]; then
+    replay_or_run "browser $CHROME_DEBUG_URL" -- browser_suite
+elif BROWSER="$("$CHROME" --version 2>/dev/null)" \
+    && [ -n "$BROWSER" ]
+then
+    replay_or_run "browser $BROWSER" -- browser_suite
+else
+    browser_suite
 fi
-
-# Per-test bound lives in tests/browser/fixtures.ts
-# (withTimeout). deno test has no per-test timeout flag.
-# --allow-env is unscoped: Chrome spawn copies the env bag.
-# Resources only, no --sanitize-ops: useBrowser() opens the
-# CDP WebSocket once per file in Deno.test.beforeAll, so its
-# pending receive always crosses a test boundary and the ops
-# sanitizer fails every test in the file. Closing the socket
-# per test means one Chrome per test, against the one Chrome
-# per file this suite is built on.
-# worker-name-prefix.ts: files run together are workers in
-# one process, where BroadcastChannel and navigator.locks
-# name process-wide buses and locks. The prefix gives each
-# worker names of its own, as it does for ./test.
-TMPDIR="$RUN_DIR/tmp" TZ=UTC \
-    deno test --frozen --no-check $SCHEDULE \
-    --sanitize-resources \
-    --allow-env --allow-read --allow-write \
-    --allow-net --allow-run \
-    --preload ./tests/hmac-test-key.ts \
-    --preload ./tests/local-storage-stub.ts \
-    --preload ./tests/worker-name-prefix.ts \
-    tests/browser/*.test.ts

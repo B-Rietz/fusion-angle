@@ -324,46 +324,81 @@ Deno.test('test-postgres mints its stack through compose-lib',
 
 // An attached Chrome is one browser for every file, so
 // only a run that launches its own Chromes runs its
-// files together.
+// files together. The guard stands inside the step the
+// result cache asks about: a replay schedules nothing.
 Deno.test('test-browser runs files together only unattached',
 () => {
     const src = Deno.readTextFileSync('bin/test-browser');
-    const guard = "SCHEDULE=''\n"
-        + 'if [ -z "${CHROME_DEBUG_URL:-}" ]; then\n'
-        + "    SCHEDULE='--parallel'\n";
-    assert(src.includes(guard), 'unattached guard missing');
+    const suite = functionBody(src, 'browser_suite');
+    const guard = "    SCHEDULE=''\n"
+        + '    if [ -z "${CHROME_DEBUG_URL:-}" ]; then\n'
+        + "        SCHEDULE='--parallel'\n";
+    assert(suite.includes(guard), 'unattached guard missing');
     const named = src.split('\n').filter((line) =>
-        !line.startsWith('#') && line.includes('--parallel')
+        !line.trimStart().startsWith('#')
+        && line.includes('--parallel')
     );
     assertStrictEquals(named.length, 1);
     assertMatch(
-        src, /deno test --frozen --no-check \$SCHEDULE /,
+        suite, /deno test --frozen --no-check \$SCHEDULE /,
     );
 });
 
 // A file with no run seed named seeds its own, so a run
 // that forgot to land one would stay green and seed once
 // per file. The script names the seed in the run's
-// directory and lands it before any file starts.
+// directory and lands it before any file starts, inside
+// the step the result cache asks about: a replay lands
+// none.
 Deno.test('test-browser lands one seed before the files',
 () => {
-    const src = Deno.readTextFileSync('bin/test-browser');
+    const suite = functionBody(
+        Deno.readTextFileSync('bin/test-browser'),
+        'browser_suite',
+    );
     const named = 'export FUSION_ANGLE_BROWSER_SEED='
         + '"$RUN_DIR/seed.json"\n';
     const run = 'deno run --frozen'
         + ' --allow-env=JWT_HMAC_SIGNING_KEY \\\n'
-        + '    --allow-write="$RUN_DIR" \\\n';
+        + '        --allow-write="$RUN_DIR" \\\n';
     const landed = 'tests/browser/land-run-seed.ts'
         + ' "$FUSION_ANGLE_BROWSER_SEED"\n';
-    const namedAt = src.indexOf(named);
-    const runAt = src.indexOf(run);
-    const landedAt = src.indexOf(landed);
-    const filesAt = src.indexOf('deno test --frozen');
+    const namedAt = suite.indexOf(named);
+    const runAt = suite.indexOf(run);
+    const landedAt = suite.indexOf(landed);
+    const filesAt = suite.indexOf('deno test --frozen');
     assert(namedAt >= 0, 'run seed not named');
     assert(runAt > namedAt, 'landing not scoped');
     assert(
-        landedAt === runAt + run.length + '    '.length,
+        landedAt === runAt + run.length + '        '.length,
         'run seed not landed',
     );
     assert(filesAt > landedAt, 'files start before the seed');
+});
+
+// Only bin/test-browser knows which browser it will
+// drive, so it asks the result cache at its own door,
+// naming the browser by what Chrome says it is: Chrome
+// replaces itself in place, and a path would not see it.
+// The run's directory and the trap that removes it are
+// the step's own, so a replay makes neither.
+Deno.test('test-browser asks the result cache per browser',
+() => {
+    const src = Deno.readTextFileSync('bin/test-browser');
+    assertMatch(src, /source "\$BIN\/sha-result-cache-lib"/);
+    const suite = functionBody(src, 'browser_suite');
+    assertMatch(suite, /mktemp -d/);
+    assertMatch(suite, /trap 'rm -rf "\$RUN_DIR"' EXIT/);
+    assertMatch(suite, /bundle_client "\$BUNDLE"/);
+    assertMatch(suite, /tests\/browser\/\*\.test\.ts/);
+    assertMatch(
+        src,
+        /replay_or_run "browser \$CHROME_DEBUG_URL" -- .*browser_suite/,
+    );
+    assertMatch(src, /BROWSER="\$\("\$CHROME" --version/);
+    // A Chrome that says nothing names no browser.
+    assertMatch(src, /&& \[ -n "\$BROWSER" \]\nthen\n/);
+    assertMatch(
+        src, /replay_or_run "browser \$BROWSER" -- .*browser_suite/,
+    );
 });

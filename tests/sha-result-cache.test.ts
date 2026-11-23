@@ -6,7 +6,7 @@ import {
     assertStrictEquals,
     assertStringIncludes,
 } from '@std/assert';
-import { join, relative } from '@std/path';
+import { basename, dirname, join, relative } from '@std/path';
 
 // bin/sha-result-cache-lib, driven through /bin/bash: the
 // shell its callers' `#!/bin/bash` names. bash and POSIX
@@ -985,5 +985,186 @@ async () => {
         assertStrictEquals(counted.status, 0);
         assertNotMatch(counted.stderr, REPLAYING);
         assertEquals(calls(), BOTH_PASSES);
+    });
+});
+
+// The real `bin/test-browser` and the real library,
+// copied into a repository of their own beside stand-ins
+// for what the script runs: a build library whose
+// bundle_client makes the site directory, notes its call,
+// and returns as told; a `deno` that answers `--version`,
+// notes each other call and exits as told, the files'
+// call with the temp directory it was handed; and a
+// Chrome that states a version. The script runs under the
+// shell its own first line names, with a temp directory
+// of its own to make its run directory in.
+type BrowserReplica = {
+    readonly scene: Scene;
+    readonly tmp: string;
+    readonly run: (env: Record<string, string>) => Promise<Run>;
+    readonly calls: () => string[];
+};
+
+async function withBrowserReplica(
+    body: (replica: BrowserReplica) => Promise<void>,
+): Promise<void> {
+    await withScene(async (scene) => {
+        const stubs = join(scene.dir, 'stubs');
+        await Deno.mkdir(stubs);
+        await Deno.writeTextFile(
+            join(stubs, 'deno'),
+            '#!/bin/sh\n'
+            + 'case "$1" in\n'
+            + '    --version)\n'
+            + '        echo "deno 0.0.0 (stand-in)"\n'
+            + '        ;;\n'
+            + '    run)\n'
+            + '        echo "deno run" >> "$CALLS"\n'
+            + '        exit "$SEED_STATUS"\n'
+            + '        ;;\n'
+            + '    test)\n'
+            + '        [ -d "$TMPDIR" ] || exit 2\n'
+            + '        echo "deno test $TMPDIR" >> "$CALLS"\n'
+            + '        exit "$FILES_STATUS"\n'
+            + '        ;;\n'
+            + 'esac\n',
+            { mode: 0o755 },
+        );
+        await Deno.writeTextFile(
+            join(stubs, 'chrome'),
+            '#!/bin/sh\n'
+            + 'echo "Google Chrome 0.0.0 (stand-in)"\n',
+            { mode: 0o755 },
+        );
+        const tmp = join(scene.dir, 'tmp');
+        await Deno.mkdir(tmp);
+        await Deno.mkdir(join(scene.repo, 'bin'));
+        await Deno.copyFile(
+            'bin/test-browser',
+            join(scene.repo, 'bin/test-browser'),
+        );
+        await Deno.copyFile(
+            LIBRARY, join(scene.repo, 'bin/sha-result-cache-lib'),
+        );
+        await Deno.writeTextFile(
+            join(scene.repo, 'bin/build-lib'),
+            'bundle_client() {\n'
+            + '    echo "bundle" >> "$CALLS"\n'
+            + '    mkdir -p "$1"\n'
+            + '    return "$BUNDLE_STATUS"\n'
+            + '}\n',
+        );
+        await git(scene.repo, ['add', '.']);
+        await git(scene.repo, [
+            'commit', '--quiet', '-m', 'The browser script',
+        ]);
+        await body({
+            scene,
+            tmp,
+            run: async (env) => {
+                const output = await new Deno.Command(SHELL, {
+                    args: ['./bin/test-browser'],
+                    cwd: scene.repo,
+                    clearEnv: true,
+                    env: {
+                        PATH: `${stubs}:${searchPath()}`,
+                        CALLS: scene.ran,
+                        CHROME: join(stubs, 'chrome'),
+                        TMPDIR: tmp,
+                        BUNDLE_STATUS: '0',
+                        SEED_STATUS: '0',
+                        FILES_STATUS: '0',
+                        SHA_RESULT_CACHE_ROOT: scene.root,
+                        GIT_CEILING_DIRECTORIES: scene.dir,
+                        ...HERMETIC_GIT,
+                        ...env,
+                    },
+                    signal: AbortSignal.timeout(RUN_TIMEOUT_MS),
+                }).output();
+                const decoder = new TextDecoder();
+                return {
+                    status: output.code,
+                    stdout: decoder.decode(output.stdout),
+                    stderr: decoder.decode(output.stderr),
+                };
+            },
+            calls: () =>
+                timesRan(scene) === 0
+                    ? []
+                    : Deno.readTextFileSync(scene.ran)
+                        .trimEnd().split('\n'),
+        });
+    });
+}
+
+function namesIn(dir: string): string[] {
+    return Array.from(Deno.readDirSync(dir), (entry) => entry.name);
+}
+
+// Everything a run makes is the step's own: its directory,
+// the bundle, the seed, and the files' run. A replay makes
+// and starts none of them.
+Deno.test('the real browser script replays with no run of its own',
+async () => {
+    await withBrowserReplica(async ({ tmp, run, calls }) => {
+        const first = await run({});
+        assertStrictEquals(first.status, 0);
+        assertNotMatch(first.stderr, REPLAYING);
+        const [bundle, seed, files] = calls();
+        assertEquals([bundle, seed], ['bundle', 'deno run']);
+        // The files ran with a temp directory inside the
+        // run's own, which stood while they ran.
+        const held = files!.slice('deno test '.length);
+        assertStrictEquals(basename(held), 'tmp');
+        assertMatch(basename(dirname(held)), /^fusion-browser\./);
+        assertStrictEquals(dirname(dirname(held)), tmp);
+        assertEquals(namesIn(tmp), []);
+
+        const replay = await run({});
+        assertStrictEquals(replay.status, 0);
+        assertMatch(
+            replay.stderr,
+            /^sha-result-cache: replaying browser Google Chrome /m,
+        );
+        assertStrictEquals(calls().length, 3);
+        assertEquals(namesIn(tmp), []);
+    });
+});
+
+// The trap that removes the run's directory is set
+// inside the step, which runs in a subshell when it is
+// recorded and in the script's own shell when the cache
+// is not asked. Either way a run that fails, at its
+// bundle, its seed, or its files, exits with the status
+// that failed it, leaves no directory, and is never
+// recorded.
+Deno.test('the real browser script cleans up a failed run',
+async () => {
+    await withBrowserReplica(async ({ scene, tmp, run, calls }) => {
+        const failures: [Record<string, string>, number, number][] = [
+            [{ BUNDLE_STATUS: '3' }, 3, 1],
+            [{ SEED_STATUS: '4' }, 4, 2],
+            [{ FILES_STATUS: '5' }, 5, 3],
+        ];
+        const fail = async () => {
+            for (const [env, status, steps] of failures) {
+                const before = calls().length;
+                const failed = await run(env);
+                assertStrictEquals(failed.status, status);
+                assertStrictEquals(calls().length, before + steps);
+                assertEquals(namesIn(tmp), []);
+                assertEquals(entries(scene), []);
+            }
+        };
+        await fail();
+        // And where the cache is not asked at all.
+        await Deno.writeTextFile(
+            join(scene.repo, 'untracked'), 'x',
+        );
+        await fail();
+        const unasked = await run({});
+        assertStrictEquals(unasked.status, 0);
+        assertEquals(namesIn(tmp), []);
+        assertEquals(entries(scene), []);
     });
 });

@@ -169,11 +169,16 @@ Clean tree for `./bin/build`, `./deploy`, and
 
 A step that passed on a clean tree does not run
 again for that SHA. The memory suite, lint, the API
-documentation check, and the Postgres suite each keep
+documentation check, the Postgres suite, and the browser
+suite each keep
 their stdout and stderr in the SHA result cache, under
 `/tmp/fusion-angle-sha-result-cache`
 (`SHA_RESULT_CACHE_ROOT` moves it), named by HEAD's SHA,
-the step, `deno --version`, and `NO_COLOR`. A repeat
+the step, `deno --version`, and `NO_COLOR`; the browser
+suite's name also carries what `Chrome --version` says,
+or `CHROME_DEBUG_URL`. No name carries a worker count,
+which sets how many files run at once and never the
+result. A repeat
 replays both streams between two lines on stderr,
 `sha-result-cache: replaying <step>, which passed at
 <time> on <sha>` and `sha-result-cache: replayed <step>;
@@ -212,7 +217,10 @@ time. Either way it lands the mock seed once, before any
 file starts, into a read-only file in the run's
 directory; each file rebuilds its backend from those
 rows, and each origin takes a copy. A file run alone under
-`deno test` seeds its own. It is not part of
+`deno test` seeds its own. All of that is the step's own
+work, so a replay bundles nothing, lands no seed, and
+launches no browser; it still asks `Chrome --version`
+at the door, for the entry's name. It is not part of
 `./test validate`; `./deploy --local` runs it after
 `./test postgres`.
 
