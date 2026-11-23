@@ -32,6 +32,18 @@
 # `replay_or_run WAY -- TIMER COMMAND`, and calls its
 # command as a plain statement too.
 #
+# Call it from a shell that has never set an EXIT trap,
+# and let the step set its own. A recorded step runs in
+# a subshell, and bash 3.2, the /bin/bash of macOS, runs
+# an EXIT trap on a signal that ends a subshell only
+# where no shell above it has ever set one; a trap set
+# and cleared again still counts. A caller that holds
+# one is refused. One that set and cleared one cannot be
+# seen from here, and is the caller's to avoid. Called
+# so, a step whose cleanup is an EXIT trap cleans up on
+# a hangup, on Ctrl-C, and on a termination, as it would
+# at the top of its script.
+#
 # Each script that does a step's work asks at its own
 # door: test for the steps it runs itself, and
 # bin/test-postgres, bin/test-browser, and bin/build for
@@ -188,19 +200,43 @@ ARTIFACTS
 
 # Run COMMAND with each stream passing through a tee, and
 # record it if it passes. Its body is a subshell: the
-# trap, the tees, and `set +e` end with it, and the
+# traps, the tees, and `set +e` end with it, and the
 # caller's own traps and options are never touched.
+#
+# It sets no EXIT trap. bash 3.2, the /bin/bash of
+# macOS, runs an EXIT trap on a signal that ends a
+# subshell only where no shell above it has ever set
+# one. One set here would leave COMMAND's own exit trap
+# unrun on HUP and TERM, at any depth below this, a
+# timer's subshell included, and a run directory or a
+# compose stack would outlive its run. So HUP, INT, and
+# TERM are named, before the directory is made, each
+# removing it and leaving with 128 plus its number as a
+# shell reports it, and each way out below removes it
+# itself. Any other signal that ends this shell leaves
+# the directory behind with what the step had printed;
+# its name is never an entry's.
+#
+# The tees ignore those signals once their pipes are
+# open, and end when COMMAND's shells close them: the
+# cleanup a step does on its way out can still print,
+# and no closed pipe ends it before it is done.
 run_and_record() (
     way="$1"
     entry="$2"
     artifacts="$3"
     shift 3
     set +e
+    aside=''
+    trap 'rm -rf "$aside"; exit 129' HUP
+    trap 'rm -rf "$aside"; exit 130' INT
+    trap 'rm -rf "$aside"; exit 143' TERM
     if ! aside=$(
         mktemp -d "${entry%/*}/aside.XXXXXX" 2>/dev/null
     ); then
         sha_result_cache_say \
             "cannot record $way; running without the cache"
+        trap - HUP INT TERM
         set -e
         "$@"
         exit
@@ -211,14 +247,16 @@ run_and_record() (
         rm -rf "$aside"
         sha_result_cache_say \
             "cannot record $way; running without the cache"
+        trap - HUP INT TERM
         set -e
         "$@"
         exit
     fi
-    trap 'rm -rf "$aside"' EXIT
-    tee "$aside/stdout" < "$aside/stdout.fifo" &
+    ( trap '' HUP INT TERM; exec tee "$aside/stdout" ) \
+        < "$aside/stdout.fifo" &
     stdout_tee=$!
-    tee "$aside/stderr" < "$aside/stderr.fifo" >&2 &
+    ( trap '' HUP INT TERM; exec tee "$aside/stderr" ) \
+        < "$aside/stderr.fifo" >&2 &
     stderr_tee=$!
     # A plain subshell, with `set -e` put back inside it:
     # a failing command still stops COMMAND, and its
@@ -230,18 +268,18 @@ run_and_record() (
     stdout_written=$?
     wait "$stderr_tee"
     stderr_written=$?
-    if [ "$status" -ne 0 ]; then
-        exit "$status"
+    if [ "$status" -eq 0 ]; then
+        if [ "$stdout_written" -ne 0 ] \
+            || [ "$stderr_written" -ne 0 ]
+        then
+            sha_result_cache_say \
+                "cannot keep what $way printed; not recorded"
+        else
+            record_result "$way" "$entry" "$artifacts" "$aside"
+        fi
     fi
-    if [ "$stdout_written" -ne 0 ] \
-        || [ "$stderr_written" -ne 0 ]
-    then
-        sha_result_cache_say \
-            "cannot keep what $way printed; not recorded"
-        exit 0
-    fi
-    record_result "$way" "$entry" "$artifacts" "$aside"
-    exit 0
+    rm -rf "$aside"
+    exit "$status"
 )
 
 replay_or_run() {
@@ -269,6 +307,11 @@ replay_or_run() {
         exit 1
     fi
     set -e
+    if [ -n "$(trap -p EXIT)" ]; then
+        echo "Error: replay_or_run $way is called by a" \
+            "shell that holds an EXIT trap" >&2
+        exit 1
+    fi
     if ! entry=$(result_entry "$way" "$artifacts"); then
         "$@"
         return

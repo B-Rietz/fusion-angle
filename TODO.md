@@ -86,7 +86,7 @@ code comments cite; specs and plans written before the
   named at `tests/browser/fixtures.ts:75`, read at `:226`
   and `tests/browser/run-seed.test.ts:6`), and
   `SHA_RESULT_CACHE_ROOT`
-  (`bin/sha-result-cache-lib:43`), which
+  (`bin/sha-result-cache-lib:55`), which
   the oracle reaches. Oracle: `env | grep FA_` lists
   everything the system needs, and a test finds every
   environment read in product code and scripts and fails

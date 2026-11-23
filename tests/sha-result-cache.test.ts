@@ -147,6 +147,92 @@ function replayOrRun(
     });
 }
 
+// The shape of the timer that goes inside the ask
+// (decision 14): its command in a subshell under the
+// caller's errexit, the status handed back unchanged.
+const TIMER = ' timed() { local errexit=+e status;'
+    + ' case $- in *e*) errexit=-e ;; esac;'
+    + ' set +e; ( set "$errexit"; "$@" ); status=$?;'
+    + ' set "$errexit"; return "$status"; };';
+
+// A held step says it has started and waits to be let
+// go in a `read` of its own, with no child between it and
+// the signal. A loop of `sleep` would be a false prophet:
+// on bash 3.2 a Ctrl-C that lands as a foreground child
+// exits normally is dropped by the shell, the loop runs
+// on, and nothing lets it go. The fifo is open for
+// reading and writing, so the read never ends for want of
+// a writer. Its own bound is far inside the spawn's: a
+// step never let go says so and fails with a status of
+// its own.
+const HELD_TOO_LONG = 97;
+const HOLD = ' exec 3<> "$RELEASE"; : > "$STARTED";'
+    + ' if ! read -t 20 -r _ <&3; then'
+    + ' echo "the held step was never let go" >&2;'
+    + ` exit ${HELD_TOO_LONG}; fi;`;
+
+// Starts its arguments as a job with a process group of
+// its own, as a terminal does, and signals that group, or
+// the job's own process alone, once the held step has
+// started. Then it lets the step go, through the fifo,
+// opened for reading and writing so the write never
+// waits: a step the signal ended is past caring, and one
+// whose script alone was ended runs on. The job's status
+// is its own.
+const INTERRUPT = 'set -m; mkfifo "$RELEASE"; "$@" & job=$!;'
+    + ' until [ -e "$STARTED" ]'
+    + ' || ! kill -0 "$job" 2> /dev/null; do sleep 0.01; done;'
+    + ' kill -s "$SIGNAL" -- "$TARGET$job";'
+    + ' wait "$job"; status=$?;'
+    + ' exec 3<> "$RELEASE"; echo >&3; exit "$status"';
+
+type Interruption = {
+    readonly signal: 'HUP' | 'INT' | 'TERM';
+    readonly alone: boolean;
+};
+
+// Run JOB and interrupt it. The pipes this reads close
+// only when the last process of the job has gone, so the
+// cleanup is over when it returns, and one scene can be
+// interrupted again: each run is held in a directory of
+// its own.
+async function interrupted(
+    scene: Scene,
+    how: {
+        readonly cwd: string;
+        readonly env: Record<string, string>;
+        readonly job: readonly string[];
+        readonly interruption: Interruption;
+    },
+): Promise<Run> {
+    const held = await Deno.makeTempDir({
+        dir: scene.dir, prefix: 'held-',
+    });
+    const output = await new Deno.Command(SHELL, {
+        args: ['-c', INTERRUPT, SHELL, ...how.job],
+        cwd: how.cwd,
+        clearEnv: true,
+        env: {
+            PATH: searchPath(),
+            SHA_RESULT_CACHE_ROOT: scene.root,
+            GIT_CEILING_DIRECTORIES: scene.dir,
+            ...HERMETIC_GIT,
+            STARTED: join(held, 'started'),
+            RELEASE: join(held, 'release'),
+            SIGNAL: how.interruption.signal,
+            TARGET: how.interruption.alone ? '' : '-',
+            ...how.env,
+        },
+        signal: AbortSignal.timeout(RUN_TIMEOUT_MS),
+    }).output();
+    const decoder = new TextDecoder();
+    return {
+        status: output.code,
+        stdout: decoder.decode(output.stdout),
+        stderr: decoder.decode(output.stderr),
+    };
+}
+
 // A step that writes to both streams and passes.
 function step(scene: Scene): string[] {
     return [
@@ -814,6 +900,130 @@ Deno.test('nothing is left beside the entries', async () => {
     });
 });
 
+// A step cleans up after itself with an EXIT trap, as the
+// browser suite removes its run directory. A recorded
+// step runs in a subshell, and bash 3.2, the /bin/bash of
+// macOS, runs an EXIT trap on a signal that ends a
+// subshell only where no shell above it has ever set
+// one. So the recording sets none: the step's own trap
+// runs on a hangup, on Ctrl-C, and on a termination, its
+// cleanup can still print, and nothing is left or
+// recorded. The step here is a subshell further down
+// than a script puts it, through a timer; the real
+// browser script below is the step with none between.
+// The script is a file, as every caller is: handed its
+// commands by -c, that bash ends on Ctrl-C without its
+// exit trap, with this library or without.
+Deno.test('a step still cleans up when a signal ends its run',
+async () => {
+    const signals: [Interruption['signal'], number][] = [
+        ['HUP', 129], ['INT', 130], ['TERM', 143],
+    ];
+    await withScene(async (scene) => {
+        const script = join(scene.dir, 'script');
+        await Deno.writeTextFile(
+            script,
+            'set -eu; . "$1";' + TIMER + ' step() {'
+            + " trap 'echo cleaning;"
+            + ' echo cleaned >> "$CLEANED"\' EXIT;'
+            + HOLD + ' };'
+            + ' replay_or_run demo -- timed step\n',
+        );
+        const sha = await git(scene.repo, ['rev-parse', 'HEAD']);
+        // No run is recorded, so each signal meets a step
+        // that runs for real.
+        for (const [signal, status] of signals) {
+            const cleaned = join(scene.dir, `cleaned-${signal}`);
+            const run = await interrupted(scene, {
+                cwd: scene.repo,
+                env: { CLEANED: cleaned },
+                job: [SHELL, script, LIBRARY],
+                interruption: { signal, alone: false },
+            });
+            assertStrictEquals(run.status, status, signal);
+            assertStrictEquals(run.stdout, 'cleaning\n', signal);
+            assertStrictEquals(
+                Deno.readTextFileSync(cleaned),
+                'cleaned\n',
+                signal,
+            );
+            assertEquals(cachePaths(scene), [sha], signal);
+        }
+    });
+});
+
+// The recording's own directory is made before the step
+// starts, and a signal can land before that. The three
+// signals are named before the directory is made, so one
+// that lands while its fifos are being made still leaves
+// nothing beside the entries, and the step never starts.
+// The stand-in `mkfifo` is where the run is held.
+Deno.test('a signal before the step starts leaves nothing',
+async () => {
+    const signals: [Interruption['signal'], number][] = [
+        ['HUP', 129], ['INT', 130], ['TERM', 143],
+    ];
+    await withScene(async (scene) => {
+        const stubs = join(scene.dir, 'stubs');
+        await Deno.mkdir(stubs);
+        await Deno.writeTextFile(
+            join(stubs, 'mkfifo'),
+            `#!/bin/bash\n${HOLD}\n`,
+            { mode: 0o755 },
+        );
+        const script = join(scene.dir, 'script');
+        await Deno.writeTextFile(
+            script,
+            'PATH="$STUBS:$PATH"; set -eu; . "$1";'
+            + ' step() { echo ran >> "$RAN"; };'
+            + ' replay_or_run demo -- step\n',
+        );
+        const sha = await git(scene.repo, ['rev-parse', 'HEAD']);
+        for (const [signal, status] of signals) {
+            const run = await interrupted(scene, {
+                cwd: scene.repo,
+                env: { STUBS: stubs, RAN: scene.ran },
+                job: [SHELL, script, LIBRARY],
+                interruption: { signal, alone: false },
+            });
+            assertStrictEquals(run.status, status, signal);
+            assertStrictEquals(timesRan(scene), 0, signal);
+            assertEquals(cachePaths(scene), [sha], signal);
+        }
+    });
+});
+
+// A step's own exit trap runs on a hangup or a termination
+// only where no shell above it has ever set one. A caller
+// that holds one is refused before the step runs, asked
+// or not. One that set a trap and cleared it again cannot
+// be seen from here, and is the caller's to avoid.
+Deno.test('a caller that holds an EXIT trap is refused',
+async () => {
+    await withScene(async (scene) => {
+        const refused = async () => {
+            const run = await sh(scene, {
+                cwd: scene.repo,
+                env: {},
+                script: 'set -eu; . "$0"; trap "echo left" EXIT;'
+                    + ' replay_or_run demo -- "$@"; echo passed',
+                args: step(scene),
+            });
+            assertStrictEquals(run.status, 1);
+            assertMatch(run.stderr, /an EXIT trap/);
+            assertNotMatch(run.stdout, /passed/);
+        };
+        await refused();
+        // And where the cache is not asked at all.
+        await Deno.writeTextFile(
+            join(scene.repo, 'untracked'), 'x',
+        );
+        await refused();
+        assertStrictEquals(timesRan(scene), 0);
+        assertEquals(entries(scene), []);
+    });
+});
+
 // The real `test` script and the real library, copied
 // into a repository of their own beside stand-ins for
 // what the script runs: a `deno` that answers
@@ -1002,6 +1212,9 @@ type BrowserReplica = {
     readonly scene: Scene;
     readonly tmp: string;
     readonly run: (env: Record<string, string>) => Promise<Run>;
+    readonly interrupt: (
+        interruption: Interruption,
+    ) => Promise<Run>;
     readonly calls: () => string[];
 };
 
@@ -1013,7 +1226,7 @@ async function withBrowserReplica(
         await Deno.mkdir(stubs);
         await Deno.writeTextFile(
             join(stubs, 'deno'),
-            '#!/bin/sh\n'
+            '#!/bin/bash\n'
             + 'case "$1" in\n'
             + '    --version)\n'
             + '        echo "deno 0.0.0 (stand-in)"\n'
@@ -1025,6 +1238,9 @@ async function withBrowserReplica(
             + '    test)\n'
             + '        [ -d "$TMPDIR" ] || exit 2\n'
             + '        echo "deno test $TMPDIR" >> "$CALLS"\n'
+            + '        if [ -n "${STARTED:-}" ]; then\n'
+            + `           ${HOLD}\n`
+            + '        fi\n'
             + '        exit "$FILES_STATUS"\n'
             + '        ;;\n'
             + 'esac\n',
@@ -1058,6 +1274,15 @@ async function withBrowserReplica(
         await git(scene.repo, [
             'commit', '--quiet', '-m', 'The browser script',
         ]);
+        const standIns = {
+            PATH: `${stubs}:${searchPath()}`,
+            CALLS: scene.ran,
+            CHROME: join(stubs, 'chrome'),
+            TMPDIR: tmp,
+            BUNDLE_STATUS: '0',
+            SEED_STATUS: '0',
+            FILES_STATUS: '0',
+        };
         await body({
             scene,
             tmp,
@@ -1067,13 +1292,7 @@ async function withBrowserReplica(
                     cwd: scene.repo,
                     clearEnv: true,
                     env: {
-                        PATH: `${stubs}:${searchPath()}`,
-                        CALLS: scene.ran,
-                        CHROME: join(stubs, 'chrome'),
-                        TMPDIR: tmp,
-                        BUNDLE_STATUS: '0',
-                        SEED_STATUS: '0',
-                        FILES_STATUS: '0',
+                        ...standIns,
                         SHA_RESULT_CACHE_ROOT: scene.root,
                         GIT_CEILING_DIRECTORIES: scene.dir,
                         ...HERMETIC_GIT,
@@ -1088,6 +1307,13 @@ async function withBrowserReplica(
                     stderr: decoder.decode(output.stderr),
                 };
             },
+            interrupt: (interruption) =>
+                interrupted(scene, {
+                    cwd: scene.repo,
+                    env: standIns,
+                    job: [SHELL, './bin/test-browser'],
+                    interruption,
+                }),
             calls: () =>
                 timesRan(scene) === 0
                     ? []
@@ -1166,5 +1392,40 @@ async () => {
         assertStrictEquals(unasked.status, 0);
         assertEquals(namesIn(tmp), []);
         assertEquals(entries(scene), []);
+    });
+});
+
+// A run that is interrupted removes its directory as a
+// failed one does: on Ctrl-C, a hangup, and a termination,
+// each sent to the whole process group as a terminal or a
+// supervisor sends it, and on a termination of the script
+// alone. The run is recorded, so its trap is set in a
+// subshell of the recording; a run that is not asked is
+// the script's own shell and bash's own business. No
+// interrupted run is recorded, with one exception that is
+// no interruption of the suite: a run whose script alone
+// is terminated goes on behind it, passes, and is kept.
+Deno.test('the real browser script cleans up an interrupted run',
+async () => {
+    // The run that is kept comes last: until then every
+    // run in this one repository is a real one.
+    const interruptions: [Interruption, number, number][] = [
+        [{ signal: 'INT', alone: false }, 130, 0],
+        [{ signal: 'HUP', alone: false }, 129, 0],
+        [{ signal: 'TERM', alone: false }, 143, 0],
+        [{ signal: 'TERM', alone: true }, 143, 1],
+    ];
+    await withBrowserReplica(
+    async ({ scene, tmp, interrupt, calls }) => {
+        for (const [interruption, status, kept] of interruptions) {
+            const before = calls().length;
+            const run = await interrupt(interruption);
+            const where = `${interruption.signal}`
+                + ` alone=${interruption.alone}`;
+            assertStrictEquals(run.status, status, where);
+            assertStrictEquals(calls().length, before + 3, where);
+            assertEquals(namesIn(tmp), [], where);
+            assertStrictEquals(entries(scene).length, kept, where);
+        }
     });
 });
