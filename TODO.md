@@ -80,8 +80,8 @@ code comments cite; specs and plans written before the
   compose's service and container names, the hosted
   service names, the test-only `CHROME` and
   `CHROME_DEBUG_URL`, and the scripts' and tests'
-  `FUSION_ANGLE_STATIC_ROOT` (`bin/test-browser:38`,
-  `tests/browser/fixtures.ts:58`),
+  `FUSION_ANGLE_STATIC_ROOT` (`bin/test-browser:43`,
+  `tests/browser/fixtures.ts:96`),
   `MOST_RECENTLY_VALIDATED_SHA_PATH`, and
   `WORKING_TREE_PORCELAIN` (`test:242`, `:246`), which
   the oracle reaches. Oracle: `env | grep FA_` lists

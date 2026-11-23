@@ -32,10 +32,16 @@ fi
 
 export JWT_HMAC_SIGNING_KEY="${JWT_HMAC_SIGNING_KEY:-test-hmac-signing-key}"
 
-BUNDLE="$(mktemp -d "${TMPDIR:-/tmp}/fusion-browser.XXXXXX")"
-trap 'rm -rf "$BUNDLE"' EXIT
+# One directory holds the run: the bundle, and every temp
+# directory the suite makes, each Chrome's profile among
+# them. The trap removes it whole, so an interrupted run
+# leaves no profile behind.
+RUN_DIR="$(mktemp -d "${TMPDIR:-/tmp}/fusion-browser.XXXXXX")"
+trap 'rm -rf "$RUN_DIR"' EXIT
+BUNDLE="$RUN_DIR/site"
 bundle_client "$BUNDLE" > /dev/null
 export FUSION_ANGLE_STATIC_ROOT="$BUNDLE"
+mkdir "$RUN_DIR/tmp"
 
 # A launched Chrome is one per file, so the files run
 # together, four at a time. The operator often runs
@@ -64,7 +70,8 @@ fi
 # one process, where BroadcastChannel and navigator.locks
 # name process-wide buses and locks. The prefix gives each
 # worker names of its own, as it does for ./test.
-TZ=UTC deno test --frozen --no-check $SCHEDULE \
+TMPDIR="$RUN_DIR/tmp" TZ=UTC \
+    deno test --frozen --no-check $SCHEDULE \
     --sanitize-resources \
     --allow-env --allow-read --allow-write \
     --allow-net --allow-run \
