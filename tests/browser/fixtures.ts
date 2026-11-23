@@ -1,10 +1,13 @@
 // Tier 2 fixtures: an in-process origin on the memory
-// backend, one Chrome per file, one browser context per
-// test, compositor input, condition waits. Runs only
-// under ./test-browser (FUSION_ANGLE_STATIC_ROOT).
+// backend, one mock seed and one Chrome per file, one
+// browser context per test, compositor input, condition
+// waits. Runs only under ./test-browser
+// (FUSION_ANGLE_STATIC_ROOT).
 
+import { MemoryStorageBackend } from
+    '../../api/backend-memory.ts';
 import {
-    memoryDbAdapter,
+    memoryDbAdapterOver,
     type MemoryDbAdapter,
 } from '../../api/db-memory.ts';
 import {
@@ -56,6 +59,29 @@ export type Origin = {
     close(): Promise<void>;
 };
 
+type FileSeed = {
+    readonly backend: MemoryStorageBackend;
+    readonly credentials: SeededCredentials;
+};
+
+// The mock seed takes about two seconds, so a file lands
+// it once and never serves or writes it again. Rows are
+// appended and never changed in place, so each origin
+// takes them under a backend of its own.
+let fileSeed: Promise<FileSeed> | undefined;
+
+function seededOnce(): Promise<FileSeed> {
+    fileSeed ??= (async () => {
+        const backend = new MemoryStorageBackend();
+        const credentials = await postMockDataLoad(
+            memoryDbAdapterOver(backend),
+            { hashPassword: testHashPassword },
+        );
+        return { backend, credentials };
+    })();
+    return fileSeed;
+}
+
 // A status test fixes the commit, so no refresh waits on
 // git, and widens the API's wait past a loaded machine's.
 export async function startOrigin(
@@ -69,10 +95,8 @@ export async function startOrigin(
             + ' (run ./test-browser)',
         );
     }
-    const db = memoryDbAdapter();
-    const credentials = await postMockDataLoad(db, {
-        hashPassword: testHashPassword,
-    });
+    const seed = await seededOnce();
+    const db = memoryDbAdapterOver(seed.backend.copy());
     const listener = await listenHttp({
         adapter: db,
         staticRoot,
@@ -83,7 +107,7 @@ export async function startOrigin(
     return {
         baseUrl: `http://127.0.0.1:${listener.port}`,
         db,
-        credentials,
+        credentials: seed.credentials,
         close: () => listener.close(),
     };
 }
