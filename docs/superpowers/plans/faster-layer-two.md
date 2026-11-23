@@ -6,7 +6,7 @@
 > tracking.
 
 **Goal:** `./test browser` seeds the mock data once per
-file and runs its files in parallel; a starting compose
+run and runs its files in parallel; a starting compose
 Postgres is probed every 200 ms. Every test that runs
 today still runs and can still fail.
 
@@ -14,6 +14,8 @@ today still runs and can still fail.
 seeded `MemoryStorageBackend` per file and serves each
 origin `copy()` of it, the seam
 `web-app/app/api-documentation-replay.ts` already uses.
+Under the script that backend is rebuilt from rows one
+seed landed for the whole run (Task 11).
 `bin/test-browser` passes `--parallel` with four workers,
 the operator's count, and the worker-name preload
 `./test` uses;
@@ -453,3 +455,72 @@ Six findings; each was verified, and none was rejected.
 - [ ] Remove the scratch clones, confirm no Chrome, no
   compose stack, and no `fusion-browser-*` profile is
   left behind.
+
+## Task 11: One seed for the run
+
+The operator's ruling: "I'd love the run-wide seed for
+the browser suite, 39 secs is a lot of waste." The spec's
+decision 5 holds the design and each case's rule.
+
+**Files:** `tests/browser/fixtures.ts`,
+`tests/browser/land-run-seed.ts`, `bin/test-browser`,
+`tests/browser-run-seed.test.ts`,
+`tests/browser/run-seed.test.ts`,
+`tests/test-cli.test.ts`, `AGENTS.md`, `TODO.md`, the
+spec.
+
+- [ ] Red first: `tests/browser-run-seed.test.ts` against
+  a `fileSeedFrom(path)` that ignores its path and seeds,
+  as a file does today. Every test fails: the rebuilt
+  rows and sign-ins differ from the landed ones, and no
+  refusal rejects.
+- [ ] `fixtures.ts`: `RUN_SEED_ENV`, `writeRunSeed(path,
+  seed)` (`{ rows, credentials }` with `createNew` and
+  mode 0444), `landRunSeed(path)` (seed, then write),
+  the shape check at the read, quoting nothing of the
+  file, `fileSeedFrom(path)` (none named: seed; empty:
+  refused by the variable's name; named: read, check,
+  rebuild in one `seedTransaction`, every `append`
+  answering true), and `seededOnce()` naming
+  `fileSeedFrom(Deno.env.get(RUN_SEED_ENV))`.
+- [ ] `tests/browser/land-run-seed.ts`: one argument, the
+  path; lands the seed.
+- [ ] `tests/test-cli.test.ts`: the script names the seed
+  in `$RUN_DIR` and lands it before `deno test`. Red on
+  the script as it stands.
+- [ ] `bin/test-browser`: after the bundle, export
+  `FUSION_ANGLE_BROWSER_SEED="$RUN_DIR/seed.json"` and
+  `deno run --frozen --allow-env=JWT_HMAC_SIGNING_KEY
+  --allow-write="$RUN_DIR"` the landing, `TZ=UTC` as the
+  files run.
+- [ ] `tests/browser/run-seed.test.ts`: an origin's rows
+  and sign-ins are the named seed's; ignored when none
+  is named.
+- [ ] Each new pin red under a scratch mutation, not
+  committed: the rebuild drops a row; a missing file
+  falls back to a seed; the parse error goes unnamed; a
+  repeated row is taken quietly; the shape check is
+  skipped; the mode or `createNew` is dropped; the empty
+  name reaches the file system; `seededOnce()` ignores
+  the name; the rebuild takes the file's sign-ins but
+  rows of its own seed. The isolation pin
+  still fails when an origin serves the seeded backend
+  itself.
+- [ ] A handful of browser files through the script's
+  own steps, launched and attached, outside the sandbox.
+- [ ] `./test lint`; `./test validate --syntax`; commit
+  `Seed the browser suite once per run`.
+- [ ] Hand the coordinator a gate script: the tree before
+  and after, under one lock hold each pair, both orders;
+  five consecutive whole runs; one attached; Postgres;
+  Layer 1.
+- [ ] Review findings, each verified and taken: the
+  repeated-row pin writes two literal rows in place of a
+  second cold seed; TODO.md's env citation names the new
+  line numbers and the seed's variable; the mode and
+  `createNew` are pinned through `writeRunSeed`; the
+  landing's env permission is scoped to the signing key;
+  the Layer 2 pin compares rows as well as sign-ins; a
+  parse refusal keeps no cause; an empty name is refused
+  by name; the stale spec and AGENTS.md sentences, the
+  inferred UTC-day hazard, and the result are recorded.

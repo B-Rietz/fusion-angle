@@ -141,7 +141,9 @@ choice and the reason.
 `MemoryStorageBackend` the first time a file calls
 `startOrigin()` and keeps it. Every origin, that first
 one included, serves `memoryDbAdapterOver(seeded.copy())`
-and reads the credentials the one seed returned.
+and reads the credentials the one seed returned. Under
+`./test browser` decision 5 now rebuilds that backend
+from the run's one seed; the memo and the copy stand.
 
 `MemoryStorageBackend.copy()` is the product's own seam:
 "The same rows under a backend of its own: a write on
@@ -158,12 +160,15 @@ Each test stays an isolated world: its own backend, its
 own listener, its own browser context. What a test loses
 is a seed of its own, which no test asserts on: the
 credentials, the seeded ids, and the seed's `requestAt`
-are now one per file, not one per origin. No browser test
+are one per file, not one per origin, and under decision
+5 one per run. No browser test
 reads a seeded time against the clock; the status tests
 fix their own commit times.
 
 Deno gives each test file an isolate of its own, so the
-memo is per file and no file sees another's seed.
+memo is per file. Under decision 5 every file of a run
+reads the same landed rows, each into a backend of its
+own.
 
 - **Trial:** 388.4 s whole suite, serial (load 20–26),
   `ok | 164 passed | 0 failed`, against 691.6 s and
@@ -176,7 +181,8 @@ memo is per file and no file sees another's seed.
   passes on master, where every origin seeds, and must
   keep passing: it is the covenant written down, not a
   test of the memo.
-- **Why not one seed per run:** see the rejected list.
+- **One seed per run:** decision 5 takes it, on the
+  operator's ruling.
 
 ### 2. Run the browser files in parallel
 
@@ -335,6 +341,175 @@ assertion reads the same table.
   and 2.4–5.0 s rewritten. All fifteen tests passed in
   every run.
 
+### 5. One mock seed for the run
+
+The operator's ruling, in their words: "I'd love the
+run-wide seed for the browser suite, 39 secs is a lot of
+waste." TODO.md reserved seed caching for tests to the
+operator; this is that decision, made, for the browser
+suite. The memory suite's seeding is not part of it.
+
+**The numbers in hand.** Under the suite lock a run at
+four workers still does 36 cold seeds, one per file:
+about 156 s of CPU, roughly 39 s of the 90 s wall. The
+landed backend is 2,553 rows of 19 fields, every one a
+string, 8.79 MB as JSON. Two workers measured,
+independently, a backend rebuilt from those rows through
+`seedTransaction` and `tx.append`: 45–73 ms, holding
+byte-identical rows, against about 2 s for a seed.
+
+**The design.**
+
+- `bin/test-browser`, after the bundle and before any
+  file starts, runs `tests/browser/land-run-seed.ts`
+  once. It seeds one memory backend exactly as a file
+  did (`postMockDataLoad`, the test hash) and writes the
+  landed rows, in the order they landed, and the seed's
+  sign-ins as JSON to `$RUN_DIR/seed.json`. The script
+  exports that path as `FUSION_ANGLE_BROWSER_SEED`. The
+  landing may write only the run's directory and read
+  only `JWT_HMAC_SIGNING_KEY`, which the fixtures'
+  imports set when it is absent.
+- `seededOnce()` in `tests/browser/fixtures.ts` reads
+  the named file once per file, checks its shape at the
+  gate, and rebuilds a backend of its own by appending
+  every row, in order, inside one `seedTransaction` on
+  a backend that has no table yet. Every origin still
+  serves `copy()` of that backend, so each test is still
+  an isolated world.
+- **The seam lives in `tests/`.** `seedTransaction`,
+  `Tx.append`, and `getAll()` are the backend's public
+  seams; no product file changes.
+- **A value, not a cache.** The file is computed once per
+  run inside the run's directory, which the script's exit
+  trap removes whole. No run reads another run's file,
+  so it has no key and no lifetime, and it cannot go
+  stale: the pre-step and the files read the same tree in
+  the same invocation.
+- **Written once, then read-only.** The pre-step creates
+  the file new (`createNew`, so a second write fails)
+  with mode 0444; both are pinned. Four workers read it
+  at once; nothing writes it. Each file's rebuilt backend is never served
+  and never written, as the per-file seed was not.
+
+**No silent fallback.** Each case has one rule.
+
+- *The pre-step fails.* `set -euo pipefail` stops the
+  script on its exit status before `deno test` starts,
+  with the error as the run's last output. No test runs;
+  the trap removes the run's directory.
+- *The rows are named but missing, unreadable, or not
+  the landed shape.* The file that needs them fails:
+  `startOrigin()` rejects, naming the path, and every
+  test in that file fails with it. It never seeds in
+  their place. A row the rebuild cannot append (an id
+  repeated) fails the same way, so no row is dropped
+  quietly. A refusal names the file and never quotes
+  what is in it: the parser's own message quotes the
+  text around a bad token, and the file holds sign-ins.
+- *The name is set but empty.* Refused by the variable's
+  name, `FUSION_ANGLE_BROWSER_SEED`, not seeded.
+- *The rows are not named at all,* as when one browser
+  file runs directly under `deno test`. That file seeds
+  once for itself, exactly as before this decision. This
+  is the documented way to run one file, and
+  `tests/browser-origin.test.ts` starts origins in the
+  memory suite with no run at all. The absence of the
+  name is the signal, not a failure masked: the script
+  always names it, and two pins below hold the script
+  and the fixture to it.
+
+**The attached path** (`CHROME_DEBUG_URL`) runs the same
+pre-step and reads the same file; its files still run
+one at a time.
+
+**Unchanged:** four workers (an exported `DENO_JOBS`
+wins), `--sanitize-resources`, `--frozen`, the preloads,
+one Chrome per file, the per-test bound, and every test
+and assertion.
+
+**Cost.** The pre-step is one `deno run` and one seed,
+about 2 s, on the run's critical path before any file
+starts. Running it beside `bundle_client` would save at
+most the shorter of the two, about 2 s, at the price of a
+background job's exit status and trap handling in the
+script. Not taken.
+
+**Pins.**
+
+- `tests/browser-run-seed.test.ts` (Layer 1), seven
+  tests, one cold seed among them: a backend rebuilt
+  from a landed file holds the seeded backend's rows,
+  row for row and in order, and its sign-ins; a seed
+  file is written read-only and a second write to it is
+  refused; a named file that is missing is refused with
+  `NotFound`; an empty name is refused by the variable's
+  name; a file cut short is refused naming the path and
+  quoting nothing; a file that repeats a row and a file
+  not in the landed shape are each refused, naming the
+  path. The file takes 2.6 s alone.
+- `tests/browser/run-seed.test.ts` (Layer 2): under the
+  script, an origin serves the run seed's rows, row for
+  row, and its sign-ins. Every seed mints its own ids,
+  times, and passwords, so only an origin built from the
+  file's rows passes; a fixture that took the file's
+  sign-ins but rows of its own seed fails it. Ignored
+  when no seed is named.
+- `tests/test-cli.test.ts`: the script names the seed in
+  the run's directory and lands it, with its scoped
+  permissions, before `deno test`.
+- `tests/browser-origin.test.ts` is unchanged and still
+  pins the copy each origin takes.
+
+A red equivalence pin prints the seed's sign-ins in its
+diff. They are throwaway mock sign-ins, the kind
+`./bin/develop` prints on purpose, so they stay.
+
+**Expected counts.** Browser 166 passed (165 and the
+Layer 2 pin); attached 165 passed and 1 ignored; Layer 1
+4960 passed and 12 ignored, then 8 (4952 and the eight
+new pins); Postgres 132.
+
+**An inferred hazard,** read from the code, not seen in a
+run. The seed's data is anchored to the UTC day of the
+pre-step, and pages read `Date.now()` against it
+(`web-app/flows/stats.ts:144`,
+`web-app/app/dashboard.ts:85`). Before, only a file that
+itself straddled 00:00 UTC saw yesterday's seed; now
+every file that starts after midnight in a run that
+straddles it does. The review found no day-sensitive
+browser assertion.
+
+**Result.** Under the suite lock, `DENO_JOBS` unset so
+each tree's own four workers ran; before then after in
+one hold, then after then before in another. Taken on
+`b008a90ec`, before the review's fixes, which add Layer 1
+pins and change nothing a run schedules:
+
+| Tree | Wall | CPU | Load | Passed |
+|---|---|---|---|---|
+| before (`a02dddb0a`) | 90.04 s | 379.5 s | 19.2→14.6 | 165 |
+| after | 72.50 s | 265.6 s | 14.6→11.5 | 166 |
+| after | 71.33 s | 265.0 s | 11.5→11.2 | 166 |
+| before | 87.50 s | 372.3 s | 11.2→11.5 | 165 |
+
+Five consecutive runs after, each 166 passed with no
+profile left: 70.99–71.93 s wall, 262.1–268.2 s CPU,
+load 7.8–12.4. Over every run, before averaged 88.77 s
+and 375.9 s of CPU, after 71.91 s and 265.3 s. The
+decision saves about 17 s of wall a run (19%) and about
+111 s of CPU (29%). The attached run fell from
+284–338 s to 215.45 s (165 passed, 1 ignored). Postgres
+passed 132 and Layer 1 4958, 12 ignored, then 8.
+
+The 39 s the estimate promised was high. It divided the
+seeds' 156 s of CPU, taken from a serial trial, by four
+workers, as if every second of it went and every second
+of it sat on a worker's critical path. The CPU that went
+away was about 111 s, and the rest of a run's wall is
+waits that seeding never touched: page loads, poll
+sleeps, and Chrome.
+
 ## Open decisions
 
 Each was settled by a measurement.
@@ -428,29 +603,13 @@ isolation pin.
   and in a parallel run they overlap. One shared Chrome
   would make one crash or one leaked target every file's
   failure. Rejected: shared state for 2%.
-- **One seed for the whole run,** landed once before the
-  files start and read by each. Not built: TODO.md
-  reserves seed caching for tests to the operator. It is
-  the largest cost left. The 36 cold seeds are 156.5 s of
-  CPU in the serial trial, about 39 s of wall at four
-  workers. The landed backend holds 2,553 rows of 19
-  fields each, every one a string: 8.79 MB as JSON. A
-  backend rebuilt from that JSON through
-  `seedTransaction` and `tx.append` took 45 ms and read
-  back byte for byte the same, against 1,962 ms for the
-  seed it replaced. (An earlier draft of this paragraph
-  measured the rehearsal's rows, which carry byte
-  arrays, and said the backend had no such seam. Both
-  were wrong.) What it would take: `bin/test-browser`
-  runs one seed after the bundle and writes the rows and
-  the credentials into the run's directory;
-  `seededOnce()` reads that file and rebuilds its
-  backend, and every origin still takes `copy()`. The
-  isolation pin holds as it stands, since it pins the
-  copy, not where the rows came from. The file is made
-  and removed with the run, so nothing outlives the tree
-  it was seeded from. The recommendation is to take it,
-  as a unit of its own, once the operator rules.
+- **One seed for the whole run.** Held back here first,
+  because TODO.md reserved seed caching for tests to the
+  operator, with the recommendation to take it once the
+  operator ruled. (An earlier draft measured the
+  rehearsal's rows, which carry byte arrays, and said the
+  backend had no seam to rebuild from. Both were wrong.)
+  The operator ruled; taken, as decision 5.
 - **A cache of the client bundle** keyed by the tree.
   `bundle_client` is 2.2–2.4 s, 0.3% of the serial suite
   and under 3% of the parallel one, and "bundles on any
@@ -508,22 +667,35 @@ isolation pin.
 - `AGENTS.md` — the sentence that says the browser suite
   runs serially.
 - `TODO.md` — the profile-removal item, which lands
-  here, and the two line numbers its
-  `FUSION_ANGLE_STATIC_ROOT` citation names.
+  here, the line numbers its `FUSION_ANGLE_STATIC_ROOT`
+  citation names, and `FUSION_ANGLE_BROWSER_SEED`
+  beside it.
 - `tests/pg-explain.test.ts` — rows formed first, appends
   pipelined.
+- `tests/browser/land-run-seed.ts` — the run's one seed,
+  written to the file the script names.
+- `tests/browser/fixtures.ts` — the run seed's landing,
+  its read at the gate, and the rebuild `seededOnce()`
+  takes when a seed is named.
+- `bin/test-browser` — names the run seed and lands it
+  before the files start.
+- `tests/browser-run-seed.test.ts`,
+  `tests/browser/run-seed.test.ts`, and
+  `tests/test-cli.test.ts` — the run seed's pins.
+- `AGENTS.md` — the browser suite's one seed per run.
 
 `TEST-PLAN.md` is out of this unit's bounds. Its AT5 item
 quotes the browser suite's command and says it runs
-"serially"; that sentence goes stale with decision 2 and
-is reported to the operator rather than edited.
+"serially"; that sentence goes stale with decision 2,
+and it does not name decision 5's landing step either.
+Both are reported to the operator rather than edited.
 
 ## Out of scope
 
 - The Layer 3 walk, `./deploy --render`, `./bin/develop`,
   and the measure ceremony (`--record`,
   `--write-budgets`).
-- The mock seed's own cost. A rehearsal is 2 s warm and
-  it is the largest single thing left in this suite, but
+- The mock seed's own cost. A rehearsal is 2 s warm, and
+  after decision 5 the browser suite pays it once a run;
   it is product code under `api/` that the memory suite
   leans on harder still. Reported as a lead.
