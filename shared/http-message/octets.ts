@@ -1,5 +1,9 @@
 import { HttpMessageError } from './types.ts';
 
+// One String.fromCharCode call takes this many bytes as
+// its arguments: far under any engine's argument limit.
+const LATIN1_CHUNK_BYTES = 8192;
+
 // An immutable octet sequence — the body payload and any
 // byte-valued field carry one. btoa/atob speak Latin-1 binary
 // strings (one char per byte), so the codec maps each byte to
@@ -55,10 +59,25 @@ export class Octets {
         return btoa(binary);
     }
 
+    // A chunk at a time: a string appended a byte at a
+    // time is a rope with a node per byte, which every
+    // later read pays to flatten. apply takes the bytes
+    // as they are, though its type asks for an array; the
+    // spread form measures no faster than the loop it
+    // replaces.
     toLatin1(): string {
         let text = '';
-        for (const byte of this.#bytes) {
-            text += String.fromCharCode(byte);
+        for (
+            let at = 0;
+            at < this.#bytes.length;
+            at += LATIN1_CHUNK_BYTES
+        ) {
+            text += String.fromCharCode.apply(
+                null,
+                this.#bytes.subarray(
+                    at, at + LATIN1_CHUNK_BYTES,
+                ) as unknown as number[],
+            );
         }
         return text;
     }

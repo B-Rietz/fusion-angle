@@ -22,6 +22,29 @@ Deno.test('Octets round-trips latin-1 text including high bytes', () => {
     assertStrictEquals(octets.byteLength(), 4);
 });
 
+// More bytes than one call takes as arguments, so text
+// built in a single call fails here. A million is 2^6 *
+// 15,625: a whole number of power-of-two chunks up to 64
+// bytes and of none from 128 up, so a chunk of 128 bytes
+// or more ends on a last, partial chunk.
+const MEGABYTE = 1_000_000;
+const BYTE_VALUES = 256;
+
+Deno.test('Octets.toLatin1 keeps every byte of a megabyte', () => {
+    // Each run of 256 starts one value after the last: every
+    // value appears, and no two stretches nearby match.
+    const bytes = Uint8Array.from(
+        { length: MEGABYTE },
+        (_, at) => (at + Math.floor(at / BYTE_VALUES)) % BYTE_VALUES,
+    );
+    const text = Octets.fromBytes(bytes).toLatin1();
+    assertStrictEquals(text.length, bytes.length);
+    assertStrictEquals(
+        bytes.findIndex((byte, at) => text.charCodeAt(at) !== byte),
+        -1,
+    );
+});
+
 Deno.test('Octets.asBytes returns a copy, not the inner array', () => {
     const octets = Octets.fromBytes(new Uint8Array([1, 2, 3]));
     const copy = octets.asBytes();
