@@ -3,9 +3,9 @@ set -euo pipefail
 
 # Layer 2: deterministic browser tests. Bundles the
 # client into $TMPDIR (any tree), then runs
-# tests/browser/*.test.ts serially against an
-# in-process origin on the memory backend. Needs
-# Chrome: CHROME (binary) or CHROME_DEBUG_URL (a
+# tests/browser/*.test.ts, each test against an
+# in-process origin of its own on the memory backend.
+# Needs Chrome: CHROME (binary) or CHROME_DEBUG_URL (a
 # running Chrome's browser WebSocket URL).
 
 BIN="$(cd "$(dirname "$0")" && pwd)"
@@ -37,6 +37,20 @@ trap 'rm -rf "$BUNDLE"' EXIT
 bundle_client "$BUNDLE" > /dev/null
 export FUSION_ANGLE_STATIC_ROOT="$BUNDLE"
 
+# A launched Chrome is one per file, so the files run
+# together, four at a time. The operator often runs
+# other threads beside a suite, so it takes four workers
+# and never a worker per CPU, where each worker also
+# drives a Chrome of several processes. A DENO_JOBS the
+# shell exports wins. An attached Chrome is one browser
+# for every file, so those files run one at a time.
+BROWSER_FILE_WORKERS=4
+SCHEDULE=''
+if [ -z "${CHROME_DEBUG_URL:-}" ]; then
+    SCHEDULE='--parallel'
+    export DENO_JOBS="${DENO_JOBS:-$BROWSER_FILE_WORKERS}"
+fi
+
 # Per-test bound lives in tests/browser/fixtures.ts
 # (withTimeout). deno test has no per-test timeout flag.
 # --allow-env is unscoped: Chrome spawn copies the env bag.
@@ -46,10 +60,15 @@ export FUSION_ANGLE_STATIC_ROOT="$BUNDLE"
 # sanitizer fails every test in the file. Closing the socket
 # per test means one Chrome per test, against the one Chrome
 # per file this suite is built on.
-TZ=UTC deno test --frozen --no-check \
+# worker-name-prefix.ts: files run together are workers in
+# one process, where BroadcastChannel and navigator.locks
+# name process-wide buses and locks. The prefix gives each
+# worker names of its own, as it does for ./test.
+TZ=UTC deno test --frozen --no-check $SCHEDULE \
     --sanitize-resources \
     --allow-env --allow-read --allow-write \
     --allow-net --allow-run \
     --preload ./tests/hmac-test-key.ts \
     --preload ./tests/local-storage-stub.ts \
+    --preload ./tests/worker-name-prefix.ts \
     tests/browser/*.test.ts

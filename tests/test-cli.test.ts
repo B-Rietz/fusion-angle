@@ -290,3 +290,22 @@ Deno.test('test-postgres mints its stack through compose-lib',
     assertNotMatch(src, /openssl rand/);
     assertNotMatch(src, /docker compose -p/);
 });
+
+// An attached Chrome is one browser for every file, so
+// only a run that launches its own Chromes runs its
+// files together.
+Deno.test('test-browser runs files together only unattached',
+() => {
+    const src = Deno.readTextFileSync('bin/test-browser');
+    const guard = "SCHEDULE=''\n"
+        + 'if [ -z "${CHROME_DEBUG_URL:-}" ]; then\n'
+        + "    SCHEDULE='--parallel'\n";
+    assert(src.includes(guard), 'unattached guard missing');
+    const named = src.split('\n').filter((line) =>
+        !line.startsWith('#') && line.includes('--parallel')
+    );
+    assertStrictEquals(named.length, 1);
+    assertMatch(
+        src, /deno test --frozen --no-check \$SCHEDULE /,
+    );
+});
