@@ -29,7 +29,6 @@ import {
     CHROME_READY_MS,
     CdpClient,
     CdpSession,
-    type KillableChild,
     browserWsUrl,
     killProcessTree,
     launchChrome,
@@ -51,6 +50,12 @@ const CONDITION_TIMEOUT_MS = 10_000;
 const DRAG_STEPS = 8;
 const STAY_SAMPLE_MS = 50;
 const HELD_TIMEOUT_MS = 5_000;
+// A killed Chrome exits in milliseconds. Past this bound
+// the wait fails by name; its profile is removed anyway.
+const CHROME_EXIT_TIMEOUT_MS = 10_000;
+const PROFILE_REMOVAL_ATTEMPTS = 3;
+const PROFILE_REMOVAL_BACKOFF_MS = 100;
+const DIRECTORY_NOT_EMPTY = 'ENOTEMPTY';
 
 export type Origin = {
     readonly baseUrl: string;
@@ -402,14 +407,63 @@ function keyCodeOf(name: string): [string, number] {
     return entry;
 }
 
+// A helper Chrome started after the kill's ps snapshot can
+// still write into the profile while it is removed, and
+// the removal then answers not empty. That is transient:
+// try again, backing off, a bounded number of times.
+async function removeProfile(userDataDir: string):
+Promise<void> {
+    for (let attempt = 1; ; attempt += 1) {
+        try {
+            Deno.removeSync(userDataDir, { recursive: true });
+            return;
+        } catch (error) {
+            const code = (error as { code?: unknown }).code;
+            if (
+                attempt === PROFILE_REMOVAL_ATTEMPTS
+                || code !== DIRECTORY_NOT_EMPTY
+            ) {
+                throw error;
+            }
+        }
+        await sleep(
+            PROFILE_REMOVAL_BACKOFF_MS * 2 ** (attempt - 1)
+                * (1 + Math.random()),
+        );
+    }
+}
+
+// Kills Chrome, waits for it to exit, then removes its
+// profile. A Chrome still exiting writes into its
+// profile: removed first, the directory either answers
+// not empty or keeps what the late write puts back.
+// killProcessTree walks a ps snapshot and can throw, and
+// the wait can time out, so the removal is their finally.
+export async function releaseChrome(
+    chrome: Deno.ChildProcess | null,
+    userDataDir: string,
+): Promise<void> {
+    try {
+        killProcessTree(chrome);
+        if (chrome !== null) {
+            await withTimeout(
+                chrome.status, 'Chrome exit',
+                CHROME_EXIT_TIMEOUT_MS,
+            );
+        }
+    } finally {
+        await removeProfile(userDataDir);
+    }
+}
+
 export class Browser {
     readonly client: CdpClient;
-    private readonly chrome: KillableChild | null;
+    private readonly chrome: Deno.ChildProcess | null;
     private readonly userDataDir: string | null;
 
     private constructor(
         client: CdpClient,
-        chrome: KillableChild | null,
+        chrome: Deno.ChildProcess | null,
         userDataDir: string | null,
     ) {
         this.client = client;
@@ -432,7 +486,7 @@ export class Browser {
         // orphan outlives this process and holds its
         // profile. Release both on every failure path,
         // then rethrow — the caller must still see why.
-        let chrome: KillableChild | null = null;
+        let chrome: Deno.ChildProcess | null = null;
         try {
             chrome = launchChrome({
                 userDataDir,
@@ -449,16 +503,7 @@ export class Browser {
                 client, chrome, userDataDir,
             );
         } catch (error) {
-            // killProcessTree walks a ps snapshot and can
-            // throw, so the profile's removal nests inside
-            // it rather than following it.
-            try {
-                killProcessTree(chrome);
-            } finally {
-                Deno.removeSync(userDataDir, {
-                    recursive: true,
-                });
-            }
+            await releaseChrome(chrome, userDataDir);
             throw error;
         }
     }
@@ -538,22 +583,19 @@ export class Browser {
         );
     }
 
-    // Each release runs even if the one before it
-    // throws. killProcessTree can, and a throw between
-    // the socket and the profile would leave a detached
-    // Chrome holding a directory nothing later removes.
+    // The Chrome is released even if closing the socket
+    // throws: a throw between the socket and the profile
+    // would leave a detached Chrome holding a directory
+    // nothing later removes. An attached Chrome is not
+    // this fixture's to release.
     async close(): Promise<void> {
         try {
             this.client.close();
         } finally {
-            try {
-                killProcessTree(this.chrome);
-            } finally {
-                if (this.userDataDir !== null) {
-                    Deno.removeSync(this.userDataDir, {
-                        recursive: true,
-                    });
-                }
+            if (this.userDataDir !== null) {
+                await releaseChrome(
+                    this.chrome, this.userDataDir,
+                );
             }
         }
     }
