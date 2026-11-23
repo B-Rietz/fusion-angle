@@ -411,6 +411,39 @@ async () => {
     });
 });
 
+// A timer goes inside the ask, after the `--` (decision
+// 14), and runs its command in a subshell under the
+// caller's errexit. A step that fails midway inside one
+// stops there as it does without one, recorded or not,
+// so a red first command never becomes a recorded pass.
+Deno.test('set -e still stops a step inside a timer',
+async () => {
+    await withScene(async (scene) => {
+        const script = 'set -eu; . "$0";' + TIMER
+            + ' step() { echo ran >> "$1"; false;'
+            + ' echo continued; };'
+            + ' replay_or_run demo -- timed step "$1"';
+        const midway = async () => {
+            const run = await sh(scene, {
+                cwd: scene.repo,
+                env: {},
+                script,
+                args: [scene.ran],
+            });
+            assertStrictEquals(run.status, 1);
+            assertNotMatch(run.stdout, /continued/);
+        };
+        await midway();
+        // And where the cache is not asked at all.
+        await Deno.writeTextFile(
+            join(scene.repo, 'untracked'), 'x',
+        );
+        await midway();
+        assertStrictEquals(timesRan(scene), 2);
+        assertEquals(entries(scene), []);
+    });
+});
+
 // A step whose first command fails and whose second
 // passes must stop at the first, or it would pass and the
 // pass would be recorded. So the call is refused wherever
