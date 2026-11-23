@@ -3669,29 +3669,39 @@ Off the critical path; each with its oracle.
   `./bin/measure` median by about 200 ms; unset leaves
   the no-op.
 - One rehearsal per test process, if measurement earns
-  it. `tests/` calls `seededMockDb()` at 98 sites, and
-  `sharedMockDb()` seeds once per worker that uses it;
-  each builds the identical dataset from nothing: hash,
-  form, rehearse, land. A landing onto an absent table
-  is a pure function of the rehearsal, and fresh memory
-  backends share nothing, so the harness could rehearse
-  once per process and land that one rehearsal into each
-  new backend (a memory landing measured 130 ms). This is
-  a test-only cache, and the product seed never keeps
-  its rehearsal. Medians
-  (`measurements/probes/seed/rehearsal.ts`): the
-  rehearsal's replay 153 ms, the rehearsal 707 ms, a
-  memory seed 851 ms against a 692 ms bar, a Postgres
-  seed 866 ms, and `./test` 44.2 s over three runs.
-  Whether the per-seed rehearsal is a cost worth a
-  cache is the operator's decision.
+  it. `tests/` calls `seededMockDb()` at 97 sites in 42
+  files, and `sharedMockDb()` seeds once per worker that
+  uses it; each builds the identical dataset from
+  nothing: hash, form, rehearse, land. A landing onto an
+  absent table is a pure function of the rehearsal, and
+  fresh memory backends share nothing, so the harness
+  could rehearse once per process and land that one
+  rehearsal into each new backend. This is a test-only
+  cache, and the product seed never keeps its
+  rehearsal. Measured for
+  `docs/superpowers/specs/faster-layer-one-design.md`:
+  a run rehearses the mock seed 320 times, 278 of them
+  through `seededMockDb()` from 48 files; one seed's
+  median at `c36020172` is 2,051 ms
+  (`measurements/probes/layer-one/seed-time.ts`, load 8
+  to 22); and `./test` on four workers under the suite
+  lock took 188.85 s at `c36020172` and 125.84 s with
+  that unit's changes. That spec's "Left to the
+  operator" sets out a seed per test file, copied for
+  each test, from those numbers. The earlier medians
+  came from `measurements/probes/seed/rehearsal.ts`,
+  which no longer runs. Whether the per-seed rehearsal
+  is a cost worth a cache is the operator's decision.
   Oracle: `./test` measured before and after this change
   alone, three runs each, and every test that mutates
   its seeded database still gets its own backend
 - The memory backend copies its whole table for every
   bare statement (`const copy = [...this.#rows]`,
-  `api/backend-memory.ts:144`), a cost every test write
-  outside a transaction pays, unmeasured
+  `api/backend-memory.ts:154`), a cost every test write
+  outside a transaction pays: 0.8 to 1.9 µs to copy
+  2,300 rows, about a seeded table, so tens of
+  milliseconds over a run's 7,318 requests
+  (`faster-layer-one-design.md`, by a script not kept)
   (`docs/superpowers/specs/`
   `2026-09-24-rehearsal-transaction-design.md:189-191`).
   Oracle: `./test` measured before and after a copy
@@ -3790,7 +3800,8 @@ Off the critical path; each with its oracle.
   over a 36 s span (~200/s, peak 1,845 in one second);
   handler ms p50 0.57, p90 4.5, p99 100, max 244;
   6,255 2xx, 1,057 4xx, 6 5xx. The probe's synchronous
-  per-request append cost ~1.3 s on a 45 s suite. Suite
+  per-request append cost ~1.3 s on a suite that then
+  took 45 s. Suite
   throughput through the memory backend is not a load test;
   the Postgres origin (`--base-url`) is where a rate means
   something. Visualize beside readyMs in `measure-viz`: a
