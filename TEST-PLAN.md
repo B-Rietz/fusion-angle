@@ -5016,8 +5016,11 @@ gesture pans instead of dragging, marquee-ing, or connecting.
   head from before Tony's claim, so `PUT
   work-orders/:id/claim` answers 412 — a toast carries
   "Failed to claim work order", her switch never shows
-  on, and her box re-reads to "Claimed by Tony Stark"
-  with no switch; the row is in neither of her lists.
+  on, and her box re-reads to the holder's name with no
+  switch: "Claimed by Member without PII" for Sarah, who
+  may not read Tony's personal details (an organization
+  admin's box reads "Claimed by Tony Stark"); the row is
+  in neither of her lists.
   (A claim the server refuses with 409 `work order is
   already claimed` toasts "Someone else holds that work
   order"; a box that read after Tony's claim shows no
