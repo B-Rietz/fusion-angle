@@ -1048,7 +1048,8 @@ Off the critical path; each with its oracle.
   reading compares: `headed`
   (`api/ledger-statement-sql.ts:68-87`) and the memory
   `Head` (`shared/ledger-statement.ts:73-81`, filled by
-  `headsOf`, `api/backend-memory.ts:315-362`). The
+  `documentRowsOf` and `headsOf`,
+  `api/backend-memory.ts:374-433`). The
   narrowest also compares the head's `supersedes`,
   which neither selects today. The statement keeps its
   fifteen parameters. Lands no later than the retries

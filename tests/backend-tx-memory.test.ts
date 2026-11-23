@@ -5,8 +5,14 @@ import {
 import { MemoryStorageBackend }
     from '../api/backend-memory.ts';
 import { MissingTableError } from '../api/db.ts';
-import { NIL_IDENTIFIER } from
-    '../shared/identifier.ts';
+import { SuccessionConflict } from '../api/ledger-statement.ts';
+import { rootBind } from '../api/ledger-root.ts';
+import type { StatementBind } from
+    '../shared/ledger-statement.ts';
+import {
+    generateIdentifier,
+    NIL_IDENTIFIER,
+} from '../shared/identifier.ts';
 
 interface Row { id: string; n: number }
 
@@ -140,5 +146,50 @@ Deno.test(
             tx => tx.getAll<Row>(),
         );
         assertStrictEquals(rows.length, 3);
+    },
+);
+
+// A blind first version of one document; each call is a
+// row of its own.
+function firstVersionBind(): StatementBind {
+    return {
+        ...rootBind(generateIdentifier()),
+        id: generateIdentifier(),
+        path: '/succession/',
+        name: 'document',
+    };
+}
+
+// Both statements read the document's heads, find none,
+// and await their hashes before either lands. The second
+// to land must still see the first's claim, so the claims
+// are read after the hashes, not with the heads.
+Deno.test(
+    'two first versions of one document in a tx: one conflicts',
+    async () => {
+        const backend = new MemoryStorageBackend();
+        await backend.ensureTable();
+        const settled = await backend.transaction('readwrite',
+            (tx) => Promise.allSettled([
+                backend.executeLedger(
+                    'blind', [firstVersionBind()], undefined, tx,
+                ),
+                backend.executeLedger(
+                    'blind', [firstVersionBind()], undefined, tx,
+                ),
+            ]),
+        );
+        assertStrictEquals(
+            settled.filter((result) =>
+                result.status === 'fulfilled').length,
+            1,
+        );
+        assertStrictEquals(
+            settled.filter((result) =>
+                result.status === 'rejected'
+                && result.reason instanceof SuccessionConflict,
+            ).length,
+            1,
+        );
     },
 );

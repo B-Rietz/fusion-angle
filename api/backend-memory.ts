@@ -184,10 +184,11 @@ export class MemoryStorageBackend
             throw noOrganizationDocument(organizationId);
         }
         const clock = this.#clock(now);
+        const documents = documentsOf(rows);
         const classified = await classifyStatement(
             attempt,
             rows,
-            headsOf(buffer, rows),
+            headsOf(documentRowsOf(buffer, documents)),
             clock,
         );
         const answers: StatementAnswer[] = [];
@@ -238,7 +239,12 @@ export class MemoryStorageBackend
                 throw error;
             }
         }
-        const claimed = successionKeys(buffer);
+        // Read after the classification's awaits, not
+        // with the heads: a statement that overlapped this
+        // one in a transaction may have written since.
+        const claimed = successionKeys(
+            documentRowsOf(buffer, documents),
+        );
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i]!;
             const item = classified[i]!;
@@ -314,25 +320,13 @@ function successionKey(
 }
 
 function successionKeys(
-    rows: readonly { id: string }[],
+    rows: readonly DocumentRow[],
 ): Set<string> {
     const keys = new Set<string>();
     for (const row of rows) {
-        const rec = row as Record<string, unknown>;
-        const method = rec['method'];
-        if (typeof method !== 'string') continue;
-        if (!documentMethod(method)) continue;
-        const path = rec['path'];
-        const name = rec['name'];
-        const supersedes = rec['supersedes'];
-        if (
-            typeof path !== 'string'
-            || typeof name !== 'string'
-            || typeof supersedes !== 'string'
-        ) {
-            continue;
-        }
-        keys.add(successionKey(path, name, supersedes));
+        const supersedes = row.rec['supersedes'];
+        if (typeof supersedes !== 'string') continue;
+        keys.add(successionKey(row.path, row.name, supersedes));
     }
     return keys;
 }
@@ -350,17 +344,42 @@ function laterHead(
     ) > 0;
 }
 
-// The heads of the statement's own documents: a whole
-// table's heads would decode every stored response on
-// every statement.
-function headsOf(
-    rows: readonly { id: string }[],
+// A statement's documents, their names by path, so a table
+// scan asks whether a row is one of them without building
+// a key for the row.
+type Documents = ReadonlyMap<string, ReadonlySet<string>>;
+
+function documentsOf(
     statement: readonly StatementBind[],
-): Head[] {
-    const documents = new Set(statement.map(
-        (bind) => bind.path + '\u0000' + bind.name,
-    ));
-    const best = new Map<string, Record<string, unknown>>();
+): Documents {
+    const documents = new Map<string, Set<string>>();
+    for (const bind of statement) {
+        const names = documents.get(bind.path);
+        if (names === undefined) {
+            documents.set(bind.path, new Set([bind.name]));
+        } else {
+            names.add(bind.name);
+        }
+    }
+    return documents;
+}
+
+// A PUT or DELETE row of one of a statement's documents.
+type DocumentRow = {
+    readonly path: string,
+    readonly name: string,
+    readonly rec: Record<string, unknown>,
+};
+
+// The table's PUT and DELETE rows of a statement's own
+// documents, the only rows its heads and its successions
+// read. Every statement pays this scan of the whole
+// table, a seed's every statement among them.
+function documentRowsOf(
+    rows: readonly { id: string }[],
+    documents: Documents,
+): DocumentRow[] {
+    const written: DocumentRow[] = [];
     for (const row of rows) {
         const rec = row as Record<string, unknown>;
         const method = rec['method'];
@@ -375,11 +394,22 @@ function headsOf(
         if (typeof path !== 'string' || typeof name !== 'string') {
             continue;
         }
-        const key = path + '\u0000' + name;
-        if (!documents.has(key)) continue;
+        if (documents.get(path)?.has(name) !== true) continue;
+        written.push({ path, name, rec });
+    }
+    return written;
+}
+
+// The heads of the statement's own documents: a whole
+// table's heads would decode every stored response on
+// every statement.
+function headsOf(rows: readonly DocumentRow[]): Head[] {
+    const best = new Map<string, Record<string, unknown>>();
+    for (const row of rows) {
+        const key = row.path + '\u0000' + row.name;
         const prev = best.get(key);
-        if (prev === undefined || laterHead(rec, prev)) {
-            best.set(key, rec);
+        if (prev === undefined || laterHead(row.rec, prev)) {
+            best.set(key, row.rec);
         }
     }
     const heads: Head[] = [];
