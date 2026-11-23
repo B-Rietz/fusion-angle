@@ -43,6 +43,20 @@ bundle_client "$BUNDLE" > /dev/null
 export FUSION_ANGLE_STATIC_ROOT="$BUNDLE"
 mkdir "$RUN_DIR/tmp"
 
+# One mock seed for the run, landed here before any file
+# starts, into a file the seed creates read-only and no
+# file writes. Each file rebuilds its backend from those
+# rows (tests/browser/fixtures.ts) in place of a seed of
+# its own. The file lives and dies with the run's
+# directory, so no run ever reads another run's seed. A
+# seed that fails stops the run here, before any test.
+# The landing reads one variable, the signing key that
+# tests/hmac-test-key.ts sets when it is absent.
+export FUSION_ANGLE_BROWSER_SEED="$RUN_DIR/seed.json"
+TZ=UTC deno run --frozen --allow-env=JWT_HMAC_SIGNING_KEY \
+    --allow-write="$RUN_DIR" \
+    tests/browser/land-run-seed.ts "$FUSION_ANGLE_BROWSER_SEED"
+
 # A launched Chrome is one per file, so the files run
 # together, four at a time. The operator often runs
 # other threads beside a suite, so it takes four workers

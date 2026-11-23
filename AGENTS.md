@@ -183,8 +183,13 @@ into `$TMPDIR` on any tree and runs
 four files at a time (an exported `DENO_JOBS` wins) and
 one Chrome per file. Under `CHROME_DEBUG_URL` every file
 attaches to the one Chrome, so the files run one at a
-time. It is not part of `./test validate`;
-`./deploy --local` runs it after `./test postgres`.
+time. Either way it lands the mock seed once, before any
+file starts, into a read-only file in the run's
+directory; each file rebuilds its backend from those
+rows, and each origin takes a copy. A file run alone under
+`deno test` seeds its own. It is not part of
+`./test validate`; `./deploy --local` runs it after
+`./test postgres`.
 
 Three layers verify this product. Layer 1 is
 `./test validate`, run after the branch is squashed to

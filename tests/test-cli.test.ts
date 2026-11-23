@@ -309,3 +309,30 @@ Deno.test('test-browser runs files together only unattached',
         src, /deno test --frozen --no-check \$SCHEDULE /,
     );
 });
+
+// A file with no run seed named seeds its own, so a run
+// that forgot to land one would stay green and seed once
+// per file. The script names the seed in the run's
+// directory and lands it before any file starts.
+Deno.test('test-browser lands one seed before the files',
+() => {
+    const src = Deno.readTextFileSync('bin/test-browser');
+    const named = 'export FUSION_ANGLE_BROWSER_SEED='
+        + '"$RUN_DIR/seed.json"\n';
+    const run = 'deno run --frozen'
+        + ' --allow-env=JWT_HMAC_SIGNING_KEY \\\n'
+        + '    --allow-write="$RUN_DIR" \\\n';
+    const landed = 'tests/browser/land-run-seed.ts'
+        + ' "$FUSION_ANGLE_BROWSER_SEED"\n';
+    const namedAt = src.indexOf(named);
+    const runAt = src.indexOf(run);
+    const landedAt = src.indexOf(landed);
+    const filesAt = src.indexOf('deno test --frozen');
+    assert(namedAt >= 0, 'run seed not named');
+    assert(runAt > namedAt, 'landing not scoped');
+    assert(
+        landedAt === runAt + run.length + '    '.length,
+        'run seed not landed',
+    );
+    assert(filesAt > landedAt, 'files start before the seed');
+});

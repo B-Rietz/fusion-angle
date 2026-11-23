@@ -81,7 +81,10 @@ code comments cite; specs and plans written before the
   service names, the test-only `CHROME` and
   `CHROME_DEBUG_URL`, and the scripts' and tests'
   `FUSION_ANGLE_STATIC_ROOT` (`bin/test-browser:43`,
-  `tests/browser/fixtures.ts:96`),
+  `tests/browser/fixtures.ts:236`),
+  `FUSION_ANGLE_BROWSER_SEED` (`bin/test-browser:55`;
+  named at `tests/browser/fixtures.ts:75`, read at `:226`
+  and `tests/browser/run-seed.test.ts:6`),
   `MOST_RECENTLY_VALIDATED_SHA_PATH`, and
   `WORKING_TREE_PORCELAIN` (`test:242`, `:246`), which
   the oracle reaches. Oracle: `env | grep FA_` lists
