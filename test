@@ -18,6 +18,8 @@ USAGE
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
+# shellcheck source=bin/sha-result-cache-lib
+. "$ROOT/bin/sha-result-cache-lib"
 
 # Instants render in LOCAL time, so date-formatting
 # output shifts with the runner's zone — a false prophet
@@ -35,7 +37,9 @@ cd "$ROOT"
 # listeners), run (the metafile test now spawns deno;
 # serve, develop, deploy, test, measure, and
 # postgres-gun CLI pins spawn those scripts;
-# test-cli's SHA skip uses sh; /status reads git).
+# the build-lib pins source their library through sh,
+# and the result-cache pins theirs through /bin/bash,
+# the shell its callers name; /status reads git).
 #
 # Workers: four per pass, not deno's one per CPU. The
 # operator's machine is usually running other work
@@ -258,28 +262,38 @@ run_api_docs() {
     ./bin/generate-api-documentation --check
 }
 
+# A step that passed on this SHA replays instead of
+# running again (bin/sha-result-cache-lib), so a validated
+# SHA validates again at once. check and schema repeat in
+# under a second and always run. The Postgres and browser
+# suites ask at their own doors, in the scripts this one
+# execs.
+#
+# With POSTGRES_URL set the memory suite also runs its
+# Postgres files against that database, and no SHA names
+# a database.
+replay_or_run_memory() {
+    if [ -n "${POSTGRES_URL:-}" ]; then
+        run_memory
+    else
+        replay_or_run memory -- run_memory
+    fi
+}
+
+replay_or_run_lint() {
+    replay_or_run lint -- run_lint
+}
+
+replay_or_run_api_docs() {
+    replay_or_run api-docs -- run_api_docs
+}
+
 run_validate() {
-    local stamp porcelain head_sha
-    stamp="${MOST_RECENTLY_VALIDATED_SHA_PATH:-$(
-        git rev-parse --git-common-dir
-    )/most-recently-validated-sha}"
-    head_sha=$(git rev-parse HEAD)
-    porcelain="${WORKING_TREE_PORCELAIN-$(git status --porcelain)}"
-    if [ -z "$porcelain" ] \
-        && [ -f "$stamp" ] \
-        && [ "$(tr -d '[:space:]' < "$stamp")" = "$head_sha" ]
-    then
-        echo "already validated $head_sha"
-        return
-    fi
     run_check
-    run_memory
-    run_lint
+    replay_or_run_memory
+    replay_or_run_lint
     run_schema
-    run_api_docs
-    if [ -z "$porcelain" ]; then
-        printf '%s\n' "$head_sha" > "$stamp"
-    fi
+    replay_or_run_api_docs
 }
 
 case "${1:-memory}" in
@@ -293,7 +307,7 @@ case "${1:-memory}" in
             usage >&2
             exit 1
         fi
-        run_memory
+        replay_or_run_memory
         ;;
     check|lint|schema|api-docs|postgres|browser)
         if [ $# -ne 1 ]; then
@@ -303,9 +317,9 @@ case "${1:-memory}" in
         fi
         case "$1" in
             check) run_check ;;
-            lint) run_lint ;;
+            lint) replay_or_run_lint ;;
             schema) run_schema ;;
-            api-docs) run_api_docs ;;
+            api-docs) replay_or_run_api_docs ;;
             postgres) exec "$ROOT/bin/test-postgres" ;;
             browser) exec "$ROOT/bin/test-browser" ;;
         esac
@@ -315,8 +329,8 @@ case "${1:-memory}" in
         if [ $# -eq 0 ]; then
             run_validate
         elif [ $# -eq 1 ] && [ "$1" = "--syntax" ]; then
-            # Check only. A syntax pass must not
-            # stamp, or the next full validate skips.
+            # Check only: it asks nothing of the
+            # result cache and records nothing in it.
             run_check
         elif [ $# -eq 1 ] && [ "$1" = "browser" ]; then
             run_validate

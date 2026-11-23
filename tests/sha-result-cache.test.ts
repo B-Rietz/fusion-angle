@@ -813,3 +813,177 @@ Deno.test('nothing is left beside the entries', async () => {
         assertEquals(entries(scene), [paths[1]]);
     });
 });
+
+// The real `test` script and the real library, copied
+// into a repository of their own beside stand-ins for
+// what the script runs: a `deno` that answers
+// `--version`, notes each other call with its TZ, and
+// exits as told for the UTC pass; and a generator that
+// notes its call and says its line. The script runs
+// under the shell its own first line names.
+type Replica = {
+    readonly scene: Scene;
+    readonly run: (
+        args: string[], env: Record<string, string>,
+    ) => Promise<Run>;
+    readonly calls: () => string[];
+};
+
+async function withReplica(
+    body: (replica: Replica) => Promise<void>,
+): Promise<void> {
+    await withScene(async (scene) => {
+        const stubs = join(scene.dir, 'stubs');
+        await Deno.mkdir(stubs);
+        await Deno.writeTextFile(
+            join(stubs, 'deno'),
+            '#!/bin/sh\n'
+            + 'if [ "$1" = "--version" ]; then\n'
+            + '    echo "deno 0.0.0 (stand-in)"\n'
+            + '    exit 0\n'
+            + 'fi\n'
+            + 'echo "deno $1 TZ=$TZ" >> "$CALLS"\n'
+            + 'if [ "$TZ" = UTC ]; then\n'
+            + '    exit "$UTC_PASS_STATUS"\n'
+            + 'fi\n',
+            { mode: 0o755 },
+        );
+        await Deno.mkdir(join(scene.repo, 'bin'));
+        await Deno.copyFile('test', join(scene.repo, 'test'));
+        await Deno.copyFile(
+            LIBRARY, join(scene.repo, 'bin/sha-result-cache-lib'),
+        );
+        await Deno.writeTextFile(
+            join(scene.repo, 'bin/generate-api-documentation'),
+            '#!/bin/sh\n'
+            + 'echo "generator $1" >> "$CALLS"\n'
+            + 'echo "api-documentation is up to date"\n',
+            { mode: 0o755 },
+        );
+        await git(scene.repo, ['add', '.']);
+        await git(scene.repo, [
+            'commit', '--quiet', '-m', 'The test script',
+        ]);
+        await body({
+            scene,
+            run: async (args, env) => {
+                const output = await new Deno.Command(SHELL, {
+                    args: ['./test', ...args],
+                    cwd: scene.repo,
+                    clearEnv: true,
+                    env: {
+                        PATH: `${stubs}:${searchPath()}`,
+                        CALLS: scene.ran,
+                        UTC_PASS_STATUS: '0',
+                        SHA_RESULT_CACHE_ROOT: scene.root,
+                        GIT_CEILING_DIRECTORIES: scene.dir,
+                        ...HERMETIC_GIT,
+                        ...env,
+                    },
+                    signal: AbortSignal.timeout(RUN_TIMEOUT_MS),
+                }).output();
+                const decoder = new TextDecoder();
+                return {
+                    status: output.code,
+                    stdout: decoder.decode(output.stdout),
+                    stderr: decoder.decode(output.stderr),
+                };
+            },
+            calls: () =>
+                timesRan(scene) === 0
+                    ? []
+                    : Deno.readTextFileSync(scene.ran)
+                        .trimEnd().split('\n'),
+        });
+    });
+}
+
+const BOTH_PASSES = [
+    'deno test TZ=UTC',
+    'deno test TZ=Pacific/Honolulu',
+];
+
+Deno.test('the real test script replays the steps that passed',
+async () => {
+    await withReplica(async ({ run, calls }) => {
+        const first = await run([], {});
+        assertStrictEquals(first.status, 0);
+        assertNotMatch(first.stderr, REPLAYING);
+        assertEquals(calls(), BOTH_PASSES);
+
+        const replay = await run([], {});
+        assertStrictEquals(replay.status, 0);
+        assertMatch(
+            replay.stderr,
+            /^sha-result-cache: replaying memory, /m,
+        );
+        assertEquals(calls(), BOTH_PASSES);
+
+        // With POSTGRES_URL set the suite also runs its
+        // Postgres files against that database, and no
+        // SHA names a database.
+        const named = await run(
+            [], { POSTGRES_URL: 'postgres://stand-in' },
+        );
+        assertStrictEquals(named.status, 0);
+        assertNotMatch(named.stderr, REPLAYING);
+        assertEquals(calls(), [...BOTH_PASSES, ...BOTH_PASSES]);
+
+        const checked = await run(['api-docs'], {});
+        const again = await run(['api-docs'], {});
+        assertStrictEquals(checked.status, 0);
+        assertStrictEquals(again.status, 0);
+        assertStrictEquals(
+            again.stdout, 'api-documentation is up to date\n',
+        );
+        assertMatch(
+            again.stderr,
+            /^sha-result-cache: replaying api-docs, /m,
+        );
+        assertEquals(calls(), [
+            ...BOTH_PASSES, ...BOTH_PASSES, 'generator --check',
+        ]);
+    });
+});
+
+// The memory suite is two passes. If the first failed and
+// the second passed with `set -e` off, the suite would
+// pass and the pass would be recorded: the unit's worst
+// failure, pinned through the script that ships.
+Deno.test('the real test script never records a red first pass',
+async () => {
+    await withReplica(async ({ scene, run, calls }) => {
+        const red = await run([], { UTC_PASS_STATUS: '1' });
+        assertStrictEquals(red.status, 1);
+        assertEquals(calls(), ['deno test TZ=UTC']);
+        assertEquals(entries(scene), []);
+        // And where the cache is not asked at all.
+        await Deno.writeTextFile(
+            join(scene.repo, 'untracked'), 'x',
+        );
+        const unasked = await run([], { UTC_PASS_STATUS: '1' });
+        assertStrictEquals(unasked.status, 1);
+        assertEquals(
+            calls(), ['deno test TZ=UTC', 'deno test TZ=UTC'],
+        );
+        assertEquals(entries(scene), []);
+    });
+});
+
+// The suite refuses a worker count that is none before
+// either pass. A refusal is red like any other: it is not
+// recorded, so the next run still runs both passes.
+Deno.test('the real test script never records a refused count',
+async () => {
+    await withReplica(async ({ scene, run, calls }) => {
+        const refused = await run([], { DENO_JOBS: 'abc' });
+        assertStrictEquals(refused.status, 1);
+        assertMatch(refused.stderr, /DENO_JOBS/);
+        assertEquals(calls(), []);
+        assertEquals(entries(scene), []);
+        const counted = await run([], { DENO_JOBS: '2' });
+        assertStrictEquals(counted.status, 0);
+        assertNotMatch(counted.stderr, REPLAYING);
+        assertEquals(calls(), BOTH_PASSES);
+    });
+});

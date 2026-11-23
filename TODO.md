@@ -84,9 +84,9 @@ code comments cite; specs and plans written before the
   `tests/browser/fixtures.ts:236`),
   `FUSION_ANGLE_BROWSER_SEED` (`bin/test-browser:55`;
   named at `tests/browser/fixtures.ts:75`, read at `:226`
-  and `tests/browser/run-seed.test.ts:6`),
-  `MOST_RECENTLY_VALIDATED_SHA_PATH`, and
-  `WORKING_TREE_PORCELAIN` (`test:242`, `:246`), which
+  and `tests/browser/run-seed.test.ts:6`), and
+  `SHA_RESULT_CACHE_ROOT`
+  (`bin/sha-result-cache-lib:43`), which
   the oracle reaches. Oracle: `env | grep FA_` lists
   everything the system needs, and a test finds every
   environment read in product code and scripts and fails

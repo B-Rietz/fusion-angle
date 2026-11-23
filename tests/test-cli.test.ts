@@ -7,18 +7,14 @@ import {
 } from '@std/assert';
 import { join } from '@std/path';
 
-function headSha(): string {
-    const output = new Deno.Command('sh', {
-        args: ['-c', 'git rev-parse HEAD'],
-    }).outputSync();
-    const decoder = new TextDecoder();
-    if (!output.success) {
-        throw new Error(
-            'git rev-parse HEAD failed: '
-            + decoder.decode(output.stderr),
-        );
-    }
-    return decoder.decode(output.stdout).trim();
+// The source of one shell function, header to closing
+// brace.
+function functionBody(src: string, name: string): string {
+    const at = src.indexOf(`\n${name}() {\n`);
+    assert(at >= 0, `${name} missing`);
+    const end = src.indexOf('\n}\n', at);
+    assert(end > at, `${name} unclosed`);
+    return src.slice(at, end);
 }
 
 async function runTest(
@@ -52,6 +48,13 @@ async function runTest(
 // the time zone, and the subcommand, "unset" for what the
 // call was not handed. The environment is cleared, so a
 // worker count this suite itself runs under is no decoy.
+//
+// The result cache is handed /dev/null for its root, where
+// no root can be made. This checkout's tree is not the
+// test's to keep clean. On a clean one the script would
+// otherwise record the stub's pass under the real SHA, in
+// the operator's cache, replay it to the next case, and
+// ask deno its version twice more for every step.
 async function denoCalls(
     args: readonly string[],
     env: Record<string, string>,
@@ -87,6 +90,7 @@ async function denoCalls(
             clearEnv: true,
             env: {
                 PATH: `${dir}:${Deno.env.get('PATH') ?? ''}`,
+                SHA_RESULT_CACHE_ROOT: '/dev/null',
                 ...env,
             },
             stdout: 'null',
@@ -151,28 +155,18 @@ async () => {
 // keep deno's own. Validate runs the lint for real.
 Deno.test('test validate hands the worker count to no other step',
 async () => {
-    const dir = Deno.makeTempDirSync({
-        prefix: 'most-recently-validated-sha-',
-    });
-    try {
-        const run = await denoCalls(['validate'], {
-            MOST_RECENTLY_VALIDATED_SHA_PATH: join(
-                dir, 'most-recently-validated-sha',
-            ),
-            WORKING_TREE_PORCELAIN: ' M test',
-        }, VALIDATE_TIMEOUT_MS);
-        assertStrictEquals(run.status, 0, run.stderr);
-        assertEquals(run.calls, [
-            'unset serial unset --version',
-            'unset serial unset check',
-            '4 parallel UTC test',
-            '4 parallel Pacific/Honolulu test',
-            'unset serial unset run',
-            'unset serial unset run',
-        ]);
-    } finally {
-        Deno.removeSync(dir, { recursive: true });
-    }
+    const run = await denoCalls(
+        ['validate'], {}, VALIDATE_TIMEOUT_MS,
+    );
+    assertStrictEquals(run.status, 0, run.stderr);
+    assertEquals(run.calls, [
+        'unset serial unset --version',
+        'unset serial unset check',
+        '4 parallel UTC test',
+        '4 parallel Pacific/Honolulu test',
+        'unset serial unset run',
+        'unset serial unset run',
+    ]);
 });
 
 Deno.test('test unknown suite exits 1 with usage',
@@ -182,39 +176,59 @@ async () => {
     assertMatch(result.stderr, /Usage: \.\/test/);
 });
 
-Deno.test('test validate skips when HEAD already passed',
-async () => {
-    const stamp = join(
-        Deno.makeTempDirSync({
-            prefix: 'most-recently-validated-sha-',
-        }),
-        'most-recently-validated-sha',
-    );
-    Deno.writeTextFileSync(stamp, `${headSha()}\n`);
-    const result = await runTest(['validate'], {
-        MOST_RECENTLY_VALIDATED_SHA_PATH: stamp,
-        WORKING_TREE_PORCELAIN: '',
-    });
-    assertStrictEquals(result.status, 0);
+// Each script that does a step's work asks the result
+// cache at its own door. test does three steps itself and
+// execs the scripts that do the other two, which keeps
+// their process ids the ones a signal reaches.
+Deno.test('test asks the result cache for its own three steps',
+() => {
+    const src = Deno.readTextFileSync('test');
+    assertMatch(src, /\. "\$ROOT\/bin\/sha-result-cache-lib"/);
+    assertMatch(src, /replay_or_run memory -- .*run_memory/);
+    assertMatch(src, /replay_or_run lint -- .*run_lint/);
     assertMatch(
-        result.stdout,
-        /already validated [0-9a-f]{40}/,
+        src, /replay_or_run api-docs -- .*run_api_docs/,
+    );
+    assertNotMatch(src, /replay_or_run (postgres|browser)/);
+    assertMatch(
+        src, /postgres\) exec "\$ROOT\/bin\/test-postgres" ;;/,
+    );
+    assertMatch(
+        src, /browser\) exec "\$ROOT\/bin\/test-browser" ;;/,
+    );
+    assertNotMatch(
+        src, /most-recently-validated-sha|already validated/,
+    );
+    assertNotMatch(src, /MOST_RECENTLY_VALIDATED_SHA_PATH/);
+    assertNotMatch(src, /WORKING_TREE_PORCELAIN/);
+    assertNotMatch(src, /VALIDATE_OK|validate-ok/);
+});
+
+Deno.test('validate composes cached and uncached steps',
+() => {
+    const body = functionBody(
+        Deno.readTextFileSync('test'), 'run_validate',
+    );
+    const order = [
+        'run_check',
+        'replay_or_run_memory',
+        'replay_or_run_lint',
+        'run_schema',
+        'replay_or_run_api_docs',
+    ].map((step) => body.indexOf(step));
+    assert(order.every((at) => at >= 0), 'a step is missing');
+    assertEquals(order, order.toSorted((a, b) => a - b));
+    assertNotMatch(
+        body, /^\s*run_(memory|lint|api_docs)\b/m,
     );
 });
 
-Deno.test('test memory does not SHA-skip', () => {
+// check and schema repeat in under a second; a cache
+// over them would guard a cost that is not there.
+Deno.test('check and schema run every time', () => {
     const src = Deno.readTextFileSync('test');
-    const skipAt = src.indexOf('already validated');
-    const memoryAt = src.indexOf('run_memory()');
-    assert(skipAt >= 0, 'skip message missing');
-    assert(memoryAt >= 0, 'run_memory missing');
-    assert(
-        src.includes('MOST_RECENTLY_VALIDATED_SHA_PATH'),
-    );
-    assertNotMatch(
-        src,
-        /VALIDATE_OK|validate-ok/,
-    );
+    assertNotMatch(src, /replay_or_run.*run_(check|schema)/);
+    assertNotMatch(src, /replay_or_run (check|schema)/);
 });
 
 Deno.test('test dispatcher names combinations', () => {
@@ -225,7 +239,7 @@ Deno.test('test dispatcher names combinations', () => {
     assertNotMatch(src, /validate-ok/);
 });
 
-Deno.test('validate --syntax is check and does not stamp',
+Deno.test('validate --syntax is check and records nothing',
 () => {
     const src = Deno.readTextFileSync('test');
     const at = src.indexOf('"$1" = "--syntax"');
@@ -237,6 +251,12 @@ Deno.test('validate --syntax is check and does not stamp',
     assertNotMatch(branch, /run_memory/);
     assertNotMatch(branch, /run_validate/);
     assertNotMatch(branch, /most-recently-validated-sha/);
+    assertNotMatch(branch, /replay_or_run/);
+    // check has no entry to write, so a syntax pass
+    // cannot excuse a later full validate.
+    assertNotMatch(
+        functionBody(src, 'run_check'), /replay_or_run/,
+    );
 });
 
 Deno.test('validate --syntax rejects an extra argument',
@@ -248,18 +268,11 @@ async () => {
     assertMatch(result.stderr, /Usage: \.\/test/);
 });
 
-Deno.test(
-    'test validate skip returns so combinations continue',
-() => {
+// A replay returns to its caller, which
+// tests/sha-result-cache.test.ts pins, so a validate that
+// replays every step still reaches the suite after it.
+Deno.test('validate browser reaches the browser suite', () => {
     const src = Deno.readTextFileSync('test');
-    const skipAt = src.indexOf('already validated');
-    assert(skipAt >= 0, 'skip message missing');
-    const skipEnd = src.indexOf('\n    fi', skipAt);
-    assert(skipEnd > skipAt, 'skip branch unclosed');
-    const skipBranch = src.slice(skipAt, skipEnd);
-    assertMatch(skipBranch, /\breturn\b/);
-    assertNotMatch(skipBranch, /exit 0/);
-
     const comboAt = src.indexOf('"$1" = "browser"');
     assert(comboAt >= 0, 'browser combination missing');
     const comboEnd = src.indexOf('elif', comboAt + 1);
@@ -272,6 +285,24 @@ Deno.test(
     assert(
         runAt < execAt,
         'browser exec before run_validate',
+    );
+});
+
+// bin/test-postgres asks at its own door, with Docker,
+// the minted stack, and its teardown all inside the step:
+// a replay needs none of them.
+Deno.test('test-postgres asks the result cache at its own door',
+() => {
+    const src = Deno.readTextFileSync('bin/test-postgres');
+    assertMatch(src, /\. "\$BIN\/sha-result-cache-lib"/);
+    const suite = functionBody(src, 'postgres_suite');
+    assertMatch(suite, /command -v docker/);
+    assertMatch(suite, /mint_compose_env 8080/);
+    assertMatch(suite, /trap compose_down_once EXIT INT TERM/);
+    assertMatch(suite, /docker compose up -d --wait postgres/);
+    assertMatch(suite, /tests\/pg-acceptance\.test\.ts/);
+    assertMatch(
+        src, /\nreplay_or_run postgres -- .*postgres_suite\n/,
     );
 });
 

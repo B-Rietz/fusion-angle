@@ -139,8 +139,12 @@ Chrome MCP tools can drive the page normally.
 The sandbox cannot write `~/Library/Caches/deno`
 either, so `export DENO_DIR="$TMPDIR/deno-dir"` before
 any `deno` command and before `./test` or `./deploy`.
-Both are agent-environment accommodations, never baked
-into a repo script: the operator's machine writes both
+It cannot write `/tmp` itself, so `export
+SHA_RESULT_CACHE_ROOT="$TMPDIR/fusion-angle-sha-result-cache"`
+too: without it every cached step says `cannot use` and
+runs for real.
+All are agent-environment accommodations, never baked
+into a repo script: the operator's machine writes the
 defaults.
 
 ## Gates
@@ -163,10 +167,31 @@ then `generate-schema-svg --check` and
 Clean tree for `./bin/build`, `./deploy`, and
 `./bin/measure`.
 
-`./test` takes about 53 s on its four workers with the
-sanitizers on, and `./test validate` about 58 s: ten
-consecutive runs at 53.0–54.2 s on a quiet 16-core
-machine, measured 2026-11-23. `--no-check`
+A step that passed on a clean tree does not run
+again for that SHA. The memory suite, lint, the API
+documentation check, and the Postgres suite each keep
+their stdout and stderr in the SHA result cache, under
+`/tmp/fusion-angle-sha-result-cache`
+(`SHA_RESULT_CACHE_ROOT` moves it), named by HEAD's SHA,
+the step, `deno --version`, and `NO_COLOR`. A repeat
+replays both streams between two lines on stderr,
+`sha-result-cache: replaying <step>, which passed at
+<time> on <sha>` and `sha-result-cache: replayed <step>;
+nothing ran`. Red never replays. A dirty tree neither
+reads nor writes the cache, and neither does `./test`
+with `POSTGRES_URL` set. `check` and `schema` repeat in
+under a second and always run, so `./test validate` on a
+validated SHA takes about a second. To run for real,
+`rm -rf` the root or one `<sha>` directory in it.
+`bin/sha-result-cache-lib` is the whole of it.
+
+Run for real on master's `873c89b4b`, before the SHA
+result cache's tests were added, `./test` took about
+53 s on its four workers with the sanitizers on, and
+`./test validate` about 58 s: ten consecutive runs at
+53.0–54.2 s on a quiet 16-core machine, measured
+2026-11-23. Both take longer now, by tests that spawn
+real scripts. `--no-check`
 costs nothing: `deno check` has already covered
 `tests/`. `./test postgres` carries the same two
 sanitizer flags; `./test browser` carries
@@ -196,7 +221,7 @@ Three layers verify this product. Layer 1 is
 one commit per feature and before the operator's merge.
 Each commit before that squash runs
 `./test validate --syntax`, which is `deno check
---frozen` and does not write the validate stamp.
+--frozen` and records nothing in the SHA result cache.
 Layer 2 is
 `./test validate browser` — Layer 1 then `./test browser`
 — the operator's gate before `./bin/build`, a deploy, or
