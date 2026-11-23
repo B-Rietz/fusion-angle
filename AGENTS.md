@@ -150,7 +150,10 @@ server tests web-app`, then `./test` — `Deno.test`
 suites written against `@std/assert`, run as `deno
 test --frozen --parallel --no-check
 --sanitize-ops --sanitize-resources` with four
-preloads, in two TZ passes: `TZ=UTC` on
+preloads, on four workers unless `DENO_JOBS` already
+names a positive count (any other value is refused, and
+the count reaches those two passes alone), in two TZ
+passes: `TZ=UTC` on
 `tests/*.test.ts`, then `TZ=Pacific/Honolulu` on
 `tests/tz/*.test.ts` — then 78-character lint of code
 and scripts (not `.md`), the `org` identifier ban
