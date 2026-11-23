@@ -6,10 +6,11 @@
 > task-by-task. Steps use checkbox (`- [ ]`) syntax for
 > tracking.
 
-**Goal:** `./test` passes master's tests, plus six new
+**Goal:** `./test` passes master's tests, plus nine new
 ones, on four workers and with less CPU work: one mock
 seed costs less, change by change 0.87 of its CPU, then
-0.73 and 0.96 of its wall (the spec, "The changes").
+0.73 and 0.96 of its wall (the spec, "The changes"), and
+a test file seeds once (Task 8).
 
 **Architecture:** Three changes remove waste inside one
 seed and change no value it computes: the memory backend's
@@ -20,8 +21,10 @@ builds its string a chunk at a time; the seed's score
 instants share one zone formatter. A fourth, the
 operator's decision, names the suite's worker count in
 `run_memory`, with `DENO_JOBS` in the environment still
-winning. Nothing shares a seeded backend and nothing
-caches a rehearsal. A split of the one 41-seed test file
+winning. A fifth, the operator's ruling (Task 8), seeds
+the memory suite once per test file and hands each test
+a copy; no test shares a seeded backend. A split of the
+one 41-seed test file
 was built and then withdrawn: at four workers it gains
 nothing.
 
@@ -34,9 +37,10 @@ Spec: `docs/superpowers/specs/faster-layer-one-design.md`.
 ## Questions
 
 None is open. The spec's Decisions record each choice the
-operator delegated. Two things stay the operator's and
-are surfaced, not decided: the rehearsal cache, and the
-broken `measurements/probes/seed/rehearsal.ts`.
+operator delegated. The rehearsal cache was the
+operator's, and is ruled: Task 8 builds its per-file
+half. The broken `measurements/probes/seed/rehearsal.ts`
+stays surfaced, not fixed.
 
 ## Global Constraints
 
@@ -516,7 +520,8 @@ figures as the dated sanitizer comparison.
 - [ ] **Step 2: TODO.md**, the "One rehearsal per test
 process" bullet: the seed's and `./test`'s figures as
 they now are, the count of rehearsals per run, and their
-probe. The decision stays the operator's.
+probe. The decision stays the operator's. (Superseded:
+the operator ruled, and Task 8 rewrites the bullet.)
 - [ ] **Step 3: The spec's Results section:** each change's
 ratio, the suite's medians, the counts.
 - [ ] **Step 4:** `./test lint`, `./test validate
@@ -540,3 +545,54 @@ AGENTS.md timing figure follows the closing runs.
 under the suite lock, by the coordinating session's
 runner. Read its report, check the log it names, and
 confirm Task 5's counts.
+
+### Task 8: Seed once per test file (test first)
+
+The operator's ruling: "I'll take your recommendations on
+per-file seeding and hold node:crypto." The spec's change
+5 is the design.
+
+**Files:** `tests/mock-seed.test.ts`, `tests/mock-seed.ts`,
+`TODO.md`, `measurements/probes/README.md`, and the
+comments of `measurements/probes/layer-one/seed-time.ts`
+and `seed-pair.ts`.
+
+- [ ] **Step 1: Write the three pins** in
+`tests/mock-seed.test.ts`: a write through one seeded
+database is read through no other, beside or after;
+every seeded database in a file holds the same seed;
+a seeded database is a fresh seed, copied field for
+field: a copy equals its source in every field, and the
+file's seed equals a fresh one in each row's place,
+order, and response body outside the salted credential
+rows.
+- [ ] **Step 2: Run them.** Expected: the same-seed pin
+red, because each call seeds afresh; the other two
+green.
+- [ ] **Step 3: The memo.** In `tests/mock-seed.ts`, one
+module-level promise of a seeded `MemoryStorageBackend`,
+and `seededMockDb()` returning
+`memoryDbAdapterOver(backend.copy())`. Nothing under
+`api/`, `client/`, `server/`, `shared/`, or `web-app/`
+changes, and `testHashPassword` keeps its export.
+- [ ] **Step 4: Mutations, not committed:** the helper
+without the copy, the helper handing one adapter, and
+`copy()` reversing or dropping rows, rewriting a row's
+id, or blanking a row's response, pair hash, and stamp
+each turn a pin red.
+- [ ] **Step 5: The 48 seeded files together** under the
+suite's own flags, four workers, at least three times,
+against the same set at `6981d40aa` for an unlocked
+indication. A file that fails beside the others, or not
+every time, is a finding.
+- [ ] **Step 6: Documents.** TODO.md's "One rehearsal per
+test process" bullet says what is decided and built and
+what stays open; the probes README and the two probes'
+comments say they time copies from this change on.
+- [ ] **Step 7:** `./test validate --syntax`, `./test
+lint`, commit: `Seed the memory suite once per test file`.
+- [ ] **Step 8: Gate,** delegated:
+`/tmp/claude-501/layer-one/seed-closing.sh`, the
+before-and-after pair in both orders, ten consecutive
+runs, and `./test validate`. Expected: 4,959 passed,
+0 failed, 12 ignored, then 8 passed.

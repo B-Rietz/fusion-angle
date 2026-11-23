@@ -100,10 +100,13 @@ summed over its 529 workers:
 | tests | 2,479 s | 96% |
 | of which `seededMockDb()`, 278 calls | 1,934 s | 78% of tests |
 
-The mock seed is rehearsed 320 times in one run: 278
-times by `seededMockDb()` in 48 files, and 42 times by
-other callers, the API documentation's replay and the
-tests that rehearse directly.
+The instrumented run rehearsed 320 times: 278 times by
+`seededMockDb()` in 48 files, and 42 times by other
+callers, the API documentation's replay and the tests
+that rehearse directly. The 42 are every `rehearse()`
+span, not only the mock seed's; counted by route
+later (change 5), other routes rehearse the mock seed
+40 times a run in process.
 Each rehearsal executes 1,626 statements on a scratch
 memory backend, and each landing executes them again in
 batches. Rehearsals summed to 1,564 s and landings to
@@ -223,24 +226,26 @@ the statement's table scans, and the row's bytes turned
 to Latin-1 text a byte at a time.
 
 And the suite seeds more: 278 `seededMockDb()` calls a
-run against 244, and 42 rehearsals more from other
-callers. `seededMockDb()` time summed is 42 s, then
-216 s, then 570 s; over 16 slots that is a floor of 3 s,
-then 14 s, then 36 s, before the longest file. The test files grew 32%,
-from 401 to 529; loading them is 4% of the run.
+run against 244, and other callers rehearse besides.
+`seededMockDb()` time summed is 42 s, then 216 s, then
+570 s; over 16 slots that is a floor of 3 s, then 14 s,
+then 36 s, before the longest file. The test files grew
+32%, from 401 to 529; loading them is 4% of the run.
 
 ## Decisions
 
 The operator delegated discovery through fix. Each open
 decision is recorded here with the choice made.
 
-1. **Make the seed cheaper; do not cache it.** TODO.md
-   leaves "one rehearsal per test process" to the
-   operator. This unit does not build it and does not
-   share a seeded backend among tests. It removes waste
-   inside one seed, which every caller of the seed keeps,
-   and it surfaces the numbers the operator's decision
-   needs (see "Left to the operator").
+1. **Make the seed cheaper, then seed it once per
+   file.** TODO.md left "one rehearsal per test process"
+   to the operator. Changes 1 to 3 remove waste inside
+   one seed, which every caller of the seed keeps, and
+   the unit surfaced the numbers the operator's decision
+   needed (see "Left to the operator"). The operator
+   ruled (decision 9), and change 5 seeds once per test
+   file. No test shares a seeded backend: each takes a
+   copy of its own.
 2. **Four workers, the operator's decision.** Partway
    through this unit the operator said: "I'm often
    running parallel threads, so deno test threads should
@@ -270,7 +275,8 @@ decision is recorded here with the choice made.
    `api/mock-data/scores.ts` run in the product. Each
    change returns the same value for the same input and
    stands on its own as a faster way to compute it.
-7. **Six new tests.** The Latin-1 change adds a chunk
+7. **Six new tests for changes 1 to 4,** nine in all
+   with change 5's three. The Latin-1 change adds a chunk
    boundary, so one test pins every byte value across a
    megabyte of them. Four pin the worker count at the
    script's surface. One pins, at the memory backend, the
@@ -280,11 +286,22 @@ decision is recorded here with the choice made.
 8. **Order.** The seed changes first, the worker count
    last, each its own feature commit with its own before
    and after.
+9. **A test file seeds once, the operator's ruling.**
+   Asked the two cases under "Left to the operator", the
+   operator said: "I'll take your recommendations on
+   per-file seeding and hold node:crypto." So
+   `seededMockDb()` seeds once per test file and copies
+   for each call (change 5), and the synchronous digest
+   stays unbuilt until it is measured again after that
+   lands.
 
 ## Goals
 
 - `./test` passes the same tests with the same assertions,
-  plus the six new tests, in less wall-clock time.
+  plus the nine new tests, in less wall-clock time.
+- A test file seeds the mock data once, and every test
+  that asks for a seeded database still gets a world of
+  its own.
 - One mock seed costs less CPU, for the tests and for
   every other caller: `./bin/postgres-seed`,
   `./bin/develop`, `./deploy --local`, and the API
@@ -296,8 +313,9 @@ decision is recorded here with the choice made.
 
 ## Non-goals
 
-- A cache of the rehearsal, or a seeded backend shared
-  among tests. The operator's.
+- A seeded backend shared among tests, or a seed kept
+  across files or runs. Per-file seeding, copied for each
+  test, is in scope by the operator's ruling (change 5).
 - `./test browser`, `./test postgres`, `./bin/build`, and
   `./deploy --local`: the `faster-layer-two` unit's.
 - A per-SHA result replay or a duration ledger: the
@@ -438,10 +456,137 @@ runs the real lint, a few seconds.
 This is a scheduling change, so the whole suite runs
 green ten consecutive times at the new count.
 
+### 5. A test file seeds once; each test takes a copy
+
+The operator's ruling, 2026-11-23: "I'll take your
+recommendations on per-file seeding and hold
+node:crypto."
+
+`seededMockDb()` (`tests/mock-seed.ts`) lands the mock
+seed once per test file, in module state, and hands each
+call `memoryDbAdapterOver(backend.copy())` of it. Under
+`deno test --parallel` each file runs in a worker of its
+own, so the memo is per file. The backend it holds is
+never handed out, served, or written. `sharedMockDb()`
+keeps its contract, one adapter per file for readers,
+now a copy of the same seed.
+
+The numbers in hand: a run seeds 278 times through
+`seededMockDb()` from 48 files, about 1.2 s a seed on
+this branch. After this change those 48 files seed 48
+times. A copy is an array of the seed's 2,553 row
+references, about the table copy measured above, a few
+microseconds. Routes outside `seededMockDb()` rehearse
+the mock seed 41 times a run in process after this
+change, 40 of them before it and one the new pin's
+fresh seed, counted by instrumenting `rehearseMockData`
+in a scratch copy and running the 66 test files that
+reach any seed route. Twenty-six are the API
+documentation's replay stage, `openReplayStage()` in six
+`tests/api-documentation-*` files. Fifteen call
+`postMockDataLoad` or `rehearseMockData` directly:
+`mock-data-instance-chain` 5, `ledger-seed` 4,
+`credential-surfacing` 2, `work-order-history-oracle` 2,
+`api-documentation-credentials` 1, and the pin 1. The
+documentation determinism test's two
+generations seed twice more, in subprocesses. These
+routes stay as they were.
+
+Decisions, each with the choice made:
+
+- **Where the memo lives.** At `seededMockDb()`, in
+  `tests/`, not in the seed. `postMockDataLoad`,
+  `rehearseMockData`, and `testHashPassword` keep their
+  behavior and signatures. The browser fixtures on master
+  import only `testHashPassword` from `tests/mock-seed.ts`,
+  and `faster-layer-two`'s run-wide browser seed calls
+  `postMockDataLoad` itself. No product file changes.
+- **What the memo keys on.** Nothing: `seededMockDb()`
+  takes no arguments, and its one input, the test hasher,
+  is fixed. Only that argument-free route is memoized.
+  The routes outside `seededMockDb()` are left alone:
+  the API documentation's tests open a replay stage of
+  their own to test the replay, `ledger-seed` rehearses
+  and lands on backends it makes and counts their
+  statements, a few tests call `postMockDataLoad` or
+  `rehearseMockData` directly, and the new pin below
+  seeds once afresh to compare. Memoizing them is not
+  this ruling.
+- **Per file, not per run.** Workers share nothing but
+  the file system; a seed shared by a run would need its
+  rows written across isolates, a cache on disk the
+  ruling did not ask for.
+- **What a copy does not carry, and who could tell.**
+  - The execution counter reads 13 after a seed and 0
+    after `copy()`. No test that seeds through the helper
+    reads it; its readers (`ledger-seed`, `pg-seed`,
+    `state-write`, `write-conditional`, and others) count
+    on backends they make themselves.
+  - The refusal counter is 0 either way, and each copy
+    has its own serializer, as each fresh seed had.
+  - A fresh seed draws its own ids, operation ids, and
+    response bytes each time; copies in one file share
+    the seed's. No test compares two seeds for a
+    difference: the only assertion across calls is that
+    the adapters differ, and they still do.
+  - Seeded rows carry the stamp of the file's one seed,
+    earlier than a per-test seed's by at most the file's
+    run. The seed's calendar comes from the preload's
+    seed clock, per worker, as before. The seeded tests
+    that read `response_at` compare rows with rows, never
+    with the clock.
+  - Rows hold only strings, every read hands out a copy
+    of a row, the copy's array is its own, and a
+    transaction adopts a fresh array, so a write through
+    one copy cannot reach the seed or another copy.
+- **Tests treated specially.** None. A test about the
+  seed itself would take an explicit fresh seed and keep
+  its assertions; every seeded test reads what was
+  seeded, which a copy holds row for row, or writes
+  through its own world.
+- **The probes.** `seed-time.ts` and `seed-pair.ts` time
+  `seededMockDb()`, so from this change on they time one
+  seed and then copies. They time the seed only at trees
+  before it. Measuring the seed again for the held
+  synchronous digest needs a probe that seeds directly;
+  it is not built here.
+
+Three new tests, `tests/mock-seed.test.ts`, written
+first:
+
+- a write through one seeded database is read through no
+  other, neither one taken beside it nor one after; red
+  when the helper hands two callers the same backend or
+  the same adapter;
+- every seeded database in a file holds the same seed,
+  whatever an earlier one wrote; red against the helper
+  as it was, which seeded afresh for each call;
+- a seeded database is a fresh seed, copied field for
+  field. Two legs: a copy of a seed made as the helper
+  makes it equals its source in every field of every
+  row, ids, stamps, hashes, and bytes; and the file's
+  seed equals a fresh seed in each row's place, order,
+  and response body. Two seeds differ in their ids,
+  stamps, and hashes, in the `date`, `operation-id`, and
+  `etag` lines, and in the 12 password-credential
+  bodies, salted anew; every other body of the 2,553 is
+  byte-identical, and every stored request is empty.
+  Red when `copy()` rewrites a row's id, blanks a row's
+  response, pair hash, and stamp, reverses the rows, or
+  drops one, and when the file's seed holds a row a
+  fresh seed does not.
+
+The second pin proves the copies in one file are one
+seed; the third proves a copy is its source exactly and
+the seed is the mock seed. Each compares the row count
+and then the first row that differs, so a failure prints
+one row, not 2,553.
+
+Every one of the 48 seeded files passes together under
+the suite's own flags, at least three times.
+
 ## Candidates measured and rejected
 
-- **One rehearsal per test process** (TODO.md). Not this
-  unit's to decide. See "Left to the operator".
 - **A slim preload.** `tests/hmac-test-key.ts` imports
   `tests/mock-seed.ts` for one function, and with it 133
   modules and 1.43 MB of source in every worker. Two
@@ -546,11 +691,16 @@ read-only tests from `seededMockDb()` to `sharedMockDb()`.
   exposure through its reader's id, 8 of 5,000,000
   sampled ids, and takes the same fix. The assertions are
   unchanged.
+- `tests/mock-seed.test.ts`: the three per-file seeding
+  pins of change 5, the one that fails against the old
+  helper written first.
 - Each commit passes `./test validate --syntax`.
 - The finished branch passes `./test validate` on a clean
-  tree, and its counts are master's plus six tests:
-  4,956 passed and 12 ignored over 529 files in the UTC
-  pass, 8 passed over 2 files in the Honolulu pass.
+  tree, and its counts are master's plus nine tests:
+  4,959 passed and 12 ignored over 529 files in the UTC
+  pass, 8 passed over 2 files in the Honolulu pass. The
+  six commits before change 5 count master's plus six:
+  4,956.
 - `./test` runs green ten consecutive times on the
   finished branch, at the script's own worker count,
   under the suite lock.
@@ -580,7 +730,9 @@ read-only tests from `seededMockDb()` to `sharedMockDb()`.
 - TODO.md, the "One rehearsal per test process" bullet:
   its call-site count, and `./test`'s time as measured
   here in place of the medians of a probe that no longer
-  runs. The decision stays the operator's. The table-copy
+  runs, the decision then the operator's; since the
+  ruling, what change 5 decided and built and what stays
+  open. The table-copy
   bullet: its line, and the cost measured here.
 - `measurements/probes/README.md`: a `layer-one/` section.
 
@@ -610,13 +762,60 @@ unlocked, took 163.5 s wall and 1,366 s CPU at a load of
 for 54% more CPU, on a machine that was not quiet. More
 workers mostly burn CPU.
 
-The ten consecutive runs at the script's own count, and
-`./test validate`, run on the squashed tip; the
-coordinating session records them.
+The closing runs on the squashed tip of changes 1 to 4,
+`6981d40aa`, under the suite lock, at the script's own
+count of four: ten of ten `./test` runs green, each
+4,956 passed, 0 failed, and 12 ignored, then 8 passed.
+
+Wall, in run order: 127.14, 127.46, 127.36, 127.83,
+128.01, 127.31, 128.98, 127.51, 128.23, and 127.98 s.
+CPU ran from 570.1 s to 578.9 s and the load from 2.4 to
+8.0 across the ten. `./test validate` then passed with
+the same counts in 195.42 s wall and 696.0 s CPU, its
+load rising to 19 from a sibling batch. These are the
+"before" for change 5.
+
+### Change 5
+
+Under the suite lock, four workers, `DENO_JOBS` unset,
+on change 5's tip as first built (`083843a4f`; review
+then strengthened one pin and corrected documents), the
+before and after back to back in one hold and then in
+the other order:
+
+| Run | Tree | UTC pass | Wall | CPU | Load |
+|---|---|---|---|---|---|
+| before-1 | `6981d40aa` | 4,956 / 0 / 12 | 131.49 s | 590.0 s | 7.3 to 8.3 |
+| after-1 | change 5 | 4,959 / 0 / 12 | 53.03 s | 227.8 s | 8.3 to 6.8 |
+| after-2 | change 5 | 4,959 / 0 / 12 | 55.78 s | 241.0 s | 6.0 to 7.1 |
+| before-2 | `6981d40aa` | 4,956 / 0 / 12 | 126.47 s | 567.1 s | 7.1 to 6.1 |
+
+Every run passed the Honolulu pass, 8 of 8. The pairs'
+means: before 128.98 s wall and 578.6 s CPU, after
+54.41 s and 234.4 s, 58% less wall and 59% less CPU.
+
+Then ten consecutive runs of change 5's tip, each
+4,959 passed, 0 failed, 12 ignored, then 8 passed:
+54.21, 53.92, 53.79, 53.29, 53.45, 53.30, 53.40, 53.21,
+53.04, and 53.37 s wall, median 53.4 s, CPU 228.1 to
+233.5 s, load 3.5 to 6.3. `./test validate` then passed
+with the same counts in 58.06 s wall and 233.5 s CPU, at
+a load of 3.9 to 5.0.
+
+### The unit, like for like
+
+At four workers under the suite lock: master `c36020172`
+188.85 s wall and 887.0 s CPU; changes 1 to 4
+(`6981d40aa`) about 127.7 s and 572.5 s; with change 5
+about 53.4 s and 229 s. That is 72% less wall and 74%
+less CPU than master at the same worker count.
 
 ## Left to the operator
 
-Neither case below is built. Each needs a ruling.
+The operator ruled on the first two cases, 2026-11-23:
+"I'll take your recommendations on per-file seeding and
+hold node:crypto." Case 1 is held, unbuilt; case 2 is
+change 5.
 
 1. **A synchronous digest in the memory backend.** One
    mock seed awaits `crypto.subtle.digest` 31,379 times,
@@ -669,11 +868,12 @@ Neither case below is built. Each needs a ruling.
    and is a larger decision.
 
    Asked of the operator: may the memory backend hash
-   through `node:crypto`?
+   through `node:crypto`? Held by the operator: not built
+   until it is measured again after change 5 lands.
 
 2. **One seed per test file, copied for each test.** A
-   run rehearses the mock seed 320 times; 278 of those
-   come through `seededMockDb()`, from 48 test files.
+   run rehearses 320 times; 278 of those are the mock
+   seed through `seededMockDb()`, from 48 test files.
    `tests/` names `seededMockDb()` at 97 call sites in 42
    files (by grep; a site in a helper serves several
    tests, and a shared helper serves several files).
@@ -706,10 +906,10 @@ Neither case below is built. Each needs a ruling.
    taken after. The seed's day stays fixed by the
    preload, before any test runs.
 
-   TODO.md, "One rehearsal per test process", reserves a
+   TODO.md, "One rehearsal per test process", reserved a
    seed cache for tests to the operator. Asked of the
    operator: may `seededMockDb()` seed once per test file
-   and copy?
+   and copy? Ruled yes, and built as change 5.
 
 3. **`measurements/probes/seed/rehearsal.ts` no longer
    runs.** At `c36020172` its replay throws "no document
