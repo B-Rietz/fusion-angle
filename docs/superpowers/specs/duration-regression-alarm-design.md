@@ -1,7 +1,10 @@
 # The duration regression alarm
 
 Branch and worktree `duration-regression-alarm`, cut from
-master `c36020172`.
+master `c36020172` and rebased onto `sha-result-cache` at
+`08afff195`, which carries master's `873c89b4b`. What the
+rebase changed is under Integration onto master, at the
+end.
 
 ## Intent
 
@@ -89,8 +92,8 @@ it belongs to one machine, it must never dirty the tree,
 and it is compared with its own recent past, not with a
 ratified number. A committed history would dirty the tree
 on every test run, and a dirty tree blocks `./bin/build`,
-`./deploy`, and `./bin/measure` and skips the validate
-stamp.
+`./deploy`, and `./bin/measure` and keeps every step out
+of the SHA result cache.
 
 So the two share a vocabulary and nothing else: a JSON
 Lines ledger, `sha`, a `machine` block, and the median.
@@ -98,12 +101,16 @@ The new code imports `median` from
 `web-app/app/measure-core.ts` and records `arch` in the
 words `measurements/history.jsonl` already uses.
 
-### 2. The ledger lives beside the validate stamp
+### 2. The ledger lives under the git common dir
 
 `$(git rev-parse --git-common-dir)/tool-durations.jsonl`,
-redirected by the env seam `TOOL_DURATIONS_PATH`, exactly
-as `most-recently-validated-sha` is redirected by
-`MOST_RECENTLY_VALIDATED_SHA_PATH`.
+redirected by `TOOL_DURATIONS_PATH`. It was put beside
+the validate stamp, which the SHA result cache has since
+retired. `/dev/null` there means no ledger: the step
+runs, nothing is recorded, the timer runs no program of
+its own, and nothing is said. A test that spawns a
+script it does not mean to time hands it that
+(Integration onto master).
 
 - It survives. `/tmp` is emptied by a reboot and aged out
   by macOS, so "fairly recently" could not mean two weeks
@@ -148,6 +155,10 @@ One JSON object per line:
 | `loadAtStart` | load average as it began |
 | `loadAtEnd` | load average as it ended |
 
+`tree` is what `git status --porcelain` says where the
+step runs, as it is for the SHA result cache. No variable
+overrides it.
+
 `arguments` is chosen at each call site, never copied from
 `$@`: `./deploy --render TOKEN` and `./bin/measure
 --password SECRET` carry secrets in their arguments, and a
@@ -187,8 +198,8 @@ other worktree, where nothing regressed. The cost is that
 a fresh worktree says "no baseline yet" for its first
 three quiet runs.
 
-A skip and a replay never reach the ledger at all, because
-only real execution is timed (decision 7).
+A replay never reaches the ledger at all, because only
+real execution is timed (decision 7).
 
 SHA and tree state are recorded and are not part of the
 series. Comparing across commits is the whole point.
@@ -262,6 +273,16 @@ recent median is 120.0 s (4 runs in the last 14 days);
 (one line; wrapped here). It names the tool, then, now,
 and the ratio.
 
+The line goes to the script's own stderr. Where a step is
+asked of the SHA result cache, the step's stderr is
+recorded for the SHA and replayed, and the timer is
+inside that ask. So `bin/duration-lib` keeps a copy of
+the script's stderr on descriptor 9, taken as it is
+sourced, and says everything of its own there. A replay
+then replays what the step printed and no line about a
+run that did not happen. The step itself runs with the
+descriptor closed.
+
 It is not a gate because a gate must be reproducible, and
 one wall-clock reading on a shared machine is not. `./test
 validate` answers "is this commit correct"; failing it
@@ -315,19 +336,24 @@ Two things follow from the subshell, and both are
 accepted. A variable the command sets is not seen by its
 caller; no call site reads one. And the timer's shell
 outlives the step, because it records after the step
-ends: `./test postgres` and `./test browser` used to
-`exec` their script and now wait for it. A signal sent to
-the process group, as Ctrl-C is, still reaches the step.
-A signal sent to the timing shell alone no longer stops
-the step: the shell dies and the step, whichever it is,
-runs on to its own end.
+ends. A signal sent to the process group, as Ctrl-C is,
+still reaches the step, and the step's own exit trap
+still runs there, a subshell below the timer (the SHA
+result cache's design, its fifth property). A signal
+sent to the timing shell alone does not stop the step:
+the shell dies and the step, whichever it is, runs on to
+its own end.
 
-Call sites:
+Call sites, each where the step really runs:
 
-- `test`: `check`, `memory`, `lint`, `schema`, `api-docs`,
-  `postgres`, and `browser`, each wherever it runs. `./test
-  validate` is its five steps, so an alarm names the step
-  that slowed.
+- `test`: `check`, `memory`, `lint`, `schema`, and
+  `api-docs`, each wherever it runs. `./test validate` is
+  those five steps, so an alarm names the step that
+  slowed.
+- `bin/test-postgres` and `bin/test-browser`: the suite,
+  as `./test postgres` and `./test browser`. `test`
+  `exec`s each script, and a shell that `exec`s is gone
+  before its step ends, so the script times its own work.
 - `bin/build`: the work after the clean-tree gate and the
   commit log, as `./bin/build` or `./bin/build --no-zip`.
 
@@ -336,10 +362,8 @@ Not timed, each named with its reason in the pin below:
 flags set), `bin/develop` and `bin/serve` (they end when
 the operator ends them), `bin/postgres-seed` and
 `bin/postgres-wipe` (an operator's verbs on a database),
-`bin/worktree-add`, `bin/test-postgres` and
-`bin/test-browser` (`./test` times them), and the two
-generators, whose checks are `./test schema` and `./test
-api-docs`.
+`bin/worktree-add`, and the two generators, whose checks
+are `./test schema` and `./test api-docs`.
 
 `deploy` is untimed on purpose. Its gates are `./test`
 steps and time themselves. Its `--local` stand-up is an
@@ -354,24 +378,35 @@ new commits in a row would read as a regression. Its
   directly under `bin/`; each must call `timed` or be
   named in the test's list of untimed scripts. A script
   added tomorrow fails until someone decides;
-- reads the arms of `./test`'s dispatch; each suite name
-  must appear in a `timed './test NAME'` call, always
-  with the same command;
+- reads the arms of `./test`'s dispatch; each step `test`
+  runs itself must appear there in a `timed './test
+  NAME'` call, always with the same command, and each
+  suite it hands to a script must be timed in that
+  script, under the suite's name and with one command;
 - requires that no step's command appear in `test`
-  outside a `timed` call, that `test` never `exec`s, and
-  that a suite script is named only in the lint list and
-  its own timed call;
-- requires that `./test validate`, between its skip and
-  its stamp, hold nothing but timed steps.
+  outside a `timed` call, that `test` `exec`s nothing but
+  those scripts, and that it names them nowhere but in
+  the `exec` and the lint list: timed in `test` as well,
+  one run would be two samples;
+- requires that `run_validate` hold nothing but steps
+  timed where they run: a timed step as it stands, or an
+  ask whose command is a timed step.
 
 A pin reads source, so it can be written around. These
 four catch the ways the review found.
 
-**Composition with `sha-result-cache`.** The cache check
-sits outside `timed`; `timed` wraps real execution only. A
-replay is therefore never a sample. `./test validate`'s
-`already validated` skip is the existing case and is
-pinned: it appends nothing and prints nothing.
+**Composition with `sha-result-cache`.** The timer goes
+inside the ask, after its `--`: `replay_or_run WAY --
+timed LABEL COMMAND`. The cache check is outermost, so
+`timed` wraps real execution only and a replay is never a
+sample. `check`, `schema`, and the `--no-zip` build are
+never asked, and are timed as they stand. The `already
+validated` skip this unit first pinned went with the
+stamp. Its successor runs the real `test` and the real
+`bin/test-browser`, each in a repository of its own, and
+pins that a run appends one sample and prints one line,
+and that the replay after it appends none and prints
+none.
 
 ### 8. An empty history says so
 
@@ -389,6 +424,12 @@ nothing is assumed.
 - If the ledger cannot be read or written, the program
   prints its error and `timed` adds a line naming the
   step and the ledger's path.
+- With `/dev/null` for the ledger there is none: the
+  command runs under the caller's errexit as ever, and
+  the timer reads no clock, asks git nothing, and says
+  nothing.
+- A script whose stderr is closed gives the timer no
+  voice. The sample is still recorded.
 - Both `deno run`s pass `--no-prompt`. Deno asks on a
   terminal before refusing a permission, and a question
   would stall the tool.
@@ -462,12 +503,119 @@ sample.
 
 `tests/tool-duration-cli.test.ts` spawns the scripts with
 `TOOL_DURATIONS_PATH` pointed at a temp file: one sample
-of the documented shape; clean and dirty; a failing
-command keeps its status, is recorded red, and prints no
-duration line; a function's first failure still stops it;
-the caller's errexit setting is left as it was; an
-unwritable ledger and a line that is no sample are
-reported and change no status; a lost final newline;
+of the documented shape; clean and dirty, in a tree of
+the test's own; a failing command keeps its status, is
+recorded red, and prints no duration line; a function's
+first failure still stops it; the caller's errexit
+setting is left as it was; an unwritable ledger and a
+line that is no sample are reported and change no status;
+a lost final newline; no ledger at all; the timer's line
+on the script's stderr where the call's goes elsewhere;
 `./test schema` green; `./test browser` with no Chrome
-red; `./test validate`'s skip records nothing; and the
-pins of decision 7.
+refused before any step, with no sample; and the pins of
+decision 7.
+
+`tests/sha-result-cache.test.ts` runs the real `test` and
+the real `bin/test-browser` in repositories of their own,
+with the real timer and a ledger of the case's own: a
+run is one sample and one line, its replay neither, and
+a browser run that begins and fails is recorded red with
+no line.
+
+## Integration onto master
+
+The unit was built on `c36020172` and ended at
+`b89217b68`. Master then gained the faster suites, and
+`sha-result-cache` went onto master first; this unit was
+rebased onto that branch's tip, `08afff195`. It was
+built against a `test` that ran every suite itself,
+never `exec`ed, and kept a validate stamp, and it pinned
+that shape. Its three commits keep their subjects. Two
+follow them: `Hand every spawned script a ledger of its
+own`, and the one that records this.
+
+What changed at the rebase, and why:
+
+- **Where the timer sits.** Inside every ask, after its
+  `--`, so a replay is never a sample: the memory suite,
+  lint, and the API documentation check in `test`; the
+  Postgres suite in `bin/test-postgres`; the browser
+  suite in `bin/test-browser`; the ZIP build in
+  `bin/build`. `check`, `schema`, and the `--no-zip`
+  build are never asked and are timed as plain
+  statements. The memory suite with `POSTGRES_URL` set,
+  and a browser suite whose Chrome states no version,
+  run unasked and are timed all the same. The labels did
+  not change, so a series recorded before the rebase
+  goes on.
+- **`test` `exec`s again.** The cache keeps the Postgres
+  and browser scripts as the processes a signal reaches,
+  so `test` `exec`s them, and each times its own suite
+  at its own door. The pin that `test` never `exec`s is
+  now a pin of where real execution is timed: `test`
+  `exec`s only a script that times its own work, and
+  times no such script itself.
+- **A replay prints no line.** The timer is inside the
+  ask, where the step's stderr is recorded for the SHA.
+  A `duration:` line written there would have been
+  kept, and replayed as news of a run that never
+  happened. The timer speaks on a copy of the script's
+  stderr instead (decision 6).
+- **One way to say a tree is clean.** `timed` read
+  `WORKING_TREE_PORCELAIN`, the validate stamp's
+  variable, which the cache retired: set empty, it would
+  call a dirty tree clean. Both libraries now ask `git
+  status --porcelain` and nothing else. A test that needs
+  a clean tree or a dirty one makes a repository of its
+  own, or tells git of one.
+- **No ledger.** Master's tests of the memory suite's
+  workers run the real `./test` in this checkout with a
+  stand-in `deno` and count every call it gets. With a
+  ledger the timer would have run the stand-in twice
+  more for every step, and written its instant passes
+  into the operator's ledger as the suite's recent
+  duration. So `/dev/null` for the ledger means none
+  (decision 2), and the rule the cache made for its root
+  now covers both: a test that spawns `./test`,
+  `bin/test-postgres`, `bin/test-browser`, `bin/build`,
+  `./deploy`, `./bin/measure`, or `./bin/develop` names
+  `SHA_RESULT_CACHE_ROOT` and `TOOL_DURATIONS_PATH`
+  both, in the env of that spawn, each a path of the
+  test's own or `/dev/null`.
+  `tests/sha-result-cache-isolation.test.ts` pins both,
+  spawn by spawn, as far as the cache's design says
+  source can be read. Master's assertions stand as
+  written.
+- **The cache's two calling rules.** `replay_or_run`
+  refuses a caller with `set -e` off and a caller that
+  holds an `EXIT` trap. `timed` sets no trap of any
+  kind and runs its command as a plain statement in a
+  subshell under the caller's errexit, so the four
+  scripts pass both refusals with the timer in place,
+  and a step's own exit trap still runs a subshell
+  below it.
+- **A browser run with no Chrome.** It used to be
+  recorded red. Chrome is now found before the suite is
+  asked of the cache, since the browser names the entry,
+  so a run with none is refused before any step begins
+  and leaves no sample. A run that begins and fails is
+  still recorded red, and is pinned through the real
+  script.
+
+How the seven scripts a test may spawn stand:
+
+| Script | Asked of the cache | Timed |
+|---|---|---|
+| `./test` | memory, lint, api-docs | those three, and check and schema |
+| `bin/test-postgres` | its suite | as `./test postgres` |
+| `bin/test-browser` | its suite, per browser | as `./test browser` |
+| `bin/build` | the ZIP build | as `./bin/build`; `--no-zip` too |
+| `./deploy` | no; its gates ask | no; its gates are timed |
+| `./bin/measure` | no | no; the build it runs is |
+| `./bin/develop` | no | no |
+
+The two test files of this unit cost what they did:
+`tests/tool-duration-cli.test.ts` took about 885 ms
+before and 869 ms after, each run from a fresh
+repository of its own, and
+`tests/tool-duration-core.test.ts` 4 ms both times.
