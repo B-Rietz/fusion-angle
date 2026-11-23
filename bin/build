@@ -40,6 +40,8 @@ BIN="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$BIN/.." && pwd)"
 # shellcheck source=build-lib
 source "$BIN/build-lib"
+# shellcheck source=sha-result-cache-lib
+source "$BIN/sha-result-cache-lib"
 # git status, bundle_client, compile: cwd must be ROOT
 cd "$ROOT"
 
@@ -101,43 +103,44 @@ fi
 # base64 wraps at 76 columns.
 COMMIT_LOG_BASE64="$(printf '%s' "$COMMIT_LOG" | base64 | tr -d '\n')"
 
-echo "Building Fusion Angle..."
+build() {
+    echo "Building Fusion Angle..."
 
-if [ "$NO_ZIP" = true ] && [ -n "$DEST" ]; then
-    BUILD_DIR="$DEST"
-    mkdir -p "$BUILD_DIR"
-elif [ "$NO_ZIP" = true ]; then
-    BUILD_DIR=$(mktemp -d "${TMPDIR:-/tmp}/fusion-build.XXXXXX")
-else
-    BUILD_DIR=$(mktemp -d "${TMPDIR:-/tmp}/fusion-build.XXXXXX")
-    trap 'rm -rf "$BUILD_DIR"' EXIT
-fi
+    if [ "$NO_ZIP" = true ] && [ -n "$DEST" ]; then
+        BUILD_DIR="$DEST"
+        mkdir -p "$BUILD_DIR"
+    elif [ "$NO_ZIP" = true ]; then
+        BUILD_DIR=$(mktemp -d "${TMPDIR:-/tmp}/fusion-build.XXXXXX")
+    else
+        BUILD_DIR=$(mktemp -d "${TMPDIR:-/tmp}/fusion-build.XXXXXX")
+        trap 'rm -rf "$BUILD_DIR"' EXIT
+    fi
 
-bundle_client "$BUILD_DIR/site"
+    bundle_client "$BUILD_DIR/site"
 
-if [ "$NO_ZIP" = true ]; then
-    TARGET_FLAG=""
-else
-    TARGET_FLAG="--target x86_64-unknown-linux-gnu"
-fi
+    if [ "$NO_ZIP" = true ]; then
+        TARGET_FLAG=""
+    else
+        TARGET_FLAG="--target x86_64-unknown-linux-gnu"
+    fi
 
-ABS_BUILD="$(cd "$BUILD_DIR" && pwd)"
-# deno compile looks up absolute file:// specifiers on
-# disk at runtime, so the generated entry must be
-# relative for the binary to run without the source tree.
-SERVER_IMPORT=$(
-    printf '%s' '
-        import { relative } from "@std/path/posix";
-        let rel = relative(
-            Deno.args[0],
-            Deno.args[1],
-        );
-        if (!rel.startsWith(".")) rel = "./" + rel;
-        console.log(rel);
-    ' | deno run --frozen --config "$ROOT/deno.json" \
-        - "$ABS_BUILD" "$ROOT/server/main.ts"
-)
-cat > "$BUILD_DIR/main.ts" <<ENTRY
+    ABS_BUILD="$(cd "$BUILD_DIR" && pwd)"
+    # deno compile looks up absolute file:// specifiers on
+    # disk at runtime, so the generated entry must be
+    # relative for the binary to run without the source tree.
+    SERVER_IMPORT=$(
+        printf '%s' '
+            import { relative } from "@std/path/posix";
+            let rel = relative(
+                Deno.args[0],
+                Deno.args[1],
+            );
+            if (!rel.startsWith(".")) rel = "./" + rel;
+            console.log(rel);
+        ' | deno run --frozen --config "$ROOT/deno.json" \
+            - "$ABS_BUILD" "$ROOT/server/main.ts"
+    )
+    cat > "$BUILD_DIR/main.ts" <<ENTRY
 import { dispatch, embeddedCommit } from '${SERVER_IMPORT}';
 Deno.exit(await dispatch(
     new URL('./site/', import.meta.url),
@@ -146,32 +149,45 @@ Deno.exit(await dispatch(
 ));
 ENTRY
 
-deno compile --frozen --exclude-unused-npm \
-    --config "$ROOT/deno.json" \
-    --include "$BUILD_DIR/site" \
-    --allow-net \
-    --allow-env=POSTGRES_URL,PGPORT,PGSSL,PGSSLNEGOTIATION,PGIDLE_TIMEOUT,\
-PGCONNECT_TIMEOUT,PGMAX_LIFETIME,PGMAX_PIPELINE,PGBACKOFF,\
+    deno compile --frozen --exclude-unused-npm \
+        --config "$ROOT/deno.json" \
+        --include "$BUILD_DIR/site" \
+        --allow-net \
+        --allow-env=POSTGRES_URL,PGPORT,PGSSL,PGSSLNEGOTIATION,\
+PGIDLE_TIMEOUT,PGCONNECT_TIMEOUT,PGMAX_LIFETIME,PGMAX_PIPELINE,PGBACKOFF,\
 PGKEEP_ALIVE,PGPREPARE,PGDEBUG,PGFETCH_TYPES,PGPUBLICATIONS,\
 PGTARGET_SESSION_ATTRS,PGAPPNAME,PGTARGETSESSIONATTRS,\
 PGSSLMODE,PGCHANNELBINDING,PGCHANNEL_BINDING,PGMIN,\
 PGQUEUE_TIMEOUT,PGQUERY_TIMEOUT,PGCANCEL_TIMEOUT,\
 PGSCHEDULER,PGINFER,PGSLOT,\
 JWT_HMAC_SIGNING_KEY,PORT,TRUSTED_PROXY_HOPS \
-    ${TARGET_FLAG} \
-    -o "$BUILD_DIR/fusion-angle" \
-    "$BUILD_DIR/main.ts"
+        ${TARGET_FLAG} \
+        -o "$BUILD_DIR/fusion-angle" \
+        "$BUILD_DIR/main.ts"
 
-emitted "Executable created" "$BUILD_DIR/fusion-angle"
+    emitted "Executable created" "$BUILD_DIR/fusion-angle"
+
+    if [ "$NO_ZIP" = true ]; then
+        echo "Bundle: $BUILD_DIR"
+    else
+        (cd "$BUILD_DIR" && zip -r "$SERVER_ZIP" .)
+        echo "Distribution: $SERVER_ZIP" \
+            "($(wc -c < "$SERVER_ZIP" | xargs) bytes)"
+    fi
+    echo "Done."
+}
 
 if [ "$NO_ZIP" = true ]; then
-    echo "Bundle: $BUILD_DIR"
+    # Measured under the five-second line, so it builds
+    # every time; the image build and the measure sweep
+    # use this form and never meet the result cache.
+    build
 else
+    # A ZIP that passed on this SHA replays instead of
+    # building again, once the file at its path proves
+    # to hold the bytes that build left.
     SHA=$(git rev-parse --short=7 HEAD)
     DEST_DIR="${DEST:-$HOME/Desktop/}"
     SERVER_ZIP="${DEST_DIR}fusion-angle-${SHA}.zip"
-    (cd "$BUILD_DIR" && zip -r "$SERVER_ZIP" .)
-    echo "Distribution: $SERVER_ZIP" \
-        "($(wc -c < "$SERVER_ZIP" | xargs) bytes)"
+    replay_or_run build "$SERVER_ZIP" -- build
 fi
-echo "Done."

@@ -186,9 +186,16 @@ nothing ran`. Red never replays. A dirty tree neither
 reads nor writes the cache, and neither does `./test`
 with `POSTGRES_URL` set. `check` and `schema` repeat in
 under a second and always run, so `./test validate` on a
-validated SHA takes about a second. To run for real,
+validated SHA runs only those two. `./bin/build`'s ZIP
+form takes part too, and its replay first proves that
+the ZIP at its path still holds the bytes that build
+left; `--no-zip` builds every time. To run for real,
 `rm -rf` the root or one `<sha>` directory in it.
-`bin/sha-result-cache-lib` is the whole of it.
+`bin/sha-result-cache-lib` is the whole of it. Each
+script that does a step's work asks at its own door:
+`test` for the three steps it runs itself, and
+`bin/test-postgres`, `bin/test-browser`, and `bin/build`
+for theirs.
 
 Run for real on master's `873c89b4b`, before the SHA
 result cache's tests were added, `./test` took about

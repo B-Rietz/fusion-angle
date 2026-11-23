@@ -4,6 +4,7 @@ import {
     assertMatch,
     assertNotMatch,
     assertStrictEquals,
+    assertStringIncludes,
 } from '@std/assert';
 import { join } from '@std/path';
 
@@ -400,5 +401,31 @@ Deno.test('test-browser asks the result cache per browser',
     assertMatch(src, /&& \[ -n "\$BROWSER" \]\nthen\n/);
     assertMatch(
         src, /replay_or_run "browser \$BROWSER" -- .*browser_suite/,
+    );
+});
+
+// The ZIP build crosses the five-second line and leaves
+// a file, so it asks the result cache and names its ZIP,
+// which a replay proves first. The --no-zip build
+// measured under the line and builds every time.
+Deno.test('build replays only its ZIP', () => {
+    const src = Deno.readTextFileSync('bin/build');
+    assertMatch(src, /source "\$BIN\/sha-result-cache-lib"/);
+    const work = functionBody(src, 'build');
+    assertMatch(work, /bundle_client "\$BUILD_DIR\/site"/);
+    assertMatch(work, /deno compile --frozen/);
+    assertMatch(work, /zip -r "\$SERVER_ZIP" \./);
+    const noZipAt = src.indexOf(
+        '\nif [ "$NO_ZIP" = true ]; then\n',
+    );
+    const elseAt = src.indexOf('\nelse\n', noZipAt);
+    assert(noZipAt >= 0, 'the --no-zip branch is missing');
+    assert(elseAt > noZipAt, 'the ZIP branch is missing');
+    const noZip = src.slice(noZipAt, elseAt);
+    assertMatch(noZip, /^    build$/m);
+    assertNotMatch(noZip, /replay_or_run/);
+    assertStringIncludes(
+        src.slice(elseAt),
+        'replay_or_run build "$SERVER_ZIP" -- build',
     );
 });
