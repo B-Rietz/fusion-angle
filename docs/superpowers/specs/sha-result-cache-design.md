@@ -58,6 +58,18 @@ What it settles, as relayed:
 This spec had already taken that course. Decisions 2, 11,
 and 15 are where it is carried out.
 
+After the unit was built and proved, the operator ruled on
+decision 5 as well, the one place this design departs from
+their first sentence:
+
+> Yes, you're right, failure should not be cached.
+
+Two more choices were put to the operator at the same
+time and drew no objection: lint and the API
+documentation check take part though each runs in under
+five seconds (decision 1), and `./bin/measure` stays
+outside (decision 12).
+
 ## What was measured
 
 Every candidate was timed on this branch's base commit, on
