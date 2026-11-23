@@ -163,9 +163,10 @@ then `generate-schema-svg --check` and
 Clean tree for `./bin/build`, `./deploy`, and
 `./bin/measure`.
 
-`./test` takes 9.5 s with the sanitizers on, against
-9.6 s for Deno before Part 5 turned them on and 16.2 s
-for the old Node `node --test` baseline. `--no-check`
+`./test` takes about 53 s on its four workers with the
+sanitizers on, and `./test validate` about 58 s: ten
+consecutive runs at 53.0–54.2 s on a quiet 16-core
+machine, measured 2026-11-23. `--no-check`
 costs nothing: `deno check` has already covered
 `tests/`. `./test postgres` carries the same two
 sanitizer flags; `./test browser` carries
