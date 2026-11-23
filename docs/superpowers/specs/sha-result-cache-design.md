@@ -2,7 +2,9 @@
 
 Branch and worktree `sha-result-cache`, cut from master's
 `c36020172` ("Name production and guard worktree
-creation").
+creation") and rebased onto `873c89b4b` ("Run the browser
+suite in a tenth of the time"). What the rebase changed
+is under Integration onto master, at the end.
 
 ## Intent
 
@@ -95,8 +97,9 @@ ordering more than the size.
 | `./test validate --syntax` | 0.4, 0.2, 0.2 | 0.2 | yes |
 | `./test schema` | 0.3, 0.04, 0.05 | 0.05 | yes |
 
-AGENTS.md records the memory suite at 9.5 s on a quiet
-machine; the same suite took three to four minutes here.
+AGENTS.md then recorded the memory suite at 9.5 s on a
+quiet machine; the same suite took three to four minutes
+here.
 The fourth lint and API documentation runs were taken at
 load 12 and used 3.4 and 5.6 CPU-seconds.
 
@@ -226,6 +229,18 @@ Left out, each for a reason:
 - The Docker engine, the operating system, the versions
   of `awk`, `perl`, `grep`, and `git`. The key stops at
   what the repository's own scripts choose between.
+- The worker count: `DENO_JOBS`, or the four workers the
+  memory suite and a launched browser run take without
+  it. It sets how many files run at once, never which
+  tests run or what they assert. A count that turned a
+  verdict would be starvation, which is red and never
+  stored, or a leak between files, which is a flake the
+  ratchet in decision 5 already names.
+- The browser suite's schedule. It needs no word of its
+  own: a run attached through `CHROME_DEBUG_URL` is named
+  by that URL and runs its files one at a time, and a
+  launched one is named by Chrome's version and runs
+  them together.
 
 One inexactness is accepted: lint runs no Deno and still
 runs again after a Deno upgrade. One rule for every step
@@ -507,6 +522,30 @@ step at the failure. How a failed step's duration is
 taken is that unit's to decide; whatever it does leaves
 `"$@"` a plain statement.
 
+The duration alarm's timer has since been written:
+`timed LABEL COMMAND`, in `bin/duration-lib` on the
+`duration-regression-alarm` branch. It runs its command
+in a subshell under the caller's own errexit setting,
+reads the status with errexit off around that subshell,
+and returns it unchanged, so `"$@"` stays a plain
+statement where `set -e` bites. It was run inside the
+ask, as `replay_or_run WAY -- timed LABEL COMMAND`,
+against this library. A first pass that failed, and a
+worker count that `run_memory` refused, each ended the
+step with status 1, on the recorded path and on the
+uncached one, and nothing was recorded. A pass was
+recorded, and its replay never reached the timer. `set
+-e still stops a step inside a timer` pins that shape
+from this side.
+
+The timer's subshell puts the step one level further
+below the recording. A step's own exit trap still runs
+there when a signal ends the run, which the fifth
+property under Design is about. `a step still cleans up
+when a signal ends its run` pins it through a timer's
+subshell, and the real browser script pins it with none
+between.
+
 ### 15. One mechanism, and how each seeming special case fits inside it
 
 The operator ruled that no tool gets a private variant.
@@ -553,8 +592,8 @@ and `bin/build`. One entry point:
 replay_or_run WAY [ARTIFACT...] -- COMMAND [ARG...]
 ```
 
-0. Refuse a caller whose `set -e` is off or cannot bite:
-   exit 1 with a message.
+0. Refuse a caller whose `set -e` is off or cannot bite,
+   or that holds an `EXIT` trap: exit 1 with a message.
 1. Name the entry: HEAD's SHA, a clean tree, a usable
    root, and the id of `WAY`, each `ARTIFACT`'s path,
    `deno --version`, and `NO_COLOR`. With no name, run
@@ -573,7 +612,7 @@ replay_or_run WAY [ARTIFACT...] -- COMMAND [ARG...]
    them, and rename the tar onto the entry.
 5. Remove the directory and return `COMMAND`'s status.
 
-Four properties are load-bearing.
+Five properties are load-bearing.
 
 `set -e` must bite inside `COMMAND`. `run_memory` is two
 `deno test` runs; if the first failed and the second
@@ -587,11 +626,49 @@ the status with `set +e` around a plain subshell that
 turns `set -e` back on inside. A step is therefore always
 called under `set -e`, as a plain statement.
 
-Steps 3 to 5 run in a subshell of their own. The `EXIT`
-trap that removes the directory, the two `tee`s, and `set
-+e` all end with it, so the calling script's own traps
-and options are never touched, and an interrupt leaves
-nothing beside the entries.
+Steps 3 to 5 run in a subshell of their own. Its traps,
+the two `tee`s, and `set +e` all end with it, so the
+calling script's own traps and options are never
+touched. Its own ways out remove the directory, and so
+do a hangup, Ctrl-C, and a termination, which are named
+before the directory is made. Any other signal that ends
+it, such as `QUIT`, `KILL`, `PIPE`, or `USR1`, leaves the
+directory behind with what the step had printed. That is
+litter and no more: its name is never an entry's.
+
+A step's own exit trap runs as it would at the top of
+its script. The browser suite removes its run directory
+with one, the build its build directory, and the
+Postgres suite takes its stack down with one. bash 3.2,
+the `/bin/bash` of macOS, runs an `EXIT` trap on a
+signal that ends a subshell only where no shell above it
+has ever set one; a trap set and cleared again still
+counts. The recording shell is above `COMMAND`, and as
+first built it set one, to remove its directory: a
+hangup or a termination sent to the process group then
+ended the step with its own trap unrun, and a run
+directory, or a compose stack, outlived the run. So the
+recording shell sets no `EXIT` trap. It names `HUP`,
+`INT`, and `TERM`, each removing the directory and
+leaving with 128 plus the signal's number, and removes
+the directory itself on its own ways out.
+A trap in the step's own subshell would not have been
+enough: a timer puts the step a subshell further down
+(decision 14), where it would be reset. The two `tee`s
+ignore the three signals once their pipes are open, and
+end when the step's shells close them, so the cleanup a
+step does on its way out can still print. Before that
+they died with the group, and a cleanup that printed, as
+the Postgres suite's `docker compose down` does, was
+ended at its first line by the closed pipe; that was
+measured with a stand-in that prints, not with Docker.
+The rule this leaves for a caller is the library's
+second: call it from a shell that has never set an
+`EXIT` trap, and let the step set its own. `replay_or_run`
+refuses a caller that holds one, beside the `set -e`
+refusal. It cannot see a trap that was set and cleared,
+so that half of the rule is the caller's to keep. The
+four scripts that ask set none.
 
 A reader who has gone never costs a run. Every line the
 library says is written from a subshell that ignores
@@ -637,9 +714,13 @@ included. It is called as `replay_or_run postgres --
 postgres_suite`.
 
 `bin/test-browser` asks at its own door, because only it
-knows which browser it will drive. Its bundle-and-test
-tail becomes `browser_suite`, called as `replay_or_run
-"browser $BROWSER" -- browser_suite`, where `BROWSER` is
+knows which browser it will drive. Everything a run does
+becomes `browser_suite`: the run's one directory and the
+trap that removes it, the bundle, the one seed landing,
+the schedule and its worker count, and the `deno test`
+run with its temp directory inside the run's. A replay
+does none of it. It is called as `replay_or_run "browser
+$BROWSER" -- browser_suite`, where `BROWSER` is
 `CHROME_DEBUG_URL` or `"$CHROME" --version`. If Chrome
 will not state a version, or states nothing, the suite
 runs uncached.
@@ -677,7 +758,26 @@ calls `replay_or_run build "$SERVER_ZIP" -- build`, and
   that the process id is gone first. On a dirty tree the
   step runs in the script's own shell, traps and all, as
   it always did. Ctrl-C reaches every process and stops
-  the step.
+  the step, and so does a hangup or a termination sent
+  to the whole process group; the step's exit trap runs
+  each time.
+- On a hangup or a termination of the whole group the
+  script is gone before the step's cleanup has finished:
+  its own shell ends at once, and the step's exit trap
+  runs on behind it. Measured with a cleanup of 0.9 s,
+  the script was gone 0.01 s after the signal and the
+  cleanup done at 0.91 s; on Ctrl-C the script waited
+  for it. Something that waits for `./test postgres` to
+  end and then wants 5432 can meet the stack still
+  coming down. Before the fifth property the cleanup did
+  not run at all.
+- On a recorded run Ctrl-C ends the script with status
+  130 by exit, where it used to die of the signal: the
+  recording shell names `INT` to remove its directory.
+  `bin/develop` and `deploy` already leave that way. It
+  shows in one place: a `for` loop over the script typed
+  at a prompt goes on to its next turn, where a shell
+  that saw its child die of the signal would stop.
 - Asking costs about 0.2 s per step, most of it `git
   status`, on every run, clean or dirty.
 - `bin/test-postgres`, `bin/test-browser`, and
@@ -708,17 +808,114 @@ or never made; an unreadable entry; a recording lost
 mid-run; a root found open, an unusable root, and a
 symbolic-link root; two runs that are proved to overlap
 by a fifo, with no clock; nothing left beside the
-entries.
+entries; a step inside a timer still stopped by `set
+-e`; a step's own exit trap run, its cleanup printed,
+and nothing left or recorded when a hangup, Ctrl-C, or a
+termination ends the run, through a timer's subshell;
+nothing left when one of the three lands before the step
+has started; and a caller that holds an `EXIT` trap
+refused. The signal cases run a script file as a job
+with a process group of its own and signal the group, as
+a terminal does; handed its commands by `-c`, bash 3.2
+ends on Ctrl-C without its exit trap whether or not this
+library is there. The step they hold waits in a `read`
+of its own, on a fifo, with a bound of twenty seconds. A
+loop of `sleep` was a false prophet there: bash 3.2
+drops a Ctrl-C that lands as a foreground child exits
+normally, so the loop ran on with nothing to let it go.
 
-Two cases run the real `test` script, copied with the
+Three cases run the real `test` script, copied with the
 real library into a repository of its own beside
 stand-ins for `deno` and the generator, under the shell
 its first line names. One runs `./test` and `./test
 api-docs` for real and then as replays, and `./test` with
-`POSTGRES_URL` set for real again. The other fails the
-memory suite's first pass and passes its second, and pins
-exit 1, no second pass, and no entry: the unit's worst
-failure, through the script that ships.
+`POSTGRES_URL` set for real again. One fails the memory
+suite's first pass and passes its second, and pins exit
+1, no second pass, and no entry, on the recorded path
+and then on a dirty tree: the unit's worst failure,
+through the script that ships. One hands it a worker
+count that is none, and pins the refusal, no pass, no
+entry, and a real run after it.
+
+Three more run the real `bin/test-browser` the same way,
+beside a stand-in build library, `deno`, and Chrome, with
+a temp directory of its own to make its run directory
+in. They pin that a run bundles, lands its seed, and runs
+its files with a temp directory inside the run's own;
+that a replay makes and starts none of it; that a run
+failing at its bundle, its seed, or its files exits with
+that status, leaves no directory, and is not recorded,
+asked or not; and that a recorded run ended by Ctrl-C, a
+hangup, or a termination of its process group, or by a
+termination of the script alone, leaves no directory. A
+run that is not asked sets its trap in the script's own
+shell, which is bash's own business and is not pinned.
+
+### Each spawned script gets a cache root of its own
+
+A test that spawns `./test`, `bin/test-browser`,
+`bin/test-postgres`, `bin/build`, `./deploy`,
+`./bin/measure`, or `./bin/develop` names
+`SHA_RESULT_CACHE_ROOT` for it, in the env of every such
+spawn. Those are the scripts whose steps ask the cache
+and the scripts that run them.
+
+Beside a repository of the test's own, the root is a
+directory of the test's own, and the test is about the
+cache: its tree is clean because the test made it so.
+In this checkout the root is `/dev/null`, where no root
+can be made, so the script says `cannot use /dev/null`
+on a clean tree, nothing on a dirty one, and runs for
+real on both (decision 10). A directory of the test's
+own would not do there. The checkout's tree is not a
+test's to keep clean, and on a clean one the script
+would record, asking `deno --version` twice more for
+every step, so a test that counts what its stand-in was
+asked would pass on a dirty tree and fail on a clean
+one.
+
+The rule closes two failures. A stand-in `deno` passes
+at once, and with the default root that pass was written
+into the operator's cache under the checkout's real SHA.
+And a script that found an earlier test's recording
+there replayed it, so the test proved the replay instead
+of the script.
+
+`tests/sha-result-cache-isolation.test.ts` pins it, as
+far as source can be read. It reads every `new
+Deno.Command(` under `tests/` by its first argument, the
+program. A spawn is held when the program is one of the
+seven, in any quotes; when it is no quoted name at all
+but a variable or an expression, which can hold any
+path; or when it is a shell in a file that names one of
+the seven's paths anywhere outside a comment, in a
+string of any kind. A held spawn names the root inside
+its own call, so two spawns in one test are two names.
+Any other quoted program, such as `git` or `deno`, is
+not held.
+
+What it cannot see is said plainly in the test: a spawn
+reached without `new Deno.Command(`, as through an
+alias; a program that is neither a script nor a shell
+and runs one all the same, as `env` or a `deno run` of a
+program that spawns; a shell in a file that builds a
+script's path from parts and never spells it; and what
+value the name is given.
+
+The spawns it holds today: on master's side `runTest`
+and `denoCalls` in `tests/test-cli.test.ts`, `runDeploy`,
+both spawns in `runDevelop`, and `runMeasureWrapper`,
+all in this checkout and all handed `/dev/null`; on this
+unit's side the two replicas above and the library's own
+cases, each with a root of its own. It also holds five
+spawns that run none of the seven, and each is handed
+`/dev/null` so the rule needs no exception:
+`tests/postgres-gun-cli.test.ts` spawns a script whose
+name is a variable, and three shells in
+`tests/build-commit.test.ts` and one in
+`tests/server-zip-metafile.test.ts` stand in files that
+name `./bin/build` in a Dockerfile line. No test spawns
+`bin/test-postgres` or `bin/build`.
 
 `tests/test-cli.test.ts` pinned the stamp. The operator
 changed that covenant, so those pins are replaced on
@@ -735,17 +932,25 @@ The same file gains `check and schema run every time` and
 pins on `bin/test-postgres`, `bin/test-browser`, and
 `bin/build`. Those three are regular expressions over
 script source: running any of them for real needs Docker,
-Chrome, or a compile.
+Chrome, or a compile. `bin/test-browser` is run as well,
+with stand-ins, in the replica above.
 
-No test spawns `./test validate`: it would run `deno
-check` for real, cold, inside the suite that is running.
+Master's four worker-count tests, one of which loops
+over five values, spawn the real `./test` in this
+checkout with a stand-in `deno`. One of them spawns
+`./test validate`, which runs the lint for real and no
+`deno check`. Their assertions stand as master wrote
+them. The stamp's two seams that the validate case
+passed are gone, and `/dev/null` for the cache root does
+what they did there.
 
 ## Docs
 
-AGENTS.md: the Gates section describes the cache; the
-sentence on the validate stamp is rewritten; the sandbox
-block gains the `SHA_RESULT_CACHE_ROOT` export. TODO.md's
-list of environment names trades the stamp's two for the
+AGENTS.md: the Gates section describes the cache, and
+the root a test hands a script it spawns; the sentence
+on the validate stamp is rewritten; the sandbox block
+gains the `SHA_RESULT_CACHE_ROOT` export. TODO.md's list
+of environment names trades the stamp's two for the
 cache's one.
 
 ## Not chosen
@@ -764,3 +969,76 @@ cache's one.
 - **A cache in the git directory**, where the stamp lives.
   It would be shared with the sandbox for free and would
   never be swept.
+
+## Integration onto master
+
+The unit was built on `c36020172`, proved end to end at
+`4af123ea2`, and ended at `0e2f09f16`. Master then gained
+the one-page workbox, `faster-layer-one` (`0ba4f8f94`),
+and `faster-layer-two` (`873c89b4b`), and the unit was
+rebased onto it. Its six commits keep their subjects and
+their concerns. Four follow them, for work that belongs
+to none of the six: `Let an interrupted step run its own
+cleanup`, `Pin set -e through a timer inside the ask`,
+`Hand every spawned script a cache root of its own`, and
+the one that records this.
+
+What changed at the rebase, and why:
+
+- **The memory suite's workers.** `run_memory` is
+  master's with one line added, `/bin/bash` among the
+  programs its tests may spawn: four workers a pass, a
+  `DENO_JOBS` already set wins, a value that is no count
+  is refused, and the count goes to the two passes
+  alone. The step is asked as it was. The refusal exits
+  inside the step, before either pass, so it is red and
+  never recorded. A replay runs nothing, so it reads no
+  `DENO_JOBS` and refuses none: `DENO_JOBS=abc ./test`
+  on a recorded SHA replays, where a real run stops.
+  The count is no part of the step's name (decision 3).
+- **The browser suite's run.** Master gave a run one
+  directory for its bundle, its seed, and every Chrome's
+  profile, landed one seed before the files, ran the
+  files four at a time unless attached, and removed the
+  directory in an exit trap at the script's top level.
+  All of it moved inside `browser_suite`, command for
+  command, so a replay does none of it. The step's name
+  did not change (decision 3).
+- **A step's exit trap under a signal.** Master's merge
+  says a killed browser run strands nothing. With the
+  trap inside a recorded step that stopped being true on
+  a hangup or a termination of the process group, and
+  the cause was this library, not master: the build's
+  directory had had the same hole since the unit was
+  built, and so had the Postgres suite's stack on a
+  hangup, unseen because the end-to-end proof
+  interrupted nothing. The fix is in the library, for
+  every step (Design, the fifth property). A termination
+  of the script alone is as it was: the script ends at
+  once, and the suite finishes behind it and then
+  removes its directory (Costs).
+- **Tests that spawn scripts.** Master added four tests
+  that run the real `./test` in this checkout with a
+  stand-in `deno`. On a clean tree they would have
+  written the stand-in's pass into the operator's cache
+  and replayed it to each other. One rule now covers
+  every test that spawns a script (Tests).
+- **Master's pins on `bin/test-browser`.** Both read the
+  script's source, which is now indented inside a
+  function. Each reads the step's body instead and
+  expects the indentation that is there, so each also
+  pins that its subject is the step's own work. Neither
+  lost an assertion.
+- **The measurements.** The tables under What was
+  measured were taken on the old base and are left as
+  measured. Master has since recorded `./test` at about
+  53 s on its four workers and `./test browser` at
+  about 72 s, down from 759.5 s. Both are still far over
+  the five-second line, and `./test validate` with them,
+  so decision 1 stands as written.
+
+What comes next is the duration alarm, rebased onto
+this. Decision 14 says where its timer goes and what was
+checked. One thing is that unit's to settle: its `timed`
+reads `WORKING_TREE_PORCELAIN`, the stamp's seam that
+decision 11 retires here.

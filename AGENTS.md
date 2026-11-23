@@ -184,7 +184,9 @@ replays both streams between two lines on stderr,
 <time> on <sha>` and `sha-result-cache: replayed <step>;
 nothing ran`. Red never replays. A dirty tree neither
 reads nor writes the cache, and neither does `./test`
-with `POSTGRES_URL` set. `check` and `schema` repeat in
+with `POSTGRES_URL` set. A replay runs nothing, so it
+reads no `DENO_JOBS` and refuses none. `check` and
+`schema` repeat in
 under a second and always run, so `./test validate` on a
 validated SHA runs only those two. `./bin/build`'s ZIP
 form takes part too, and its replay first proves that

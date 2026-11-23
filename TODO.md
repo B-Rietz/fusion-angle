@@ -71,8 +71,8 @@ code comments cite; specs and plans written before the
   (`api/advisory-lock.ts:11`,
   `api/ledger-statement-sql.ts:229`), the test schema
   `fusion_test_…` and compose project
-  `fusion-test-postgres-$$` (`bin/test-postgres:22`,
-  `:17`), and `schema_marker`, which item 0h retires.
+  `fusion-test-postgres-$$` (`bin/test-postgres:26`,
+  `:21`), and `schema_marker`, which item 0h retires.
   Ships no later than the deploy
   of the ledger (item 0i), which already changes what operators
   configure, so they rename once. The brainstorm settles
@@ -1912,7 +1912,7 @@ Off the critical path; each with its oracle.
   `process` to every file in it. `web-app` carries none
   of its own, but the gate checks it
   in one invocation with `client`, `server`, and `tests`
-  (`test:64`), and
+  (`test:89`), and
   either alone suffices — `server/scrypt-hash.ts`'s
   `node:crypto` means retiring `node:test` will not
   restore it. `npm:` does not unlock; `Deno.*` never
@@ -2617,7 +2617,7 @@ Off the critical path; each with its oracle.
     --remove-orphans`, leaving no compose project and no
     `.env` (J1, J2) — Layer 1, a test that sends the
     signal; 'deploy INT TERM traps exit the park'
-    (`tests/deploy-cli.test.ts:248`) reads the traps as
+    (`tests/deploy-cli.test.ts:254`) reads the traps as
     source text
   - The `Secure` cookie attribute (SV3) — Layer 1, one
     `assert.match(cookie, /Secure/i)` in
