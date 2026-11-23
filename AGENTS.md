@@ -205,6 +205,37 @@ test's own, or `/dev/null` in this checkout, where the
 script then runs for real on any tree.
 `tests/sha-result-cache-isolation.test.ts` pins it.
 
+Every step is timed where it really runs, by `timed
+LABEL COMMAND` from `bin/duration-lib`: `check`,
+`memory`, `lint`, `schema`, and `api-docs` in `test`;
+the Postgres and browser suites in `bin/test-postgres`
+and `bin/test-browser`, as `./test postgres` and
+`./test browser`; and the build in `bin/build`. Where a
+step is asked of the SHA result cache the timer is
+inside the ask, `replay_or_run WAY -- timed LABEL
+COMMAND`, so a replay is not a run: it appends no sample
+and prints no line. `check`, `schema`, and the `--no-zip`
+build are never asked, and are timed as they stand.
+Each run appends one sample to `tool-durations.jsonl`
+under the git common dir (`TOOL_DURATIONS_PATH` moves
+it; `/dev/null` there means no ledger: the step runs
+untimed and nothing is said), and a green run prints one
+`duration:` line on the script's own stderr, which is no
+part of what the cache keeps. A run is slow at three
+times the median of its recent runs and thirty seconds
+more. The median is of that step's green runs in this
+worktree over the last fourteen days, three at least,
+each taken with the one-minute load under one per core
+as it began and one and a half as it ended. A second
+slow run in a row prints `DURATION REGRESSION:`. It
+gates nothing: no exit status changes, and a run on a
+loaded machine is recorded but never compared.
+`tests/tool-duration-cli.test.ts` fails when a tracked
+executable at the root or directly under `bin/` neither
+calls `timed` nor is named there with its reason, when
+`./test` runs a step outside a timed call, and when it
+`exec`s a script that does not time its own work.
+
 Run for real on master's `873c89b4b`, before the SHA
 result cache's tests were added, `./test` took about
 53 s on its four workers with the sanitizers on, and
