@@ -1,11 +1,4 @@
-/* Workbox: work-order inbox, detail. */
-
-/* Cross-document snapshots cover compositor clicks
-    on Bind after inbox → detail. Inbox and detail
-    are the only pages that load this bundle. */
-@view-transition {
-    navigation: none;
-}
+/* Workbox: the inbox and its work order box. */
 
 .work-order-attr-grid {
     display: grid;
@@ -120,7 +113,7 @@
     margin-bottom: var(--space-2);
 }
 
-/* 412 recovery notice on the action screen. */
+/* 412 recovery notice in the work order box. */
 .work-order-conflict[data-tone="warning"] {
     color: hsl(var(--warning-text));
     background: hsl(var(--warning-soft));
@@ -157,27 +150,57 @@
     margin: 0;
 }
 
-.inbox-drop-indicator {
-    height: 3px;
-    margin: 2px 0;
-    pointer-events: none;
-    border-radius: 2px;
-    background: hsl(var(--primary));
+/* A pill's count: a full-radius chip of tabular numerals
+    on a faint foreground tint. The pill itself is .badge,
+    .badge-primary / .badge-secondary, and
+    .badge[data-dimmed]. */
+.workbox-pill-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.25rem;
+    height: 1.25rem;
+    padding: 0 var(--space-1);
+    border-radius: var(--radius-full);
+    background: hsl(var(--foreground) / 0.12);
+    font-weight: var(--font-weight-semibold);
+    font-variant-numeric: tabular-nums;
 }
 
-.inbox-dragging {
-    opacity: 0.4;
-    position: relative;
-    z-index: 1;
-}
-
-.inbox-drop-target {
+/* The row whose work order the box holds. */
+[data-work-order-card][aria-current="true"] {
     outline: 2px solid hsl(var(--primary));
     outline-offset: -2px;
 }
 
-/* Native link drag over other rows looks like
-    reorder. Available is never Custom-order. */
-#workbox-inbox a {
-    -webkit-user-drag: none;
+/* Before anything is opened: the box's one muted line. */
+.workbox-work-order-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 12rem;
+}
+
+/* From md up the open work order stays in view while the
+    lists scroll: sticky below layout.css's 4rem sticky
+    .top-header and the page's --space-8 padding, scrolling
+    on its own when taller than the window. */
+@media (min-width: 768px) {
+    .workbox-work-order {
+        position: sticky;
+        top: calc(4rem + var(--space-8));
+        align-self: start;
+        max-height: calc(100vh - 4rem - 2 * var(--space-8));
+        overflow-y: auto;
+    }
+}
+
+/* On a phone, opening and closing scroll a box to the
+    top, under layout.css's fixed 3.5rem .mobile-header:
+    the margin lands it below that header. */
+@media (max-width: 767px) {
+    #work-order-lists,
+    .workbox-work-order {
+        scroll-margin-top: calc(3.5rem + var(--space-2));
+    }
 }

@@ -123,8 +123,9 @@ export {
     WorkingStylesPresenter,
 } from './working-styles.ts';
 export {
-    WorkboxInboxPresenter,
     buildInboxItems,
+    buildInboxLists,
+    inboxSectionsOf,
     partitionInboxItems,
     type InboxFilter,
     type InboxListKind,
@@ -132,8 +133,21 @@ export {
     type InboxItem,
 } from './workbox-inbox.ts';
 export {
+    NO_PILL,
+    buildWorkboxPills,
+    pillFlowNamesOf,
+    pressedAmong,
+    samePill,
+    workboxPillsOf,
+    type PressedPill,
+} from './workbox-pills.ts';
+export {
     buildAttributeInputHtml,
+    buildWorkOrderBoxEmpty,
+    buildWorkOrderBoxFailed,
+    buildWorkOrderBoxLoading,
     WorkboxDetailPresenter,
+    type WorkOrderBinding,
 } from './workbox-detail.ts';
 export {
     FlowStatsPresenter,

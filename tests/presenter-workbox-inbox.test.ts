@@ -1,14 +1,24 @@
 import {
+    assert,
     assertEquals,
     assertMatch,
     assertStringIncludes,
 } from '@std/assert';
 import {
-    WorkboxInboxPresenter,
+    buildInboxLists,
+    inboxSectionsOf,
     type InboxFilter,
     type InboxItem,
+    type InboxListKind,
+    type InboxLists,
 } from
     '../web-app/app/presenters/workbox-inbox.ts';
+import {
+    NO_PILL,
+    type PressedPill,
+} from '../web-app/app/presenters/workbox-pills.ts';
+import { buildPageUrl } from '../web-app/app/navigation.ts';
+import { escapeForHtml } from '../web-app/app/safe-html.ts';
 
 function placed(
     overrides: Partial<Extract<
@@ -25,7 +35,6 @@ function placed(
         lastTransitionedAt:
             '2026-04-01T12:00:00.000000Z',
         completed: false,
-        position: 1,
         taskInstructions: '',
         ...overrides,
     };
@@ -33,22 +42,16 @@ function placed(
 
 const NO_FILTER: InboxFilter = { kind: 'none' };
 
+// One headed list, as the left box draws it with no pill
+// pressed.
 function capture(
     items: readonly InboxItem[],
-    kind: 'available' | 'claimed' | 'archivedByMe',
+    kind: InboxListKind,
     filter: InboxFilter,
 ): string {
-    let html = '';
-    const container = {
-        set innerHTML(value: string) {
-            html = value;
-        },
-    };
-    new WorkboxInboxPresenter(items, kind, filter)
-        .renderList(
-            container as unknown as HTMLElement,
-        );
-    return html;
+    return buildInboxLists(
+        [{ kind, items }], filter, NO_PILL,
+    ).toString();
 }
 
 Deno.test(
@@ -127,7 +130,6 @@ Deno.test(
             claimedByName: null,
             lastTransitionedAt:
                 '2026-04-01T12:00:00.000000Z',
-            position: 2,
         }], 'available', NO_FILTER);
         assertStringIncludes(out, 'State unknown');
         assertStringIncludes(out, 'Test flow');
@@ -150,8 +152,8 @@ Deno.test(
 );
 
 Deno.test(
-    'workbox index.html is two cards, pills on'
-    + ' the right, no subtitle',
+    'workbox index.html holds the pills, the lists, and'
+    + ' the box, no subtitle',
     async () => {
         const page = await Deno.readTextFile(
             new URL(
@@ -160,47 +162,33 @@ Deno.test(
             ),
         );
         assertStringIncludes(page, 'Workbox');
+        const pills = /<div\s+id="workbox-pills"[^>]*>/
+            .exec(page);
+        assertEquals(pills !== null, true);
+        assertStringIncludes(pills![0], 'role="group"');
         assertStringIncludes(
-            page,
-            'Work Orders available to me',
+            pills![0], 'aria-label="Filter work orders"',
         );
-        assertStringIncludes(
-            page,
-            'Work Orders claimed by me',
-        );
-        assertStringIncludes(page, 'Active');
-        assertStringIncludes(
-            page, 'Archived by Me',
-        );
-        assertStringIncludes(
-            page, 'id="available-list"',
-        );
-        assertStringIncludes(
-            page, 'id="claimed-list"',
-        );
-        assertStringIncludes(
-            page, 'data-inbox-pill="claimed"',
-        );
-        assertStringIncludes(
-            page,
-            'data-inbox-pill="archivedByMe"',
-        );
+        const box = /<section\s+id="work-order-box"[^>]*>/
+            .exec(page);
+        assertEquals(box !== null, true);
+        assertStringIncludes(box![0], 'aria-label="Work order"');
+        const at = (needle: string) => page.indexOf(needle);
         assertEquals(
-            page.includes('Your work order inbox'),
-            false,
+            at('id="workbox-pills"') >= 0
+                && at('id="workbox-pills"')
+                    < at('id="work-order-lists"')
+                && at('id="work-order-lists"')
+                    < at('id="work-order-box"'),
+            true,
         );
-        assertEquals(
-            page.includes('workbox-tabs'), false,
-        );
-        assertEquals(
-            page.includes('tab-archive'), false,
-        );
-        assertEquals(
-            page.includes('Archive</'), false,
-        );
-        assertEquals(
-            page.includes('drag-handle'), false,
-        );
+        for (const retired of [
+            'data-inbox-pill', 'Active</',
+            'Your work order inbox', 'workbox-tabs',
+            'tab-archive', 'Archive</', 'drag-handle',
+        ]) {
+            assertEquals(page.includes(retired), false, retired);
+        }
     },
 );
 
@@ -267,3 +255,160 @@ Deno.test(
         );
     },
 );
+
+const LISTS: InboxLists = {
+    claimed: [
+        placed({ id: 'c-1', flowName: 'Onboarding' }),
+        placed({ id: 'c-2', flowName: 'Billing' }),
+    ],
+    available: [
+        placed({ id: 'a-1', flowName: 'Billing' }),
+        placed({ id: 'a-2', flowName: 'Onboarding' }),
+    ],
+    archivedByMe: [placed({ id: 'r-1', completed: true })],
+};
+
+const NO_LISTS: InboxLists = {
+    claimed: [],
+    available: [],
+    archivedByMe: [],
+};
+
+// Each section as `kind:id,id`, in drawing order.
+function sectionsDrawn(pressed: PressedPill): string[] {
+    return inboxSectionsOf(LISTS, pressed).map(
+        (section) => section.kind + ':'
+            + section.items.map((i) => i.id).join(','),
+    );
+}
+
+function listsHtml(
+    lists: InboxLists,
+    filter: InboxFilter,
+    pressed: PressedPill,
+): string {
+    return buildInboxLists(
+        inboxSectionsOf(lists, pressed), filter, pressed,
+    ).toString();
+}
+
+Deno.test(
+    'with no pill pressed claimed draws above available',
+    () => {
+        assertEquals(sectionsDrawn(NO_PILL), [
+            'claimed:c-1,c-2', 'available:a-1,a-2',
+        ]);
+        const out = listsHtml(LISTS, NO_FILTER, NO_PILL);
+        const claimed = out.indexOf('Work Orders claimed by me');
+        const available = out.indexOf(
+            'Work Orders available to me',
+        );
+        assert(claimed >= 0 && claimed < available);
+        assert(
+            out.indexOf('id="claimed-list"')
+                < out.indexOf('id="available-list"'),
+        );
+    },
+);
+
+Deno.test('Claimed by Me draws only the claimed list', () => {
+    assertEquals(
+        sectionsDrawn({ kind: 'claimed' }),
+        ['claimed:c-1,c-2'],
+    );
+});
+
+Deno.test(
+    'Archived by Me draws one list in place of the two',
+    () => {
+        assertEquals(
+            sectionsDrawn({ kind: 'archivedByMe' }),
+            ['archivedByMe:r-1'],
+        );
+        const out = listsHtml(
+            LISTS, NO_FILTER, { kind: 'archivedByMe' },
+        );
+        assertStringIncludes(out, 'Work Orders archived by me');
+        assertStringIncludes(out, 'id="archived-list"');
+        assertEquals(
+            out.includes('Work Orders available to me'), false,
+        );
+        assertEquals(
+            out.includes('Work Orders claimed by me'), false,
+        );
+    },
+);
+
+Deno.test('a flow pill narrows both lists to its flow', () => {
+    assertEquals(
+        sectionsDrawn({ kind: 'flow', flowName: 'Billing' }),
+        ['claimed:c-2', 'available:a-1'],
+    );
+});
+
+Deno.test('each list keeps its heading when empty', () => {
+    const out = listsHtml(NO_LISTS, NO_FILTER, NO_PILL);
+    assertStringIncludes(out, 'Work Orders claimed by me');
+    assertStringIncludes(out, 'No work orders claimed by me');
+    assertStringIncludes(out, 'Work Orders available to me');
+    assertStringIncludes(out, 'No work orders available to me');
+});
+
+Deno.test(
+    'an empty list under a flow pill names the flow',
+    () => {
+        const pressed: PressedPill = {
+            kind: 'flow', flowName: 'Billing',
+        };
+        const lists: InboxLists = {
+            claimed: [],
+            available: [placed({ flowName: 'Billing' })],
+            archivedByMe: [],
+        };
+        const out = listsHtml(lists, NO_FILTER, pressed);
+        assertStringIncludes(
+            out, 'No work orders claimed by me in Billing',
+        );
+        assertEquals(
+            out.includes('No work orders available to me'),
+            false,
+        );
+    },
+);
+
+Deno.test(
+    'a search\'s empty line wins over the flow',
+    () => {
+        const pressed: PressedPill = {
+            kind: 'flow', flowName: 'Billing',
+        };
+        const out = listsHtml(
+            NO_LISTS, { kind: 'matched', text: 'zz' }, pressed,
+        );
+        assertStringIncludes(out, 'No work orders match “zz”');
+        assertEquals(out.includes(' in Billing'), false);
+    },
+);
+
+Deno.test('a row\'s title links to the workbox with its id', () => {
+    const out = buildInboxLists(
+        [{ kind: 'available', items: [placed()] }],
+        NO_FILTER,
+        NO_PILL,
+    ).toString();
+    assertStringIncludes(
+        out,
+        'href="' + escapeForHtml(
+            buildPageUrl('workbox', { id: 'wo-1' }),
+        ) + '"',
+    );
+    assertEquals(out.includes('detail.html'), false);
+});
+
+Deno.test('a row carries no position', () => {
+    assertEquals(
+        capture([placed()], 'available', NO_FILTER)
+            .includes('data-position'),
+        false,
+    );
+});

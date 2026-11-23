@@ -17,13 +17,12 @@ import {
 import { encodeIdentifier } from
     '../shared/identifier.ts';
 
-Deno.test('DEFAULT_PROFILE_PAGES is the four heavy pages', () => {
+Deno.test('DEFAULT_PROFILE_PAGES is the three heavy pages', () => {
     assertEquals(
         [...DEFAULT_PROFILE_PAGES],
         [
             'organization',
             'workbox',
-            'workbox-detail',
             'projects',
         ],
     );

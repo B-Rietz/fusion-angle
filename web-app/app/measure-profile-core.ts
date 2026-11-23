@@ -29,7 +29,6 @@ export type RequestProfileSummary = {
 export const DEFAULT_PROFILE_PAGES = [
     'organization',
     'workbox',
-    'workbox-detail',
     'projects',
 ] as const;
 

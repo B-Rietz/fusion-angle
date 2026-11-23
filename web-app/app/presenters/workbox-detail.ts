@@ -27,9 +27,14 @@ import type { Member } from '../../../shared/types.ts';
 import type { Id } from '../../../shared/types.ts';
 import {
     ICON_SIZE,
-    iconArrowLeft,
     iconClock,
+    iconXCircle,
 } from '../icons.ts';
+import {
+    buildErrorState,
+    buildSkeleton,
+} from '../loading-states.ts';
+import { mutedEmptyNote } from './empty-note.ts';
 import {
     formatViolation,
 } from '../../../shared/record-constraints.ts';
@@ -155,6 +160,63 @@ export function buildAttributeInputHtml(
         ${titleAttr} />`;
 }
 
+// The box's close control, in every state an opened work
+// order takes: loading, failed, and loaded.
+function buildWorkOrderClose(): SafeHtml {
+    return html`<button
+        type="button"
+        class="btn btn-ghost btn-icon"
+        id="work-order-close"
+        aria-label="Close work order"
+        title="Close work order">
+        ${iconXCircle(ICON_SIZE.xl, '')}
+    </button>`;
+}
+
+// The design system's switch inside its label, named as
+// its label reads; aria-checked says whether I hold the
+// claim.
+function buildClaimSwitch(
+    on: boolean,
+    label: string,
+): SafeHtml {
+    return html`<label
+        id="work-order-claim"
+        class="flex items-center gap-2 text-sm"><button
+        type="button"
+        class="switch"
+        role="switch"
+        id="work-order-claim-switch"
+        aria-checked="${on ? 'true' : 'false'}"
+        aria-label="${label}"><span
+        class="switch-thumb"></span></button>${label}</label>`;
+}
+
+// Before anything is opened, and after it is closed.
+export function buildWorkOrderBoxEmpty(): SafeHtml {
+    return html`<h2 class="text-lg font-semibold mb-4"
+        >Work Order</h2>
+    <div class="workbox-work-order-empty">${
+        mutedEmptyNote('Select a work order to open it here')
+    }</div>`;
+}
+
+// Its read in flight: the skeleton.
+export function buildWorkOrderBoxLoading(): SafeHtml {
+    return html`<div class="flex justify-end mb-2">${
+        buildWorkOrderClose()
+    }</div>${buildSkeleton('detail', 4)}`;
+}
+
+// Its read failed: the page's failed-load state.
+export function buildWorkOrderBoxFailed(
+    message: string,
+): SafeHtml {
+    return html`<div class="flex justify-end mb-2">${
+        buildWorkOrderClose()
+    }</div>${buildErrorState(message, 'Try Again')}`;
+}
+
 export class WorkboxDetailPresenter {
     readonly #workOrder: WorkOrder;
     readonly #flowGraph: WorkOrderFlowGraph;
@@ -172,6 +234,10 @@ export class WorkboxDetailPresenter {
     > | null;
     readonly #binding: WorkOrderBinding | null;
     readonly #conflictNotice: string | null;
+    readonly #activeClaim:
+        { memberId: Id; at: string } | null;
+    readonly #memberMap: Map<Id, Member>;
+    readonly #currentMemberId: string;
 
     constructor(
         workOrder: WorkOrder,
@@ -202,6 +268,9 @@ export class WorkboxDetailPresenter {
         this.#instanceValues = instanceValues;
         this.#binding = binding;
         this.#conflictNotice = conflictNotice;
+        this.#activeClaim = activeClaim;
+        this.#memberMap = memberMap;
+        this.#currentMemberId = currentMemberId;
 
         const head = this.#flowGraph.nodes.find(
             (n) => n.id === workOrder.nodeId,
@@ -235,12 +304,6 @@ export class WorkboxDetailPresenter {
                         === currentMemberId,
             }
             : { state: 'unclaimed' };
-    }
-
-    // The work order the page holds: each write from this
-    // screen latches its head.
-    workOrder(): WorkOrder {
-        return this.#workOrder;
     }
 
     idValue(): string {
@@ -332,45 +395,41 @@ export class WorkboxDetailPresenter {
                 >${this.#conflictNotice}</p>`
             : html``;
 
-        // Attributes are two columns so
+        // The title row carries the claim place and the
+        // close control at its right end; the badges take
+        // their own row, so a long claim label never
+        // squeezes them. Attributes are two columns so
         // submit stays below them and still in view.
-        return html`<div
-            class="entity">
-            <div id="work-order-header"
-                class="flex items-center
-                    gap-4 mb-6">
-                <button
-                    id="work-order-back-btn"
-                    class="btn btn-ghost
-                        btn-icon"
-                    aria-label="Back">
-                    ${iconArrowLeft(ICON_SIZE.xl, '')}
-                </button>
-                <div class="flex-1">
-                    <h1 class="text-2xl
-                        font-bold mb-1">
-                        ${this.flowNameText()}
-                    </h1>
-                    <div class="flex
-                        items-center gap-3
-                        flex-wrap">
-                        <span
-                            class="badge
-                                badge-neutral">
-                            ${idLabel(
-                                'Work order',
-                                this.idValue(),
-                            )}
-                        </span>
-                        <span
-                            class="badge
-                                badge-info"${this
-                                .#currentNodeTitleAttr()}>
-                            ${this
-                                .#currentNodeName()}
-                        </span>
-                        ${this.#bindingBadge()}
+        return html`<div>
+            <div id="work-order-header" class="mb-6">
+                <div class="flex items-center gap-3 mb-2">
+                    <h2 class="${
+                        'text-xl font-bold flex-1 min-w-0'
+                    }">${this.flowNameText()}</h2>
+                    <div class="flex items-center gap-2">
+                        ${this.#buildClaimPlace()}
+                        ${buildWorkOrderClose()}
                     </div>
+                </div>
+                <div class="flex
+                    items-center gap-3
+                    flex-wrap">
+                    <span
+                        class="badge
+                            badge-neutral">
+                        ${idLabel(
+                            'Work order',
+                            this.idValue(),
+                        )}
+                    </span>
+                    <span
+                        class="badge
+                            badge-info"${this
+                            .#currentNodeTitleAttr()}>
+                        ${this
+                            .#currentNodeName()}
+                    </span>
+                    ${this.#bindingBadge()}
                 </div>
             </div>
 
@@ -406,6 +465,28 @@ export class WorkboxDetailPresenter {
                 </div>
             </details>
         </div>`;
+    }
+
+    // The claim's one place: a switch while the work order
+    // is unclaimed or mine, the holder's name while another
+    // member holds it, nothing once it is archived. A
+    // lapsed claim is no claim: the page passes none.
+    #buildClaimPlace(): SafeHtml {
+        if (this.isArchive()) {
+            return html``;
+        }
+        const claim = this.#activeClaim;
+        if (claim === null) {
+            return buildClaimSwitch(false, 'Claim');
+        }
+        const label = 'Claimed by '
+            + memberName(this.#memberMap, claim.memberId);
+        if (claim.memberId === this.#currentMemberId) {
+            return buildClaimSwitch(true, label);
+        }
+        return html`<span
+            id="work-order-claim"
+            class="text-sm text-muted">${label}</span>`;
     }
 
     #claimedByMe(): boolean {

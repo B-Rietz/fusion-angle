@@ -50,6 +50,12 @@ Deno.test('retired snapshots is a missing page', () => {
     );
 });
 
+Deno.test('retired workbox-detail is a missing page', () => {
+    assertStrictEquals(
+        pageAuthMode('workbox-detail'), 'missing',
+    );
+});
+
 Deno.test('dashboard is gated and landing is public',
 () => {
     assertStrictEquals(pageAuthMode('dashboard'), 'gated');
@@ -57,11 +63,11 @@ Deno.test('dashboard is gated and landing is public',
 });
 
 Deno.test(
-    'PAGE_REGISTRY is 29 HTML page files including '
+    'PAGE_REGISTRY is 28 HTML page files including '
     + 'the api-documentation index',
     () => {
         const keys = Object.keys(PAGE_REGISTRY);
-        assertStrictEquals(keys.length, 29);
+        assertStrictEquals(keys.length, 28);
         const files = new Set(
             Object.values(PAGE_REGISTRY).map(
                 (e) =>
@@ -69,7 +75,7 @@ Deno.test(
                     + e.sourceFile + '.html',
             ),
         );
-        assertStrictEquals(files.size, 29);
+        assertStrictEquals(files.size, 28);
         assertStrictEquals(
             files.has('api-documentation/index.html'),
             true,
@@ -88,7 +94,6 @@ const ORGANIZATION_SCOPED = [
     'member-detail', 'members', 'organization',
     'project-detail', 'projects', 'record-create',
     'record-detail', 'records', 'workbox',
-    'workbox-detail',
 ];
 
 Deno.test('organization-scoped pages are the fenced ones',

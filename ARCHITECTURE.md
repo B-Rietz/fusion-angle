@@ -480,9 +480,9 @@ The server judges a claim by one clock: a claim is live
 until its `expires_at`, against the request's stamp
 (`isClaimUnlapsedAt`). The client mints the claim's event ids
 and stamps (`putWorkOrderClaim`); the server decides
-whether a prior claim lapsed. The workbox pages read a
+whether a prior claim lapsed. The workbox page reads a
 claim's liveness from the head's `claim.expires_at`,
-the page judging the stored claim against the clock.
+judging the stored claim against the clock.
 
 The workbox inbox is personal. `buildInboxItems` in
 `presenters/workbox-inbox.ts` takes the current

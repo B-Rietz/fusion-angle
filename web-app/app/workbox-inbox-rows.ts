@@ -47,7 +47,7 @@ export async function getInboxRows(
 }
 
 // The heads the work-orders QUERY matches, best match
-// first, each keeping the message a drag on it latches.
+// first, each keeping the message it was read as.
 // The members are the last full read's: the answer
 // changes which work orders show, not who the members are.
 export async function queryInboxRows(

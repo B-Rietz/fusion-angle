@@ -40,6 +40,9 @@ import type {
 import {
     WorkboxDetailPresenter,
     buildAttributeInputHtml,
+    buildWorkOrderBoxEmpty,
+    buildWorkOrderBoxFailed,
+    buildWorkOrderBoxLoading,
 } from
 '../web-app/app/presenters/workbox-detail.ts';
 import {
@@ -1136,18 +1139,16 @@ Deno.test('the detail reads its node from the head', () => {
     assertStrictEquals(presenter.currentNodeId(), 'n-2');
 });
 
+// The box claims by its switch; the bind picker and the
+// unclaim button stay retired.
 Deno.test(
-    'detail.ts does not call putWorkOrderClaim',
+    'the work order box has no bind or unclaim chrome',
     async () => {
         const src = await Deno.readTextFile(
             new URL(
-                '../web-app/workbox/detail.ts',
+                '../web-app/workbox/work-order-box.ts',
                 import.meta.url,
             ),
-        );
-        assertEquals(
-            src.includes('putWorkOrderClaim'),
-            false,
         );
         assertEquals(
             src.includes('unclaim-btn'),
@@ -1178,3 +1179,114 @@ Deno.test(
         );
     },
 );
+
+// The box before anything is opened, and while its read
+// is in flight or has failed.
+
+Deno.test('an unopened box says how to open a work order', () => {
+    const out = buildWorkOrderBoxEmpty().toString();
+    assertMatch(out, /<h2[^>]*>Work Order<\/h2>/);
+    assertStringIncludes(
+        out, 'Select a work order to open it here',
+    );
+    assert(!out.includes('work-order-close'));
+});
+
+Deno.test('a loading box carries the close control', () => {
+    const out = buildWorkOrderBoxLoading().toString();
+    assertStringIncludes(out, 'id="work-order-close"');
+    assertStringIncludes(out, 'aria-label="Close work order"');
+    assertStringIncludes(out, 'skeleton-shimmer');
+});
+
+Deno.test(
+    'a failed box carries the close control and Try Again',
+    () => {
+        const out = buildWorkOrderBoxFailed('No route')
+            .toString();
+        assertStringIncludes(out, 'id="work-order-close"');
+        assertStringIncludes(out, 'No route');
+        assertStringIncludes(out, 'data-retry-btn');
+        assertStringIncludes(out, 'Try Again');
+    },
+);
+
+// The claim place: a switch, a holder's name, or nothing.
+function claimPlaceOf(out: string): string | null {
+    const place = out.match(
+        /<(label|span)\s+id="work-order-claim"[\s\S]*?<\/\1>/,
+    );
+    return place === null ? null : place[0];
+}
+
+Deno.test('the box has a close control and no back button', () => {
+    const out = makePresenter().buildPage().toString();
+    assertStringIncludes(out, 'id="work-order-close"');
+    assertStringIncludes(out, 'aria-label="Close work order"');
+    assert(!out.includes('work-order-back-btn'));
+    assert(!out.includes('aria-label="Back"'));
+});
+
+Deno.test(
+    'an unclaimed work order offers the claim switch off',
+    () => {
+        const place = claimPlaceOf(
+            makePresenter({ activeClaim: null })
+                .buildPage().toString(),
+        );
+        assert(place !== null);
+        assertStringIncludes(place, 'role="switch"');
+        assertStringIncludes(place, 'aria-checked="false"');
+        assertStringIncludes(place, 'aria-label="Claim"');
+        assertMatch(place, /<\/button>Claim<\/label>/);
+    },
+);
+
+Deno.test('my claim shows the switch on with my name', () => {
+    const place = claimPlaceOf(makePresenter({
+        activeClaim: {
+            memberId: 'pjQzgITAPDQVyvCVpzpIfQ',
+            at: nowUtc(),
+        },
+        currentMemberId: 'pjQzgITAPDQVyvCVpzpIfQ',
+    }).buildPage().toString());
+    assert(place !== null);
+    assertStringIncludes(place, 'aria-checked="true"');
+    assertStringIncludes(
+        place, 'aria-label="Claimed by Ada Park"',
+    );
+    assertMatch(place, /<\/button>Claimed by Ada Park<\/label>/);
+});
+
+Deno.test(
+    'another member\'s claim names them with no switch',
+    () => {
+        const place = claimPlaceOf(makePresenter({
+            activeClaim: {
+                memberId: 'pnKMhTzcIZVQQBIoQlyAfw',
+                at: nowUtc(),
+            },
+            currentMemberId: 'pjQzgITAPDQVyvCVpzpIfQ',
+        }).buildPage().toString());
+        assert(place !== null);
+        assertStringIncludes(place, 'Claimed by Bo Park');
+        assert(!place.includes('role="switch"'));
+    },
+);
+
+Deno.test('an archived work order has no claim place', () => {
+    const graph = makeFlowGraph();
+    const out = makePresenter({
+        graph,
+        workOrder: makeWorkOrder(graph, { nodeId: 'n-2' }),
+        transitions: [
+            makeCreation({ id: 't-1', toNodeId: 'n-2' }),
+        ],
+        activeClaim: {
+            memberId: 'pjQzgITAPDQVyvCVpzpIfQ',
+            at: nowUtc(),
+        },
+    }).buildPage().toString();
+    assertStrictEquals(claimPlaceOf(out), null);
+    assert(!out.includes('work-order-claim-switch'));
+});
