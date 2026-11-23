@@ -2619,7 +2619,7 @@ Off the critical path; each with its oracle.
     --remove-orphans`, leaving no compose project and no
     `.env` (J1, J2) — Layer 1, a test that sends the
     signal; 'deploy INT TERM traps exit the park'
-    (`tests/deploy-cli.test.ts:254`) reads the traps as
+    (`tests/deploy-cli.test.ts:256`) reads the traps as
     source text
   - The `Secure` cookie attribute (SV3) — Layer 1, one
     `assert.match(cookie, /Secure/i)` in

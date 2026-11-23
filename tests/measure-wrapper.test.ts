@@ -10,7 +10,8 @@ import { join } from '@std/path';
 // the environment the wrapper handed it, docker its
 // compose project and arguments. Every ambient value is
 // a decoy the wrapper must not pass through to a local
-// sweep. The result cache's root is /dev/null by the rule
+// sweep. The result cache's root and the timer's ledger
+// are /dev/null by the rule
 // tests/sha-result-cache-isolation.test.ts pins for every
 // script a test spawns in this checkout.
 const AMBIENT = 'ambient';
@@ -59,6 +60,7 @@ async function runMeasureWrapper(
                 PORT: AMBIENT,
                 COMPOSE_PROJECT_NAME: AMBIENT,
                 SHA_RESULT_CACHE_ROOT: '/dev/null',
+                TOOL_DURATIONS_PATH: '/dev/null',
             },
             stdout: 'null',
             stderr: 'null',

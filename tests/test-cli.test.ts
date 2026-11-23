@@ -19,8 +19,9 @@ function functionBody(src: string, name: string): string {
 }
 
 // No case run through here reaches a step. The result
-// cache is handed /dev/null for its root all the same, by
-// the rule tests/sha-result-cache-isolation.test.ts pins.
+// cache is handed /dev/null for its root all the same,
+// and the timer /dev/null for its ledger, by the rule
+// tests/sha-result-cache-isolation.test.ts pins.
 async function runTest(
     args: string[],
     env: Record<string, string> = {},
@@ -36,6 +37,7 @@ async function runTest(
             POSTGRES_URL: '',
             JWT_HMAC_SIGNING_KEY: '',
             SHA_RESULT_CACHE_ROOT: '/dev/null',
+            TOOL_DURATIONS_PATH: '/dev/null',
             ...env,
         },
     }).output();

@@ -31,8 +31,9 @@ async function git(args: string[]): Promise<string> {
 }
 
 // This file names ./bin/build, so each shell it spawns
-// is handed /dev/null for the result cache's root, by the
-// rule tests/sha-result-cache-isolation.test.ts pins.
+// is handed /dev/null for the result cache's root and for
+// the timer's ledger, by the rule
+// tests/sha-result-cache-isolation.test.ts pins.
 async function fetchedCommit(
     url: string, sha: string, scratchTmp: string,
 ): Promise<{ code: number; stdout: string }> {
@@ -42,6 +43,7 @@ async function fetchedCommit(
             ...HERMETIC_GIT,
             TMPDIR: scratchTmp,
             SHA_RESULT_CACHE_ROOT: '/dev/null',
+            TOOL_DURATIONS_PATH: '/dev/null',
         },
         stdout: 'piped',
         stderr: 'null',
@@ -135,7 +137,11 @@ async function shLibrary(
 ): Promise<{ code: number; stdout: string }> {
     const output = await new Deno.Command('sh', {
         args: ['-c', program, 'sh', arg],
-        env: { ...HERMETIC_GIT, SHA_RESULT_CACHE_ROOT: '/dev/null' },
+        env: {
+            ...HERMETIC_GIT,
+            SHA_RESULT_CACHE_ROOT: '/dev/null',
+            TOOL_DURATIONS_PATH: '/dev/null',
+        },
         stdout: 'piped',
         stderr: 'null',
     }).output();
@@ -199,7 +205,10 @@ async () => {
             '. ./bin/compose-lib && mint_compose_env 8080'
             + ' && printf %s "$FUSION_COMMIT_LOG_BASE64"',
         ],
-        env: { SHA_RESULT_CACHE_ROOT: '/dev/null' },
+        env: {
+            SHA_RESULT_CACHE_ROOT: '/dev/null',
+            TOOL_DURATIONS_PATH: '/dev/null',
+        },
         stdout: 'piped',
         stderr: 'null',
     }).output();

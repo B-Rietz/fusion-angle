@@ -197,13 +197,7 @@ left; `--no-zip` builds every time. To run for real,
 script that does a step's work asks at its own door:
 `test` for the three steps it runs itself, and
 `bin/test-postgres`, `bin/test-browser`, and `bin/build`
-for theirs. A test that spawns one of those scripts, or
-`./deploy`, `./bin/measure`, or `./bin/develop`, hands
-it a `SHA_RESULT_CACHE_ROOT` of its own, in the env of
-that spawn: a directory beside a repository of the
-test's own, or `/dev/null` in this checkout, where the
-script then runs for real on any tree.
-`tests/sha-result-cache-isolation.test.ts` pins it.
+for theirs.
 
 Every step is timed where it really runs, by `timed
 LABEL COMMAND` from `bin/duration-lib`: `check`,
@@ -235,6 +229,23 @@ executable at the root or directly under `bin/` neither
 calls `timed` nor is named there with its reason, when
 `./test` runs a step outside a timed call, and when it
 `exec`s a script that does not time its own work.
+
+A test that spawns `./test`, `bin/test-postgres`,
+`bin/test-browser`, `bin/build`, `./deploy`,
+`./bin/measure`, or `./bin/develop` hands it a cache
+root and a ledger of its own, `SHA_RESULT_CACHE_ROOT`
+and `TOOL_DURATIONS_PATH` both, in the env of each
+spawn. Each is a path the test made, or `/dev/null`,
+which means none. In this checkout the root is
+`/dev/null`: the script then runs for real on any tree,
+where a usable root would record a stand-in's pass under
+a real SHA and replay it to the next test. A ledger is a
+file of the test's own where the test is about the timer
+and `/dev/null` where it is not: the timer then runs the
+step, runs no program of its own, and says nothing,
+where a real ledger would take a stand-in's instant
+pass for the step's recent duration.
+`tests/sha-result-cache-isolation.test.ts` pins both.
 
 Run for real on master's `873c89b4b`, before the SHA
 result cache's tests were added, `./test` took about
