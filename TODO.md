@@ -3669,33 +3669,34 @@ Off the critical path; each with its oracle.
   `FA_LATENCY=200` under `local` lifts every
   `./bin/measure` median by about 200 ms; unset leaves
   the no-op.
-- One rehearsal per test process, if measurement earns
-  it. `tests/` calls `seededMockDb()` at 97 sites in 42
-  files, and `sharedMockDb()` seeds once per worker that
-  uses it; each builds the identical dataset from
-  nothing: hash, form, rehearse, land. A landing onto an
-  absent table is a pure function of the rehearsal, and
-  fresh memory backends share nothing, so the harness
-  could rehearse once per process and land that one
-  rehearsal into each new backend. This is a test-only
-  cache, and the product seed never keeps its
-  rehearsal. Measured for
-  `docs/superpowers/specs/faster-layer-one-design.md`:
-  a run rehearses the mock seed 320 times, 278 of them
-  through `seededMockDb()` from 48 files; one seed's
-  median at `c36020172` is 2,051 ms
-  (`measurements/probes/layer-one/seed-time.ts`, load 8
-  to 22); and `./test` on four workers under the suite
-  lock took 188.85 s at `c36020172` and 125.84 s with
-  that unit's changes. That spec's "Left to the
-  operator" sets out a seed per test file, copied for
-  each test, from those numbers. The earlier medians
-  came from `measurements/probes/seed/rehearsal.ts`,
-  which no longer runs. Whether the per-seed rehearsal
-  is a cost worth a cache is the operator's decision.
-  Oracle: `./test` measured before and after this change
-  alone, three runs each, and every test that mutates
-  its seeded database still gets its own backend
+- One rehearsal per test process: decided for the memory
+  suite, and built per test file. The operator's ruling,
+  2026-11-23: "I'll take your recommendations on per-file
+  seeding and hold node:crypto." `seededMockDb()`
+  (`tests/mock-seed.ts`) seeds once per test file, in
+  module state, and hands each call a copy of that seed,
+  so a run seeds 48 times through it where it seeded 278
+  times in 48 files, about 1.2 s a seed
+  (`docs/superpowers/specs/faster-layer-one-design.md`,
+  change 5). `sharedMockDb()` is one copy per file.
+  `tests/mock-seed.test.ts` pins each copy a world of its
+  own and the seed's rows. Under the suite lock on four
+  workers, `./test` took 188.85 s at `c36020172`, about
+  127.7 s at `6981d40aa`, and about 53.4 s with per-file
+  seeding. Left alone: the routes outside
+  `seededMockDb()`, which rehearse the mock seed 41 times
+  a run in process, 26 of them the API documentation's
+  replay stages and 15 direct `postMockDataLoad` or
+  `rehearseMockData` calls. Still open: the seed's own
+  cost, which the held synchronous digest would cut.
+  The earlier medians came from
+  `measurements/probes/seed/rehearsal.ts`, which no
+  longer runs.
+  Oracle: the seed measured again with per-file seeding
+  in place, by a probe that seeds directly
+  (`seed-time.ts` and `seed-pair.ts` time copies from
+  that change on), before the operator rules again on
+  the synchronous digest
 - The memory backend copies its whole table for every
   bare statement (`const copy = [...this.#rows]`,
   `api/backend-memory.ts:154`), a cost every test write

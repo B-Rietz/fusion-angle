@@ -1,7 +1,9 @@
 // seededMockDb() alone in one process: one unmeasured seed,
 // then RUNS timed ones. Runs against any checkout or
 // snapshot that has tests/mock-seed.ts, so one script times
-// the seed across history:
+// the seed across history, up to the tree where a test file
+// seeds once: from there on, every call after the first
+// copies the file's seed, and this times the copy:
 //
 //   deno run --frozen --no-check --allow-env --allow-read \
 //       --config deno.json \

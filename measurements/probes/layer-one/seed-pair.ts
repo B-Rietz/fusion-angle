@@ -3,7 +3,10 @@
 // round seeds once from each tree, the order alternating,
 // so both halves of a pair run under the same machine load.
 // Prints wall and process CPU (user + system) milliseconds
-// and the median of the per-round B / A ratios.
+// and the median of the per-round B / A ratios. A tree
+// where a test file seeds once copies its seed after the
+// first call, so this times a seed only in trees before
+// that change.
 //
 // Roots are file: URLs of two checkouts or snapshots:
 //

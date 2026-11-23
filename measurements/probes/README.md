@@ -205,11 +205,14 @@ repository root.
 - `seed-time.ts` — `seededMockDb()` alone, one unmeasured
   seed and then seven timed. It takes the tree's root as
   a `file:` URL, so it times the seed at any commit from
-  a `git archive` snapshot.
+  a `git archive` snapshot before a test file seeds once;
+  from that change on, `seededMockDb()` copies the file's
+  seed after its first call, and the probe times copies.
 - `seed-pair.ts` — two trees in one process, a seed from
   each in turn, the order alternating: the median of the
   per-round ratios, wall and CPU. A pair shares its load,
-  so the ratio holds when the machine is busy.
+  so the ratio holds when the machine is busy. It times
+  seeds only in trees before a test file seeds once.
 - `worker-spans.ts` — a fifth `--preload` for one run of
   the memory suite: each worker's load span and test
   span, one JSON line each, to `FA_PROBE_SPANS`.
@@ -218,7 +221,10 @@ repository root.
   its span to the same file. Apply it with `patch -p1`,
   run, and reverse it with `patch -R -p1`; it is as it
   applied at `c36020172`. Three tests fail under it, the
-  ones that fence permissions around a seed.
+  ones that fence permissions around a seed. Its
+  `tests/mock-seed.ts` hunk no longer applies once a test
+  file seeds once (the commit after `6981d40aa`); its
+  `api/ledger-seed.ts` hunks still do.
 - `spans.ts` — sums that file: loading against testing,
   the seed's share, the longest workers, and the run
   replayed on the slot count it is given, with the
