@@ -765,8 +765,8 @@ code comments cite; specs and plans written before the
   work assigned to that seat).
   Layer 1 pin: a member not in the current node's
   `memberIds` cannot claim that work order — PUT
-  `work-orders/:id/claim` is refused, and an inbox
-  drop that would call it does not land a claim.
+  `work-orders/:id/claim` is refused, and the claim
+  switch that would call it does not land a claim.
   Today's `postWorkOrderClaimOp`
   (`api/routes.ts:1827`) checks a live hold only
   (409 `work order is already claimed`); it does
@@ -975,19 +975,11 @@ Off the critical path; each with its oracle.
   TEST-PLAN case claims the feedback survives. Oracle: a
   Layer 1 test asserting the typed feedback reaches the
   transition
-- Claim-on-load with no release-on-leave plus the
-  8-hour `DEFAULT_LOCK_TIMEOUT` turns a drive-by
-  work-order view into an 8-hour claim
-  (the page shows the claim; the 8-hour hold is the
-  defect) —
-  `web-app/workbox/detail.ts:598-616`,
-  `shared/types.ts:1087`
 - Class the ideas-list drop indicator. Walk `62291ec`
   D37 BLOCKED: `buildIndicator`
   (`web-app/app/drag-reorder.ts`) returns an unclassed
   inline `div`; compositor 4px `pointermove`s could
-  not query a hysteresis flip. Workbox inbox already
-  paints `.inbox-drop-indicator`. Oracle: the
+  not query a hysteresis flip. Oracle: the
   `drag-reorder` drop indicator has a class the walk
   can query (name `.list-drop-indicator` unless a
   later brainstorm picks another); a Layer 1 pin
@@ -998,8 +990,8 @@ Off the critical path; each with its oracle.
   WO01, is Archive, so R14/WB11 have no seeded bound
   Data Capture subject. Oracle: the mock seed includes
   one bound Customer Onboarding work order at Data
-  Capture that a claim-drag (or a birth-claimed seed
-  row) can open; a later walk can fill Company
+  Capture that the claim switch (or a birth-claimed
+  seed row) can claim; a later walk can fill Company
   Name and Contact Email and submit; the
   gate-violation work order stays unbound.
 - A latched write aligned to RFC 9110 §13.1.1. When
@@ -1125,32 +1117,31 @@ Off the critical path; each with its oracle.
   `web-app/projects/index.ts`,
   `web-app/records/detail.ts`,
   `web-app/records/index.ts`,
-  `web-app/organization/index.ts`,
-  `web-app/workbox/index.ts`, and the PII hop of
+  `web-app/organization/index.ts`, and the PII hop of
   `putHumanMember` in `client/members.ts`), so every
   retry refuses until a bell refetch or a reload; the
   drag reorders surface nothing on a refusal (ideas,
-  projects, records, organization — workbox toasts); the
+  projects, records, organization); the
   flow save's per-attempt read and `postFlowUndo`'s
   read-on-412 are the model; and a held-item miss also
   says nothing: a drop's handler returns when the item
   it held is gone (`web-app/ideas/index.ts:149`,
   `web-app/records/index.ts:140`,
   `web-app/projects/index.ts:189`,
-  `web-app/organization/index.ts:240`,
-  `web-app/workbox/index.ts:237`), as do the objective
+  `web-app/organization/index.ts:240`), as do the
+  objective
   reactivate and archive clicks
   (`web-app/organization/index.ts:310`, `:480`) — no
   error, since a bell repaint landing mid-gesture has
   already resolved the list and a drop reverts visually,
   but nothing tells the person the gesture did nothing;
   `postInvitationDecline` latches with no 412 recovery
-  (`client/invitations.ts:317`), and the workbox action
-  screen sends every 412 into the instance-conflict
+  (`client/invitations.ts:317`), and the workbox's work
+  order box sends every 412 into the instance-conflict
   recovery, a stale work-order tag on a pure move
-  included, its `conflictNotice` module state
-  outliving a refresh (`web-app/workbox/detail.ts:70`,
-  `:195-206`, `:234`)
+  included, its `conflictNotice` state outliving a
+  refresh (`web-app/workbox/work-order-box.ts`,
+  `#transition` and `#recoverFrom412`)
 - Gone for every document. A record instance's id is
   retired for good: the never-written latch
   makes tombstone-wins the statement's rule, and a
@@ -1265,14 +1256,14 @@ Off the critical path; each with its oracle.
 - Inbox rows wrap at desktop width. At 1280×800 a
   "Customer Onboarding" card grows from 92px to 116px
   tall because the flow name and the `Work order` label
-  both break (`web-app/app/presenters/workbox-inbox.ts:112`,
-  `:220`). A nowrap fix overflowed at phone widths, so
+  both break (`web-app/app/presenters/workbox-inbox.ts:129`,
+  `:200`). A nowrap fix overflowed at phone widths, so
   it needs its own small design. Oracle: a Layer 2 test
   reads every inbox card one line tall at 1280×800 and
   `scrollWidth <= innerWidth` at 320px
 - The two id links show no affordance and no arrival.
   The Instance badge
-  (`web-app/app/presenters/workbox-detail.ts:431`)
+  (`web-app/app/presenters/workbox-detail.ts:512`)
   looks like the unlinked Work order badge, and a linked
   `Parent token` (`presenters/identity-tokens.ts:27`)
   like an unlinked one; nothing marks the token row a
@@ -1291,8 +1282,8 @@ Off the critical path; each with its oracle.
   Oracle: a Layer 2 test fails the first instances read,
   clicks Try Again, and finds the linked row in view
 - Header badges and the work order link button clip no
-  id. The detail header's `Work order` badge
-  (`presenters/workbox-detail.ts:358-364`) and the record
+  id. The work order box's `Work order` badge
+  (`presenters/workbox-detail.ts:417-424`) and the record
   detail's `.record-wo-link` button
   (`presenters/record-detail.ts:620-630`) hold an id
   much longer than 22 characters at full width; nothing
@@ -1351,18 +1342,6 @@ Off the critical path; each with its oracle.
   `organizationSearch` (`api/organization-search.ts`)
   and matches only on what its own GET serves the
   caller.
-- Phone drag in the workbox. On a touch screen a finger
-  moving over a card scrolls the page and the browser
-  cancels the drag (`pointercancel`).
-  `web-app/app/workbox-inbox-drag.ts` listens for
-  pointer events (`pointerdown` at `:464`, `pointermove`
-  at `:498`, `pointerup` at `:559`, `pointercancel` at
-  `:576`) with no `touch-action` on the cards and no
-  long-press, and nothing scrolls the page while
-  dragging, so a card low in "available to me" cannot
-  reach "claimed by me" at the top. Needs press-and-hold
-  to pick up and edge auto-scroll. (Read from the code;
-  not yet observed on a device.)
 
 - `./bin/measure api` — the API's speed, in one run,
   on the chart. Nothing records how fast the API
@@ -2393,8 +2372,8 @@ Off the critical path; each with its oracle.
     Layer 2
   - The second tab's rendered read-only, already-claimed
     view (WB18) — Layer 2
-  - The client-side 412 recovery on the WORKBOX action
-    screen — re-GET, conflict notice, warning toast, no
+  - The client-side 412 recovery in the workbox's work
+    order box — re-GET, conflict notice, warning toast, no
     auto-retry (WB19a) — Layer 1 first:
     `WorkboxDetailPresenter`'s own `conflictNotice`
     parameter carries no rendering test, unlike
@@ -2632,11 +2611,11 @@ Off the critical path; each with its oracle.
     `tests/browser/toasts.test.ts`
   - The flow header's painted "Record: Customer Profile"
     dropdown and its selected state (R11) — Layer 2
-  - The workbox action screen's empty-required pre-check
+  - The work order box's empty-required pre-check
     and its toast text (R13) — Layer 1;
     `hasEmptyRequiredAttribute`
-    (`web-app/workbox/detail.ts`) is a pure function one
-    `export` away from a direct test
+    (`web-app/workbox/work-order-box.ts`) is a pure
+    function one `export` away from a direct test
   - A radio-option submit recording the chosen value
     through a transition (R14a) — Layer 1, a `radio`-typed
     case in `tests/adapters-record-transitions.test.ts`;

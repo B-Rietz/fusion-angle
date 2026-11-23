@@ -117,6 +117,26 @@ Former members). Organization sent-invitation filters
 are `stateBadge` chips (`data-invitation-state`:
 Pending, Declined, Revoked) on the sent card.
 
+**Filter pills.** The workbox's pill group is a
+`role="group"` labelled "Filter work orders" of
+`button.badge` pills, the state chips' look and
+dimming. Each carries `aria-pressed`; at most one is
+`true`. The pressed pill wears `badge-primary`, the
+rest `badge-secondary`, and while one is pressed the
+rest carry `data-dimmed="true"`. Each ends in a
+`.workbox-pill-count` chip: one count on "Claimed by
+Me" and "Archived by Me", `claimed/total` on a flow's,
+and its `aria-label` says what its numbers mean
+("Customer Onboarding: 2 claimed by me of 7"). A
+`.header-stat-divider` parts the two "by Me" pills from
+the flows'. One page uses it, so its one rule stays in
+`pages-workbox.css`. The work order box's claim control
+is the existing `.switch`, `role="switch"` with
+`aria-checked`, inside its label. While its write is in
+flight it is disabled, and `.switch:disabled` dims it
+and drops its pointer, as `.btn:disabled` and
+`.input:disabled` do.
+
 When groups exist, use native `<optgroup label>` —
 introducing case: AI-member model picker
 `buildModelOptgroups`. Org switcher: sidebar footer
