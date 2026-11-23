@@ -116,18 +116,21 @@ function fridayAnchors(
     return anchors;
 }
 
+// One formatter for every score instant: building one is
+// the costly step, and the business zone never changes.
+const BUSINESS_ZONE_FORMAT = new Intl.DateTimeFormat('en-US', {
+    timeZone: BUSINESS_ZONE,
+    hourCycle: 'h23',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+});
+
 function zoneOffsetMs(utcMs: number): number {
-    const fmt = new Intl.DateTimeFormat('en-US', {
-        timeZone: BUSINESS_ZONE,
-        hourCycle: 'h23',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-    });
-    const parts = fmt.formatToParts(
+    const parts = BUSINESS_ZONE_FORMAT.formatToParts(
         new Date(utcMs),
     );
     const pick = (type: string): number => {

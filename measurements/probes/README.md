@@ -134,12 +134,15 @@ compose shape, on host port 55433, named by
 - `repoint.ts` — a default-organization PUT to a second
   organization answers 200, and the default stays.
 - `rehearsal.ts` — the rehearsal transaction spec's
-  figures, run at its base and its head: the
+  figures, as they ran at its base and its head: the
   rehearsal's recorded statements replayed through a
   fresh rehearsal by depth, the rehearsal alone, and a
   memory seed, medians of seven; with
   `FA_PROBE_POSTGRES_URL`, a Postgres seed on a fresh
-  public schema, medians of three.
+  public schema, medians of three. It no longer runs:
+  at `c36020172` its replay throws "no document for
+  organization" before it prints, because it predates
+  the organization hold.
 
 ## serve/ (2026-09-18, 2026-09-22)
 
@@ -190,11 +193,63 @@ index scan of `fa_message_pairs_body`) and 15.284 ms
 as a sequential scan (`enable_bitmapscan` off and
 `enable_indexscan` off).
 
+## layer-one/ (2026-11-23)
+
+The figures in
+`docs/superpowers/specs/faster-layer-one-design.md`: where
+`./test`'s seconds go, and what one mock seed costs. Deno
+2.9.8, one 16-core machine shared with three other
+suites, so every figure carries its load. Run from the
+repository root.
+
+- `seed-time.ts` — `seededMockDb()` alone, one unmeasured
+  seed and then seven timed. It takes the tree's root as
+  a `file:` URL, so it times the seed at any commit from
+  a `git archive` snapshot before a test file seeds once;
+  from that change on, `seededMockDb()` copies the file's
+  seed after its first call, and the probe times copies.
+- `seed-pair.ts` — two trees in one process, a seed from
+  each in turn, the order alternating: the median of the
+  per-round ratios, wall and CPU. A pair shares its load,
+  so the ratio holds when the machine is busy. It times
+  seeds only in trees before a test file seeds once.
+- `worker-spans.ts` — a fifth `--preload` for one run of
+  the memory suite: each worker's load span and test
+  span, one JSON line each, to `FA_PROBE_SPANS`.
+- `seed-spans.patch` — the temporary source patch beside
+  it: each `seededMockDb()`, rehearsal, and landing writes
+  its span to the same file. Apply it with `patch -p1`,
+  run, and reverse it with `patch -R -p1`; it is as it
+  applied at `c36020172`. Three tests fail under it, the
+  ones that fence permissions around a seed. Its
+  `tests/mock-seed.ts` hunk no longer applies once a test
+  file seeds once (the commit after `6981d40aa`); its
+  `api/ledger-seed.ts` hunks still do.
+- `spans.ts` — sums that file: loading against testing,
+  the seed's share, the longest workers, and the run
+  replayed on the slot count it is given, with the
+  longest worker whole and split.
+- `profile-self.ts` — self time by function and by file
+  in a `deno run --cpu-prof` profile.
+
 ## Figures whose script did not survive
 
 Stated in TODO.md as measured, or here for an item that
 has landed; re-measure when the statement exists.
 
+- layer-one, 2026-11-23, figures in
+  `docs/superpowers/specs/faster-layer-one-design.md`
+  taken by throwaway scripts outside the tree: the
+  `crypto.subtle.digest` calls counted through one seed
+  at each commit of the regression table (31,379 at
+  `c36020172`; 22.7 MB, 725 bytes a call) and the ten
+  million a run makes; the synchronous digest, a
+  snapshot whose `shared/digest.ts` hashes through
+  `node:crypto` paired against the tree by
+  `seed-pair.ts`; the slim preload, two hundred
+  one-line test files under each preload; row hashes
+  under `Promise.all`; and the table copy per bare
+  statement, 0.8 to 1.9 µs for 2,300 rows
 - item 0, landed, on 18.6: inside one statement
   `clock_timestamp()` never steps back but ties — 149,680
   of 200,000 minimal rows, 0 of 200,000 rows carrying 300

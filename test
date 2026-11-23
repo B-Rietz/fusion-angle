@@ -36,7 +36,24 @@ cd "$ROOT"
 # serve, develop, deploy, test, measure, and
 # postgres-gun CLI pins spawn those scripts;
 # test-cli's SHA skip uses sh; /status reads git).
+#
+# Workers: four per pass, not deno's one per CPU. The
+# operator's machine is usually running other work
+# beside the suite. DENO_JOBS already in the environment
+# is deno's own knob and wins, for one run that may have
+# the machine. A DENO_JOBS that is no positive count is
+# refused: deno would read it as one worker and say
+# nothing. The count goes to the two passes alone, never
+# exported to the steps and suites that follow them.
+MEMORY_SUITE_WORKERS=4
+
 run_memory() {
+    local workers="${DENO_JOBS:-$MEMORY_SUITE_WORKERS}"
+    if ! [[ "$workers" =~ ^[1-9][0-9]*$ ]]; then
+        echo "Error: DENO_JOBS is no worker count:" \
+            "'$workers'" >&2
+        exit 1
+    fi
     JWT_HMAC_SIGNING_KEY="${JWT_HMAC_SIGNING_KEY:-test-hmac-signing-key}"
     export JWT_HMAC_SIGNING_KEY
     ALLOW_RUN=deno,./bin/serve,./deploy,sh,./test,git
@@ -56,9 +73,10 @@ run_memory() {
         --preload ./tests/session-storage-stub.ts
         --preload ./tests/worker-name-prefix.ts
     )
-    TZ=UTC "${DENO_TEST[@]}" --parallel tests/*.test.ts
-    TZ=Pacific/Honolulu "${DENO_TEST[@]}" --parallel \
-        tests/tz/*.test.ts
+    DENO_JOBS="$workers" TZ=UTC "${DENO_TEST[@]}" --parallel \
+        tests/*.test.ts
+    DENO_JOBS="$workers" TZ=Pacific/Honolulu \
+        "${DENO_TEST[@]}" --parallel tests/tz/*.test.ts
 }
 
 run_check() {

@@ -1,5 +1,6 @@
 import {
     assert,
+    assertEquals,
     assertMatch,
     assertNotMatch,
     assertStrictEquals,
@@ -44,6 +45,135 @@ async function runTest(
         stderr: decoder.decode(output.stderr),
     };
 }
+
+// ./test runs with deno stubbed on PATH. The stub appends
+// one line per call: the worker count, whether the call
+// runs files in parallel (deno reads DENO_JOBS only then),
+// the time zone, and the subcommand, "unset" for what the
+// call was not handed. The environment is cleared, so a
+// worker count this suite itself runs under is no decoy.
+async function denoCalls(
+    args: readonly string[],
+    env: Record<string, string>,
+    timeoutMs: number,
+): Promise<{
+    readonly status: number;
+    readonly stderr: string;
+    readonly calls: readonly string[];
+}> {
+    const dir = Deno.makeTempDirSync({
+        prefix: 'fusion-test-workers-',
+    });
+    const log = join(dir, 'calls.log');
+    try {
+        Deno.writeTextFileSync(
+            join(dir, 'deno'),
+            '#!/bin/bash\n'
+            + 'parallel=serial\n'
+            + 'for arg in "$@"; do\n'
+            + '    if [ "$arg" = --parallel ]; then\n'
+            + '        parallel=parallel\n'
+            + '    fi\n'
+            + 'done\n'
+            + 'printf \'%s %s %s %s\\n\' "${DENO_JOBS-unset}" \\\n'
+            + '    "$parallel" "${TZ-unset}" "$1" \\\n'
+            + `    >> "${log}"\n`,
+            { mode: 0o755 },
+        );
+        Deno.writeTextFileSync(log, '');
+        const output = await new Deno.Command('./test', {
+            args: [...args],
+            signal: AbortSignal.timeout(timeoutMs),
+            clearEnv: true,
+            env: {
+                PATH: `${dir}:${Deno.env.get('PATH') ?? ''}`,
+                ...env,
+            },
+            stdout: 'null',
+            stderr: 'piped',
+        }).output();
+        const calls = Deno.readTextFileSync(log);
+        return {
+            status: output.code,
+            stderr: new TextDecoder().decode(output.stderr),
+            calls: calls === '' ? [] : calls.trimEnd().split('\n'),
+        };
+    } finally {
+        Deno.removeSync(dir, { recursive: true });
+    }
+}
+
+// The memory passes are stubs; validate also lints the
+// tree, a few seconds on a quiet machine.
+const MEMORY_TIMEOUT_MS = 10_000;
+const VALIDATE_TIMEOUT_MS = 60_000;
+
+// The operator's machine is usually running other work, so
+// the suite takes four workers unless one run asks.
+Deno.test('test memory runs each pass on four workers',
+async () => {
+    const run = await denoCalls(['memory'], {}, MEMORY_TIMEOUT_MS);
+    assertStrictEquals(run.status, 0);
+    assertEquals(run.calls, [
+        '4 parallel UTC test',
+        '4 parallel Pacific/Honolulu test',
+    ]);
+});
+
+Deno.test('test memory keeps a worker count it is given',
+async () => {
+    const run = await denoCalls(
+        ['memory'], { DENO_JOBS: '16' }, MEMORY_TIMEOUT_MS,
+    );
+    assertStrictEquals(run.status, 0);
+    assertEquals(run.calls, [
+        '16 parallel UTC test',
+        '16 parallel Pacific/Honolulu test',
+    ]);
+});
+
+// Deno reads a DENO_JOBS that names no count as one worker,
+// so the suite would run serially and say nothing.
+Deno.test('test memory refuses a worker count that is none',
+async () => {
+    for (const jobs of ['abc', '0', '-4', '4x', ' 4']) {
+        const run = await denoCalls(
+            ['memory'], { DENO_JOBS: jobs }, MEMORY_TIMEOUT_MS,
+        );
+        assertStrictEquals(run.status, 1, jobs);
+        assertMatch(run.stderr, /DENO_JOBS/, jobs);
+        assertEquals(run.calls, [], jobs);
+    }
+});
+
+// The count is the memory suite's alone: the steps after
+// it, and a browser or Postgres suite validate goes on to,
+// keep deno's own. Validate runs the lint for real.
+Deno.test('test validate hands the worker count to no other step',
+async () => {
+    const dir = Deno.makeTempDirSync({
+        prefix: 'most-recently-validated-sha-',
+    });
+    try {
+        const run = await denoCalls(['validate'], {
+            MOST_RECENTLY_VALIDATED_SHA_PATH: join(
+                dir, 'most-recently-validated-sha',
+            ),
+            WORKING_TREE_PORCELAIN: ' M test',
+        }, VALIDATE_TIMEOUT_MS);
+        assertStrictEquals(run.status, 0, run.stderr);
+        assertEquals(run.calls, [
+            'unset serial unset --version',
+            'unset serial unset check',
+            '4 parallel UTC test',
+            '4 parallel Pacific/Honolulu test',
+            'unset serial unset run',
+            'unset serial unset run',
+        ]);
+    } finally {
+        Deno.removeSync(dir, { recursive: true });
+    }
+});
 
 Deno.test('test unknown suite exits 1 with usage',
 async () => {

@@ -150,7 +150,10 @@ server tests web-app`, then `./test` — `Deno.test`
 suites written against `@std/assert`, run as `deno
 test --frozen --parallel --no-check
 --sanitize-ops --sanitize-resources` with four
-preloads, in two TZ passes: `TZ=UTC` on
+preloads, on four workers unless `DENO_JOBS` already
+names a positive count (any other value is refused, and
+the count reaches those two passes alone), in two TZ
+passes: `TZ=UTC` on
 `tests/*.test.ts`, then `TZ=Pacific/Honolulu` on
 `tests/tz/*.test.ts` — then 78-character lint of code
 and scripts (not `.md`), the `org` identifier ban
@@ -160,9 +163,10 @@ then `generate-schema-svg --check` and
 Clean tree for `./bin/build`, `./deploy`, and
 `./bin/measure`.
 
-`./test` takes 9.5 s with the sanitizers on, against
-9.6 s for Deno before Part 5 turned them on and 16.2 s
-for the old Node `node --test` baseline. `--no-check`
+`./test` takes about 53 s on its four workers with the
+sanitizers on, and `./test validate` about 58 s: ten
+consecutive runs at 53.0–54.2 s on a quiet 16-core
+machine, measured 2026-11-23. `--no-check`
 costs nothing: `deno check` has already covered
 `tests/`. `./test postgres` carries the same two
 sanitizer flags; `./test browser` carries

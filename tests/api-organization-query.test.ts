@@ -90,7 +90,16 @@ async function seat(
     body: Record<string, unknown>,
     type: MembershipEntity['type'],
 ): Promise<string> {
-    const id = generateIdentifier();
+    return await seatAtId(db, admin, generateIdentifier(), body, type);
+}
+
+async function seatAtId(
+    db: MemoryDbAdapter,
+    admin: string,
+    id: string,
+    body: Record<string, unknown>,
+    type: MembershipEntity['type'],
+): Promise<string> {
     await sent(db, req(
         'POST', MEMBERSHIPS, admin,
         { id, ...body, membership: { type, at: AT } },
@@ -105,12 +114,24 @@ async function human(
     email: string,
     profile: Profile,
 ): Promise<Seated> {
-    const membership = await seat(db, admin, {
+    return await humanAtId(
+        db, admin, generateIdentifier(), name, email, profile,
+    );
+}
+
+async function humanAtId(
+    db: MemoryDbAdapter,
+    admin: string,
+    id: string,
+    name: string,
+    email: string,
+    profile: Profile,
+): Promise<Seated> {
+    const membership = await seatAtId(db, admin, id, {
         kind: 'human',
         identity: { ...profile, strengths: [], team_dimensions: {} },
         pii: { name, email, phone: '', bio: '' },
     }, 'member');
-    const id = membership.split(':')[1]!;
     return {
         id,
         name: membership,
@@ -179,7 +200,18 @@ async function project(
     title: string,
     progress: number,
 ): Promise<string> {
-    const id = generateIdentifier();
+    return await projectAtId(
+        db, admin, generateIdentifier(), title, progress,
+    );
+}
+
+async function projectAtId(
+    db: MemoryDbAdapter,
+    admin: string,
+    id: string,
+    title: string,
+    progress: number,
+): Promise<string> {
     await sent(db, req(
         'PUT', ROOT + '/projects/' + id, admin,
         projectDocument(title, progress, 'submitted'),
@@ -239,11 +271,14 @@ function memberAt(membership: string): string {
     return ROOT + '/invitations/' + membership;
 }
 
+// The reader matches nothing, so its id is letters alone: a
+// random id can carry a short run two edits from "zephyr".
 Deno.test('groups ideas, projects, members in that order',
 async () => {
     const { db, admin } = await basis();
-    const reader = await human(
-        db, admin, 'Reader Person', 'reader@example.com', ENGINEER,
+    const reader = await humanAtId(
+        db, admin, 'ReaderPersonXxxxxxxxxA',
+        'Reader Person', 'reader@example.com', ENGINEER,
     );
     const zephyr = await human(
         db, admin, 'Zephyr Quinn', 'quinn@example.com', ENGINEER,
@@ -299,11 +334,22 @@ Deno.test('matches a project by a flow id it joins', async () => {
 
 // The top bar shows "Progress: 40%", so "40%" finds it; a
 // near number is a one-edit match, ranked after the exact.
+// A project matches by its id too, so these ids are letters
+// alone: a random id holding "40", or a short run one edit
+// from it, would match by id and tie the ranks. The near
+// project comes first in GET order, by its write and by its
+// id, so only the ranking puts the exact one ahead.
 Deno.test('matches a project by its progress', async () => {
     const { db, admin } = await basis();
-    await project(db, admin, 'Harbor rollout', 75);
-    const near = await project(db, admin, 'Harbor rollout', 41);
-    const exact = await project(db, admin, 'Harbor rollout', 40);
+    await projectAtId(
+        db, admin, 'ProjectSeventyFiveXxxA', 'Harbor rollout', 75,
+    );
+    const near = await projectAtId(
+        db, admin, 'ProjectFortyOneXxxxxxA', 'Harbor rollout', 41,
+    );
+    const exact = await projectAtId(
+        db, admin, 'ProjectFortyXxxxxxxxxA', 'Harbor rollout', 40,
+    );
     assertEquals(
         await matched(db, admin, '40%'),
         [projectAt(exact), projectAt(near)],
