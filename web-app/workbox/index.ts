@@ -2,7 +2,7 @@ import {
     $, $$, $input, populateIcons, getRequiredAttribute,
 } from '../app/dom.ts';
 import {
-    html, setHtml,
+    html, setHtml, type SafeHtml,
 } from '../app/safe-html.ts';
 import { log } from '../app/logger.ts';
 import { createPageAbort } from
@@ -21,7 +21,6 @@ import {
     iconNoEntry,
     iconSearch,
 } from '../app/icons.ts';
-import { navigateTo } from '../app/navigation.ts';
 import { initDropdown } from '../app/dropdown.ts';
 import {
     getFlowsForCreation,
@@ -46,25 +45,26 @@ import {
     type InboxRows,
 } from '../app/workbox-inbox-rows.ts';
 import {
-    WorkboxInboxPresenter,
+    NO_PILL,
     buildInboxItems,
+    buildInboxLists,
+    buildWorkboxPills,
+    inboxSectionsOf,
     partitionInboxItems,
+    pillFlowNamesOf,
+    pressedAmong,
+    samePill,
+    workboxPillsOf,
     type InboxFilter,
-    type InboxListKind,
     type InboxLists,
+    type PressedPill,
 } from '../app/presenters/index.ts';
-import {
-    inboxListKindFromHash,
-    initInboxDrag,
-    paintInboxDrop,
-    transferInboxDrop,
-    type InboxOrder,
-    type InboxTransfer,
-} from '../app/workbox-inbox-drag.ts';
-import {
-    RequestError,
-    HTTP_CONFLICT,
-} from '../../shared/http-errors.ts';
+import { getHref, putAddress } from
+    '../app/adapters/location.ts';
+import { workOrderAddress } from
+    '../app/workbox-address.ts';
+import { nextWorkOrder } from '../app/workbox-next.ts';
+import { WorkOrderBox } from './work-order-box.ts';
 import { QUERY_TEXT_MAX_LENGTH } from
     '../../shared/search-match.ts';
 
@@ -89,45 +89,39 @@ type InboxView =
     }
     | { readonly kind: 'failed' };
 
-type InboxListElements = {
-    readonly available: HTMLElement;
-    readonly claimed: HTMLElement;
+// The page's three regions — the pills, the lists, and the
+// box that holds the open work order — and the box itself.
+type WorkboxPage = {
+    readonly pills: HTMLElement;
+    readonly lists: HTMLElement;
+    readonly box: HTMLElement;
+    readonly workOrderBox: WorkOrderBox;
 };
 
 let inboxRows: InboxRows | null = null;
 let inboxView: InboxView = { kind: 'all' };
-// Bumped by every keystroke, read, and drop: a read that
+// Bumped by every keystroke and read: a read that
 // finishes under an older number paints nothing.
 let listsSequence = 0;
 let searchTimer:
     ReturnType<typeof setTimeout> | undefined;
 let currentMemberId: string | null = null;
-let rightListKind: 'claimed' | 'archivedByMe' =
-    'claimed';
-let dragBound = false;
-let searchBound = false;
-let phoneOrderBound = false;
-let dropInFlight = false;
+// At most one pill is pressed; a reload starts with none.
+let pressed: PressedPill = NO_PILL;
+// The work order a transition sent on to a step that is
+// not mine: the next lists read that paints opens the one
+// after it. Any open or close clears it.
+let sentOnId: string | null = null;
 
+// The page loader runs init once per document; its Try
+// Again reloads the page.
 export async function init(
-    _params?: Record<string, string>,
+    params?: Record<string, string>,
 ): Promise<void> {
-    rightListKind = inboxListKindFromHash(
-        location.hash,
-    );
-    pressInboxPills();
-    bindInboxPills();
-
-    const availableEl =
-        $('#available-list', document);
-    const claimedEl =
-        $('#claimed-list', document);
-    if (!availableEl || !claimedEl) return;
-
-    const lists: InboxListElements = {
-        available: availableEl,
-        claimed: claimedEl,
-    };
+    const pillsEl = $('#workbox-pills', document);
+    const listsEl = $('#work-order-lists', document);
+    const boxEl = $('#work-order-box', document);
+    if (!pillsEl || !listsEl || !boxEl) return;
     const searchEl = $input('#workbox-search', document);
     if (!searchEl) return;
     searchEl.maxLength = QUERY_TEXT_MAX_LENGTH;
@@ -139,58 +133,79 @@ export async function init(
     ]);
 
     const ctx = sessionContext();
-    if (!phoneOrderBound) {
-        phoneOrderBound = true;
-        bindPhoneOrder();
+    bindPhoneOrder();
+    const memberId = (await getCurrentHumanMember(ctx)).id;
+    currentMemberId = memberId;
+    // The box's events reach the page it belongs to.
+    const workOrderBox = new WorkOrderBox(boxEl, memberId, {
+        opened: (id) => {
+            onWorkOrderOpened(page, id);
+        },
+        claimMoved: (moved) => {
+            onClaimMoved(page, moved);
+        },
+        claimRefused: () => {
+            void refreshInboxLists(searchEl, page, ctx);
+        },
+        // The transition's bell rang before its answer
+        // returned, so a lists read is already in flight;
+        // whichever read paints next opens the one after it.
+        sentOn: (id) => {
+            sentOnId = id;
+        },
+    }, signal);
+    const page: WorkboxPage = {
+        pills: pillsEl,
+        lists: listsEl,
+        box: boxEl,
+        workOrderBox,
+    };
+    bindRegions(page, searchEl, ctx);
+    // The address names the work order to open: a reload
+    // keeps the box, and a link can name one.
+    const openId = params?.id;
+    if (openId !== undefined) {
+        workOrderBox.open(openId);
     }
-    currentMemberId =
-        (await getCurrentHumanMember(ctx)).id;
-    const rowsPromise = fetchInboxRows(ctx);
+    const rowsPromise = getInboxRows(ctx);
     const sequence = listsSequence;
-    if (!searchBound) {
-        searchBound = true;
-        bindSearchBox(searchEl, lists, ctx);
-    }
-    await Promise.all([
-        renderAvailable(
-            availableEl, ctx, sequence, rowsPromise,
-        ),
-        renderRightList(
-            claimedEl, ctx, sequence, rowsPromise,
-        ),
-        initCreateDropdown(ctx),
-    ]);
-
+    bindSearchBox(searchEl, page, ctx);
+    // Any work-order change, this tab's or another's,
+    // refreshes the lists and re-reads the open work
+    // order. Bound before any read lands, so the box never
+    // paints, claims, or transitions unheard.
     subscribeWorkOrderChanges(() => {
-        if (dropInFlight) return;
-        void refreshInboxLists(searchEl, lists, ctx);
+        void refreshInboxLists(searchEl, page, ctx);
+        workOrderBox.reload();
     });
+    await Promise.all([
+        renderInbox(
+            page, ctx, sequence, rowsPromise, searchEl,
+        ),
+        initCreateDropdown(ctx, workOrderBox),
+    ]);
+}
 
-    const root = $('#workbox-inbox', document);
-    if (root && !dragBound) {
-        dragBound = true;
-        initInboxDrag(root, {
-            cardSelector:
-                '[data-work-order-card]',
-            idAttribute: 'data-work-order-card',
-            rightListKind: () => rightListKind,
-            order: inboxOrder,
-            onDrop: (id, transfer) => {
-                void onInboxDrop(
-                    id, transfer, searchEl, lists, ctx,
-                );
-            },
-        });
-    }
+function bindRegions(
+    page: WorkboxPage,
+    searchEl: HTMLInputElement,
+    ctx: RequestContext,
+): void {
+    page.pills.addEventListener('click', (e) => {
+        onPillClick(e, page, searchEl, ctx);
+    }, { signal });
+    page.lists.addEventListener('click', (e) => {
+        onRowClick(e, page.workOrderBox);
+    }, { signal });
 }
 
 function bindSearchBox(
     searchEl: HTMLInputElement,
-    lists: InboxListElements,
+    page: WorkboxPage,
     ctx: RequestContext,
 ): void {
     searchEl.addEventListener('input', () => {
-        onSearchInput(searchEl, lists, ctx);
+        onSearchInput(searchEl, page, ctx);
     }, { signal });
     searchEl.addEventListener('keydown', e => {
         if (e.key !== 'Escape' || searchEl.value === '') {
@@ -198,12 +213,12 @@ function bindSearchBox(
         }
         e.preventDefault();
         searchEl.value = '';
-        onSearchInput(searchEl, lists, ctx);
+        onSearchInput(searchEl, page, ctx);
     }, { signal });
     // A box the browser restored on history navigation
     // searches as if typed.
     if (searchText(searchEl) !== '') {
-        onSearchInput(searchEl, lists, ctx);
+        onSearchInput(searchEl, page, ctx);
     }
 }
 
@@ -212,17 +227,17 @@ function bindSearchBox(
 // keystrokes.
 function onSearchInput(
     searchEl: HTMLInputElement,
-    lists: InboxListElements,
+    page: WorkboxPage,
     ctx: RequestContext,
 ): void {
     listsSequence += 1;
     clearTimeout(searchTimer);
     if (searchText(searchEl) === '') {
-        void refreshInboxLists(searchEl, lists, ctx);
+        void refreshInboxLists(searchEl, page, ctx);
         return;
     }
     searchTimer = setTimeout(() => {
-        void refreshInboxLists(searchEl, lists, ctx);
+        void refreshInboxLists(searchEl, page, ctx);
     }, SEARCH_PAUSE_MS);
 }
 
@@ -230,9 +245,10 @@ function searchText(searchEl: HTMLInputElement): string {
     return searchEl.value.trim();
 }
 
-// CSS order moves no focus, and the DOM puts the box
-// before the button and available before claimed, so a
-// phone's stacked order is the DOM's own.
+// CSS order moves no focus, and the DOM puts the search
+// before the button and the claimed list before the
+// available one, so a phone's stacked order is the DOM's
+// own.
 function bindPhoneOrder(): void {
     const phone = matchMedia(MOBILE_MEDIA_QUERY);
     followPhoneOrder(phone.matches);
@@ -242,131 +258,16 @@ function bindPhoneOrder(): void {
 }
 
 function followPhoneOrder(phone: boolean): void {
-    const box = $('.workbox-header > .search-wrapper', document);
+    const search = $(
+        '.workbox-header > .search-wrapper', document,
+    );
     const actions = $('#workbox-header-actions', document);
-    const available = $('#available-list', document)
-        ?.closest('.card');
-    const claimed = $('#claimed-list', document)
-        ?.closest('.card');
-    if (!box || !actions || !available || !claimed) return;
+    if (!search || !actions) return;
     if (phone) {
-        actions.after(box);
-        available.before(claimed);
+        actions.after(search);
     } else {
-        actions.before(box);
-        claimed.before(available);
+        actions.before(search);
     }
-}
-
-function inboxOrder(): InboxOrder {
-    if (inboxView.kind !== 'matched') {
-        return { kind: 'dragged' };
-    }
-    return {
-        kind: 'matched',
-        claimedPositions: claimedPositionsOf(inboxView),
-    };
-}
-
-// The positions of every live claim the caller holds in
-// the last full GET and in the answer, the answer's
-// fresher, so a claim takes the bottom of the whole
-// claimed order rather than of the visible subset.
-function claimedPositionsOf(
-    view: Extract<InboxView, { kind: 'matched' }>,
-): number[] {
-    const byId = new Map<string, number>();
-    const sources = inboxRows === null
-        ? [view.rows]
-        : [inboxRows, view.rows];
-    for (const rows of sources) {
-        for (const item of matchedListsOf(rows).claimed) {
-            byId.set(item.id, item.position);
-        }
-    }
-    return [...byId.values()].toSorted((a, b) => a - b);
-}
-
-function pressInboxPills(): void {
-    for (const pill of $$(
-        '[data-inbox-pill]', document,
-    )) {
-        const kind = pill.getAttribute(
-            'data-inbox-pill',
-        );
-        pill.setAttribute(
-            'aria-pressed',
-            kind === rightListKind
-                ? 'true' : 'false',
-        );
-    }
-}
-
-function bindInboxPills(): void {
-    for (const pill of $$(
-        '[data-inbox-pill]', document,
-    )) {
-        pill.addEventListener('click', () => {
-            const kind = pill.getAttribute(
-                'data-inbox-pill',
-            );
-            if (
-                kind !== 'claimed'
-                && kind !== 'archivedByMe'
-            ) return;
-            rightListKind = kind;
-            history.replaceState(
-                null,
-                '',
-                kind === 'archivedByMe'
-                    ? '#archived'
-                    : '#active',
-            );
-            pressInboxPills();
-            const claimedEl =
-                $('#claimed-list', document);
-            const availableEl =
-                $('#available-list', document);
-            const searchEl =
-                $input('#workbox-search', document);
-            const ctx = sessionContext();
-            if (!claimedEl || !availableEl || !searchEl) {
-                return;
-            }
-            const text = searchText(searchEl);
-            if (text === '') {
-                void renderRightList(
-                    claimedEl, ctx, listsSequence,
-                );
-                return;
-            }
-            // The same answer serves either pill; with
-            // none for this text (a failed QUERY, or one
-            // still pausing), the pill runs it now.
-            if (
-                inboxView.kind === 'matched'
-                && inboxView.text === text
-            ) {
-                paintRightList(
-                    claimedEl,
-                    matchedListsOf(inboxView.rows),
-                    filterOf(inboxView),
-                );
-                return;
-            }
-            void refreshInboxLists(searchEl, {
-                available: availableEl,
-                claimed: claimedEl,
-            }, ctx);
-        }, { signal });
-    }
-}
-
-async function fetchInboxRows(
-    ctx: RequestContext,
-): Promise<InboxRows> {
-    inboxRows = await getInboxRows(ctx);
-    return inboxRows;
 }
 
 // Every list is built after init resolves the caller.
@@ -378,6 +279,17 @@ function requireCurrentMemberId(): string {
         );
     }
     return currentMemberId;
+}
+
+// Every paint follows a full read: the pills are its
+// flows.
+function requireInboxRows(): InboxRows {
+    if (inboxRows === null) {
+        throw new Error(
+            'workbox: lists painted before the first read',
+        );
+    }
+    return inboxRows;
 }
 
 function listsFrom(
@@ -404,61 +316,90 @@ function filterOf(view: InboxView): InboxFilter {
         : NO_FILTER;
 }
 
+// The first read takes the page's load arc: a skeleton,
+// then the lists, or the failed state with Try Again.
+async function renderInbox(
+    page: WorkboxPage,
+    ctx: RequestContext,
+    sequence: number,
+    rowsPromise: Promise<InboxRows>,
+    searchEl: HTMLInputElement,
+): Promise<void> {
+    await loadInto({
+        container: page.lists,
+        skeleton: buildSkeleton('card-list', 4),
+        fetch: () => rowsPromise,
+        retry: () => {
+            void refreshInboxLists(searchEl, page, ctx);
+        },
+        onData: (rows) => {
+            if (sequence !== listsSequence) return;
+            inboxRows = rows;
+            inboxView = { kind: 'all' };
+            paintInbox(page);
+        },
+    });
+}
+
 // The box decides the read: empty, today's GET; text, its
 // QUERY. Each read takes the next sequence number, so only
-// the newest paints.
+// the newest paints, and only a read that paints becomes
+// the rows on hand.
 async function refreshInboxLists(
     searchEl: HTMLInputElement,
-    lists: InboxListElements,
+    page: WorkboxPage,
     ctx: RequestContext,
 ): Promise<void> {
     listsSequence += 1;
     const sequence = listsSequence;
     const text = searchText(searchEl);
+    const retry = () => {
+        void refreshInboxLists(searchEl, page, ctx);
+    };
     if (text === '') {
-        await showAllLists(lists, ctx, sequence, () => {
-            void refreshInboxLists(searchEl, lists, ctx);
-        });
+        await showAllLists(page, ctx, sequence, retry);
         return;
     }
-    await showMatchedLists(lists, ctx, sequence, text, () => {
-        void refreshInboxLists(searchEl, lists, ctx);
-    });
+    await showMatchedLists(page, ctx, sequence, text, retry);
 }
 
 async function showAllLists(
-    lists: InboxListElements,
+    page: WorkboxPage,
     ctx: RequestContext,
     sequence: number,
     retry: () => void,
 ): Promise<void> {
     let rows: InboxRows;
     try {
-        rows = await fetchInboxRows(ctx);
+        rows = await getInboxRows(ctx);
     } catch (err) {
         if (sequence !== listsSequence) return;
         log.error('inbox read failed', 'workbox', err);
         inboxView = { kind: 'failed' };
-        paintListsError(lists, err, retry);
+        paintListsError(page.lists, err, retry);
+        closeAfterSendOn(page);
         return;
     }
     if (sequence !== listsSequence) return;
+    inboxRows = rows;
     inboxView = { kind: 'all' };
-    paintInboxLists(lists, listsFrom(rows), NO_FILTER);
+    paintInbox(page);
+    openAfterSendOn(page);
 }
 
 // The answer's members are the last full GET's, read
 // first when no GET has landed yet.
 async function showMatchedLists(
-    lists: InboxListElements,
+    page: WorkboxPage,
     ctx: RequestContext,
     sequence: number,
     text: string,
     retry: () => void,
 ): Promise<void> {
+    let all: InboxRows;
     let rows: InboxRows;
     try {
-        const all = inboxRows ?? await fetchInboxRows(ctx);
+        all = inboxRows ?? await getInboxRows(ctx);
         rows = await queryInboxRows(
             ctx, text, all.memberMap,
         );
@@ -466,83 +407,239 @@ async function showMatchedLists(
         if (sequence !== listsSequence) return;
         log.error('inbox search failed', 'workbox', err);
         inboxView = { kind: 'failed' };
-        paintListsError(lists, err, retry);
+        paintListsError(page.lists, err, retry);
+        closeAfterSendOn(page);
         return;
     }
     if (sequence !== listsSequence) return;
+    inboxRows = all;
     inboxView = { kind: 'matched', text, rows };
-    paintInboxLists(
-        lists, matchedListsOf(rows), filterOf(inboxView),
-    );
+    paintInbox(page);
+    openAfterSendOn(page);
 }
 
-// The page's failed-load treatment in both lists: never
-// the unfiltered lists standing in for a failed search.
+// The page's failed-load treatment: never the unfiltered
+// lists standing in for a failed search.
 function paintListsError(
-    lists: InboxListElements,
+    listsEl: HTMLElement,
     err: unknown,
     retry: () => void,
 ): void {
-    for (const listEl of [lists.available, lists.claimed]) {
-        setHtml(listEl, buildErrorState(
-            extractErrorMessage(
-                err,
-                'An unexpected error occurred.'
-                + ' Please try again.',
-            ),
-            'Try Again',
-        ));
-        $('[data-retry-btn]', listEl)
-            ?.addEventListener('click', retry);
+    setHtml(listsEl, buildErrorState(
+        extractErrorMessage(
+            err,
+            'An unexpected error occurred.'
+            + ' Please try again.',
+        ),
+        'Try Again',
+    ));
+    $('[data-retry-btn]', listsEl)
+        ?.addEventListener('click', retry);
+}
+
+// One pass over the rows on hand gives the pills their
+// numbers and the lists what the pressed pill draws. The
+// pills are the last full read's flows, so a search moves
+// none of them. The box is not repainted.
+function paintInbox(page: WorkboxPage): void {
+    const full = listsFrom(requireInboxRows());
+    const flowNames = pillFlowNamesOf(full);
+    pressed = pressedAmong(pressed, flowNames);
+    const lists = listsOnHand(full);
+    paintPills(
+        page.pills,
+        buildWorkboxPills(
+            workboxPillsOf(flowNames, lists), pressed,
+        ),
+    );
+    paintLists(page.lists, buildInboxLists(
+        inboxSectionsOf(lists, pressed),
+        filterOf(inboxView),
+        pressed,
+    ));
+    markOpenRow(page.lists, page.workOrderBox.openId());
+}
+
+// The lists the rows on hand give before any pill narrows
+// them: the full read's, or the search's answer.
+function listsOnHand(full: InboxLists): InboxLists {
+    return inboxView.kind === 'matched'
+        ? matchedListsOf(inboxView.rows)
+        : full;
+}
+
+// After a send-on, once the lists have refreshed and
+// painted: the topmost row as just drawn opens, never the
+// one sent on; with none, the box closes.
+function openAfterSendOn(page: WorkboxPage): void {
+    if (sentOnId === null) return;
+    const sent = sentOnId;
+    sentOnId = null;
+    const drawn = inboxSectionsOf(
+        listsOnHand(listsFrom(requireInboxRows())), pressed,
+    );
+    const next = nextWorkOrder(drawn, sent);
+    if (next.kind === 'open') {
+        page.workOrderBox.open(next.id);
+    } else {
+        page.workOrderBox.close();
     }
 }
 
-function rightListKindOf(): InboxListKind {
-    return rightListKind === 'archivedByMe'
-        ? 'archivedByMe'
-        : 'claimed';
+// A refresh that failed has no row to open: the box closes.
+function closeAfterSendOn(page: WorkboxPage): void {
+    if (sentOnId === null) return;
+    sentOnId = null;
+    page.workOrderBox.close();
 }
 
-function paintRightList(
-    claimedEl: HTMLElement,
-    lists: InboxLists,
-    filter: InboxFilter,
+// A repaint replaces the rows: a row whose link held focus
+// hands it to its work order's row, if that is still drawn.
+function paintLists(
+    listsEl: HTMLElement,
+    content: SafeHtml,
 ): void {
-    const kind = rightListKindOf();
-    claimedEl.setAttribute('data-inbox-list', kind);
-    new WorkboxInboxPresenter(
-        kind === 'archivedByMe'
-            ? lists.archivedByMe
-            : lists.claimed,
-        kind,
-        filter,
-    ).renderList(claimedEl);
-    bindRowNavigation(claimedEl);
+    const active = document.activeElement;
+    const held = active instanceof Element
+        && listsEl.contains(active)
+        ? active.closest('[data-work-order-card]')
+        : null;
+    const heldId = held === null
+        ? null
+        : getRequiredAttribute(held, 'data-work-order-card');
+    setHtml(listsEl, content);
+    if (heldId === null) return;
+    $$('[data-work-order-card]', listsEl)
+        .find((card) =>
+            card.getAttribute('data-work-order-card')
+                === heldId)
+        ?.querySelector<HTMLElement>('a[href]')
+        ?.focus({ preventScroll: true });
 }
 
-function paintInboxLists(
-    els: InboxListElements,
-    lists: InboxLists,
-    filter: InboxFilter,
+// A repaint replaces the pill buttons: the one that held
+// focus hands it to the pill that takes its place.
+function paintPills(
+    pillsEl: HTMLElement,
+    content: SafeHtml,
 ): void {
-    new WorkboxInboxPresenter(
-        lists.available, 'available', filter,
-    ).renderList(els.available);
-    bindRowNavigation(els.available);
-    paintRightList(els.claimed, lists, filter);
+    const active = document.activeElement;
+    const held = active instanceof Element
+        ? active.closest('[data-workbox-pill]')
+        : null;
+    const heldPill = held !== null && pillsEl.contains(held)
+        ? pillOf(held)
+        : null;
+    setHtml(pillsEl, content);
+    if (heldPill === null) return;
+    $$('[data-workbox-pill]', pillsEl)
+        .find((el) => samePill(pillOf(el), heldPill))
+        ?.focus({ preventScroll: true });
 }
 
-function paintInboxView(els: InboxListElements): void {
-    if (inboxView.kind === 'matched') {
-        paintInboxLists(
-            els,
-            matchedListsOf(inboxView.rows),
-            filterOf(inboxView),
-        );
+function pillOf(el: Element): PressedPill {
+    const kind = getRequiredAttribute(el, 'data-workbox-pill');
+    if (kind === 'claimed') return { kind: 'claimed' };
+    if (kind === 'archivedByMe') return { kind: 'archivedByMe' };
+    if (kind === 'flow') {
+        return {
+            kind: 'flow',
+            flowName: getRequiredAttribute(el, 'data-flow-name'),
+        };
+    }
+    throw new Error('workbox: unknown pill ' + kind);
+}
+
+// Pressing the pressed pill clears the filter. A pill
+// repaints the pills and the lists, never the box.
+function onPillClick(
+    e: MouseEvent,
+    page: WorkboxPage,
+    searchEl: HTMLInputElement,
+    ctx: RequestContext,
+): void {
+    if (!(e.target instanceof Element)) return;
+    const pill = e.target.closest('[data-workbox-pill]');
+    if (!pill) return;
+    const next = pillOf(pill);
+    pressed = samePill(next, pressed) ? NO_PILL : next;
+    // A failed read has no rows to narrow: the pill runs
+    // it again.
+    if (inboxView.kind === 'failed') {
+        void refreshInboxLists(searchEl, page, ctx);
         return;
     }
-    if (inboxRows === null) return;
-    paintInboxLists(els, listsFrom(inboxRows), NO_FILTER);
+    paintInbox(page);
+}
+
+// The row whose work order the box holds carries
+// aria-current; no other row does.
+function markOpenRow(
+    listsEl: HTMLElement,
+    openId: string | null,
+): void {
+    for (const card of $$('[data-work-order-card]', listsEl)) {
+        if (
+            card.getAttribute('data-work-order-card')
+                === openId
+        ) {
+            card.setAttribute('aria-current', 'true');
+        } else {
+            card.removeAttribute('aria-current');
+        }
+    }
+}
+
+// A plain click opens the row's work order in the box; a
+// modified click on its title follows the link, as any
+// link does.
+function onRowClick(e: MouseEvent, box: WorkOrderBox): void {
+    if (!(e.target instanceof Element)) return;
+    const card = e.target.closest('[data-work-order-card]');
+    if (!card) return;
+    if (e.target.closest('a[href]') && isModifiedClick(e)) {
+        return;
+    }
+    e.preventDefault();
+    box.open(getRequiredAttribute(card, 'data-work-order-card'));
+}
+
+function isModifiedClick(e: MouseEvent): boolean {
+    return e.metaKey || e.ctrlKey || e.shiftKey || e.altKey;
+}
+
+// The open work order rides the address and marks its
+// row; on a phone the page scrolls to the box it opened,
+// or back to the lists it closed to.
+function onWorkOrderOpened(
+    page: WorkboxPage,
+    id: string | null,
+): void {
+    // An open or close the person makes while the box
+    // waits to move on is the move: nothing opens after it.
+    sentOnId = null;
+    putAddress(workOrderAddress(getHref(), id));
+    markOpenRow(page.lists, id);
+    if (matchMedia(MOBILE_MEDIA_QUERY).matches) {
+        (id === null ? page.lists : page.box)
+            .scrollIntoView({ block: 'start' });
+    }
+}
+
+// A claim or release the box landed moves its row now,
+// from the head the write answered. Before the first read
+// lands there is no list to move it in, and a failed read
+// keeps its error; the write's bell has started a read
+// either way.
+function onClaimMoved(
+    page: WorkboxPage,
+    moved: WorkOrder,
+): void {
+    latchMoved(moved);
+    if (inboxRows === null || inboxView.kind === 'failed') {
+        return;
+    }
+    paintInbox(page);
 }
 
 function latchMovedWorkOrder(
@@ -570,169 +667,8 @@ function latchMovedWorkOrder(
     };
 }
 
-// A load under an older sequence number than the lists'
-// paints nothing: a search has moved past it.
-async function renderAvailable(
-    listEl: HTMLElement,
-    ctx: RequestContext,
-    sequence: number,
-    rowsPromise?: Promise<InboxRows>,
-): Promise<void> {
-    const rows = rowsPromise ?? fetchInboxRows(ctx);
-    await loadInto({
-        container: listEl,
-        skeleton: buildSkeleton('card-list', 4),
-        fetch: () => rows.then(
-            r => listsFrom(r).available,
-        ),
-        retry: init,
-        onData: items => {
-            if (sequence !== listsSequence) return;
-            new WorkboxInboxPresenter(
-                items, 'available', NO_FILTER,
-            ).renderList(listEl);
-            bindRowNavigation(listEl);
-        },
-    });
-}
-
-async function renderRightList(
-    listEl: HTMLElement,
-    ctx: RequestContext,
-    sequence: number,
-    rowsPromise?: Promise<InboxRows>,
-): Promise<void> {
-    const rows = rowsPromise ?? fetchInboxRows(ctx);
-    const kind: InboxListKind =
-        rightListKind === 'archivedByMe'
-            ? 'archivedByMe'
-            : 'claimed';
-    listEl.setAttribute('data-inbox-list', kind);
-    await loadInto({
-        container: listEl,
-        skeleton: buildSkeleton('card-list', 4),
-        fetch: () => rows.then(r => {
-            const lists = listsFrom(r);
-            return kind === 'archivedByMe'
-                ? lists.archivedByMe
-                : lists.claimed;
-        }),
-        retry: init,
-        onData: items => {
-            if (sequence !== listsSequence) return;
-            new WorkboxInboxPresenter(
-                items, kind, NO_FILTER,
-            ).renderList(listEl);
-            bindRowNavigation(listEl);
-        },
-    });
-}
-
-function bindRowNavigation(
-    container: HTMLElement,
-): void {
-    if (container.dataset.navBound === 'true') {
-        return;
-    }
-    container.dataset.navBound = 'true';
-    container.addEventListener(
-        'click', e => onRowClick(e),
-        { signal },
-    );
-}
-
-function onRowClick(e: MouseEvent): void {
-    if (!(e.target instanceof Element)) return;
-    if (e.target.closest('a[href]')) return;
-    const card = e.target.closest<HTMLElement>(
-        '[data-work-order-card]',
-    );
-    if (!card) return;
-    const id = getRequiredAttribute(
-        card, 'data-work-order-card',
-    );
-    navigateTo('workbox-detail', { id });
-}
-
-function cardById(id: string): HTMLElement | null {
-    return document.querySelector<HTMLElement>(
-        '[data-work-order-card="' + id + '"]',
-    );
-}
-
-// A drag on a search result latches the message the
-// answer holds; after the drop the search re-runs, since
-// the move may change what matches.
-async function onInboxDrop(
-    id: string,
-    transfer: InboxTransfer,
-    searchEl: HTMLInputElement,
-    lists: InboxListElements,
-    ctx: RequestContext,
-): Promise<void> {
-    const view = inboxView;
-    const rows = view.kind === 'matched'
-        ? view.rows
-        : inboxRows;
-    if (!rows || transfer.kind === 'none') {
-        return;
-    }
-    const held = rows.workOrders.find(
-        wo => wo.id === id,
-    );
-    if (!held) return;
-    const card = cardById(id);
-    if (card) {
-        paintInboxDrop(
-            card, transfer, lists, filterOf(view),
-        );
-    }
-    listsSequence += 1;
-    dropInFlight = true;
-    try {
-        const moved = await transferInboxDrop(
-            ctx, held, transfer,
-        );
-        latchMoved(moved);
-        paintInboxView(lists);
-        // The drop discarded any read in flight, so the
-        // box's own read runs again: its QUERY when it
-        // has text, today's GET when it was emptied
-        // under a painted answer.
-        if (
-            searchText(searchEl) !== ''
-            || inboxView.kind === 'matched'
-        ) {
-            await refreshInboxLists(searchEl, lists, ctx);
-        }
-    } catch (err) {
-        log.error(
-            'inbox drop failed', 'workbox', err,
-        );
-        if (
-            err instanceof RequestError
-            && err.status === HTTP_CONFLICT
-        ) {
-            showToast(
-                'Someone else holds that'
-                + ' work order',
-                'error',
-            );
-        } else {
-            showToast(
-                'Failed to save order',
-                'error',
-            );
-        }
-        await refreshInboxLists(searchEl, lists, ctx);
-    } finally {
-        dropInFlight = false;
-    }
-}
-
 // The moved head replaces its stale twin in the last GET
-// and in the answer, so the next drag on it latches the
-// current message.
+// and in the answer, so its row moves at once.
 function latchMoved(moved: WorkOrder): void {
     if (inboxRows !== null) {
         inboxRows = latchMovedWorkOrder(inboxRows, moved);
@@ -747,9 +683,12 @@ function latchMoved(moved: WorkOrder): void {
     }
 }
 
+// The new work order opens in the box; its bell refreshes
+// the lists.
 async function createWorkOrderForFlow(
     flowId: string,
     ctx: RequestContext,
+    box: WorkOrderBox,
 ): Promise<void> {
     const workOrderId =
         generateIdentifier();
@@ -761,13 +700,6 @@ async function createWorkOrderForFlow(
             flowLinkId,
             flowId,
         });
-        showToast(
-            'Work order created', 'success',
-        );
-        navigateTo(
-            'workbox-detail',
-            { id: workOrderId },
-        );
     } catch (err) {
         log.error(
             'work order creation failed',
@@ -777,11 +709,17 @@ async function createWorkOrderForFlow(
             'Failed to create work order',
             'error',
         );
+        return;
     }
+    showToast(
+        'Work order created', 'success',
+    );
+    box.open(workOrderId);
 }
 
 async function initCreateDropdown(
     ctx: RequestContext,
+    box: WorkOrderBox,
 ): Promise<void> {
     populateIcons([
         [
@@ -836,7 +774,7 @@ async function initCreateDropdown(
 
     dropdownEl.addEventListener(
         'click',
-        e => onDropdownClick(e, dropdownEl, ctx),
+        e => onDropdownClick(e, dropdownEl, ctx, box),
         { signal },
     );
 }
@@ -863,6 +801,7 @@ function onDropdownClick(
     e: MouseEvent,
     dropdownEl: HTMLElement,
     ctx: RequestContext,
+    box: WorkOrderBox,
 ): void {
     if (
         !(e.target instanceof Element)
@@ -876,5 +815,5 @@ function onDropdownClick(
     );
     if (!flowId) return;
     dropdownEl.classList.add('hidden');
-    void createWorkOrderForFlow(flowId, ctx);
+    void createWorkOrderForFlow(flowId, ctx, box);
 }

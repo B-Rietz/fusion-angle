@@ -27,18 +27,18 @@ import {
 } from
 '../client/flow-mutations.ts';
 import {
-    getWorkOrders,
-    putWorkOrderPosition,
     type WorkOrder,
 } from '../client/index.ts';
 import {
     buildInboxItems,
+    buildInboxLists,
     partitionInboxItems,
-    WorkboxInboxPresenter,
     type ActiveClaim,
     type InboxLists,
 } from
     '../web-app/app/presenters/workbox-inbox.ts';
+import { NO_PILL } from
+    '../web-app/app/presenters/workbox-pills.ts';
 import {
     getInboxRows,
     type InboxRows,
@@ -467,46 +467,6 @@ Deno.test(
 );
 
 Deno.test(
-    'claimed sorts by position',
-    async () => {
-        const db = memoryDbAdapter();
-        await seedAdminSchema(db);
-        await seedHumanMember(db, DEMO, 'Demo Test');
-        const ctx = inPageContext(
-            db, await organizationToken(),
-        );
-        await seedFlow(
-            db, 'ZOousbbnzpqlxJExVAruYQ',
-            buildLinearGraph(),
-        );
-        for (let i = 0; i < 3; i++) {
-            await createWorkOrderFromFlow(ctx, {
-                workOrderId: generateIdentifier(),
-                flowLinkId: generateIdentifier(),
-                flowId: 'ZOousbbnzpqlxJExVAruYQ',
-            });
-        }
-        const created = await getWorkOrders(ctx);
-        const explicit = [7.5, 2.5, 5];
-        for (let i = 0; i < created.length; i++) {
-            await putWorkOrderPosition(
-                ctx, created[i]!, explicit[i]!,
-            );
-        }
-        const t = await collectTables(db);
-        const lists = listsOf(
-            t.workOrders,
-            t.activeClaimsByWo,
-            DEMO,
-        );
-        assertEquals(
-            lists.claimed.map(i => i.position),
-            [2.5, 5, 7.5],
-        );
-    },
-);
-
-Deno.test(
     'archived-by-me sorts by transition.at'
     + ' descending',
     async () => {
@@ -858,18 +818,11 @@ Deno.test(
             ...lists.available,
             ...lists.claimed,
         ];
-        let captured = '';
-        const container = {
-            set innerHTML(value: string) {
-                captured = value;
-            },
-        };
-        new WorkboxInboxPresenter(
-            items, 'available', { kind: 'none' },
-        )
-            .renderList(
-                container as unknown as HTMLElement,
-            );
+        const captured = buildInboxLists(
+            [{ kind: 'available', items }],
+            { kind: 'none' },
+            NO_PILL,
+        ).toString();
         const [, firstRow, secondRow] =
             captured.split('class="card p-4');
         assert(firstRow !== undefined);
@@ -946,8 +899,8 @@ async function reversedWorkOrders(): Promise<{
             });
             return variant(
                 id, N_MIDDLE,
-                '2030-01-0' + (i + 1) + 'T00:00:00.000000Z',
-                3 - i,
+                '2030-01-0' + (3 - i) + 'T00:00:00.000000Z',
+                i + 1,
             );
         },
     );

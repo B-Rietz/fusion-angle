@@ -232,18 +232,6 @@ export const PAGE_REGISTRY: Record<
         cssBundles: ['pages-workbox'],
         loader: () => import('../workbox/index.ts'),
     },
-    'workbox-detail': {
-        organizationScoped: true,
-        title: 'Work Order',
-        layout: 'sidebar',
-        sidebarKey: 'workbox',
-        sourceDir: 'workbox',
-        sourceFile: 'detail',
-        icon: iconMail,
-        searchable: false,
-        cssBundles: ['pages-workbox'],
-        loader: () => import('../workbox/detail.ts'),
-    },
     members: {
         organizationScoped: true,
         title: 'Members',

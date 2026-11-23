@@ -383,7 +383,7 @@ function onClick(
     );
     if (woLink) {
         e.preventDefault();
-        navigateTo('workbox-detail', {
+        navigateTo('workbox', {
             id: woLink,
         });
         return;

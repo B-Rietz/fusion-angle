@@ -1,5 +1,5 @@
 import {
-    html, setHtml, SafeHtml,
+    html, SafeHtml,
     trusted, escapeForHtml,
 } from '../safe-html.ts';
 import { DISPLAY_ABSENT } from '../format.ts';
@@ -13,6 +13,7 @@ import {
     MS_PER_SECOND,
 } from '../../../shared/types.ts';
 import type { Id } from '../../../shared/types.ts';
+import type { PressedPill } from './workbox-pills.ts';
 
 const DAY_MS = SECONDS_PER_DAY * MS_PER_SECOND;
 
@@ -38,7 +39,6 @@ interface PlacedInboxItem {
     claimedByName: string | null;
     lastTransitionedAt: string | null;
     completed: boolean;
-    position: number;
     taskInstructions: string;
 }
 
@@ -51,7 +51,6 @@ interface UnplacedInboxItem {
     transitionerName: string | null;
     claimedByName: string | null;
     lastTransitionedAt: string | null;
-    position: number;
 }
 
 export type InboxItem = PlacedInboxItem | UnplacedInboxItem;
@@ -65,6 +64,18 @@ const EMPTY_COPY: Record<InboxListKind, string> = {
     available: 'No work orders available to me',
     claimed: 'No work orders claimed by me',
     archivedByMe: 'No work orders archived by me',
+};
+
+const LIST_TITLE: Record<InboxListKind, string> = {
+    available: 'Work Orders available to me',
+    claimed: 'Work Orders claimed by me',
+    archivedByMe: 'Work Orders archived by me',
+};
+
+const LIST_ID: Record<InboxListKind, string> = {
+    available: 'available-list',
+    claimed: 'claimed-list',
+    archivedByMe: 'archived-list',
 };
 
 // What narrows a painted list: nothing, or the search
@@ -88,9 +99,15 @@ export interface ActiveClaim {
     at: string;
 }
 
-// Static: no data-work-order-card, so the page neither
-// navigates it to a detail page that cannot place it nor
-// drags it; no link and no grip either.
+// One headed list the left box draws: which list, and the
+// rows the pressed pill leaves in it.
+export interface InboxSection {
+    readonly kind: InboxListKind;
+    readonly items: readonly InboxItem[];
+}
+
+// Static: no data-work-order-card and no link, so the page
+// never opens it in the box, which could not place it.
 function buildUnplacedRow(
     item: UnplacedInboxItem,
 ): SafeHtml {
@@ -133,112 +150,168 @@ function buildUnplacedRow(
         </div>`;
 }
 
-export class WorkboxInboxPresenter {
-    readonly #items: readonly InboxItem[];
-    readonly #kind: InboxListKind;
-    readonly #filter: InboxFilter;
-
-    constructor(
-        items: readonly InboxItem[],
-        kind: InboxListKind,
-        filter: InboxFilter,
-    ) {
-        this.#items = items;
-        this.#kind = kind;
-        this.#filter = filter;
-    }
-
-    renderList(
-        container: HTMLElement,
-    ): void {
-        if (this.#items.length === 0) {
-            setHtml(container, html`<p
-                class="text-muted"
-            >${this.#emptyCopy()}</p>`);
-            return;
-        }
-        setHtml(container, html`${
-            this.#items.map(
-                i => this.#buildRow(i),
+// A row: its title links to its work order, its state
+// badge and age below.
+function buildInboxRow(
+    item: InboxItem,
+): SafeHtml {
+    if (item.kind === 'unplaced')
+        return buildUnplacedRow(item);
+    const titleAttr = item.taskInstructions
+        ? trusted(' title="'
+            + escapeForHtml(
+                item.taskInstructions,
             )
-        }`);
-    }
-
-    #emptyCopy(): string {
-        return this.#filter.kind === 'matched'
-            ? 'No work orders match “'
-                + this.#filter.text + '”'
-            : EMPTY_COPY[this.#kind];
-    }
-
-    #buildRow(
-        item: InboxItem,
-    ): SafeHtml {
-        if (item.kind === 'unplaced')
-            return buildUnplacedRow(item);
-        const titleAttr = item.taskInstructions
-            ? trusted(' title="'
-                + escapeForHtml(
-                    item.taskInstructions,
-                )
-                + '"')
-            : trusted('');
-        const badge = item.completed
-            ? html`<span
-                class="badge badge-success"
-                >Complete</span>`
-            : html`<span
-                class="badge badge-info"${
-                titleAttr}
-                >${item.stateName}</span>`;
-        return html`
-        <div
-            class="card p-4 cursor-pointer"
-            data-work-order-card="${item.id}"
-            data-position="${item.position}">
-            <div class="${
-                'flex items-center gap-4'
-            }">
-                <div class="flex-fill">
-                    <a href="${
-                        buildPageUrl(
-                            'workbox-detail',
-                            { id: item.id },
-                        )
-                    }" class="${
-                        'flex items-center'
-                        + ' gap-2 mb-1'
-                    }">
-                        <span class="${
-                            'font-semibold'
-                        }">${
-                            item.flowName
+            + '"')
+        : trusted('');
+    const badge = item.completed
+        ? html`<span
+            class="badge badge-success"
+            >Complete</span>`
+        : html`<span
+            class="badge badge-info"${
+            titleAttr}
+            >${item.stateName}</span>`;
+    return html`
+    <div
+        class="card p-4 cursor-pointer"
+        data-work-order-card="${item.id}">
+        <div class="${
+            'flex items-center gap-4'
+        }">
+            <div class="flex-fill">
+                <a href="${
+                    buildPageUrl(
+                        'workbox',
+                        { id: item.id },
+                    )
+                }" class="${
+                    'flex items-center'
+                    + ' gap-2 mb-1'
+                }">
+                    <span class="${
+                        'font-semibold'
+                    }">${
+                        item.flowName
+                    }</span>
+                    <span class="${
+                        'text-xs text-muted min-w-0'
+                    }">${
+                        idLabel('Work order', item.id)
+                    }</span>
+                </a>
+                <div class="${
+                    'flex items-center'
+                    + ' gap-2 text-sm'
+                    + ' text-muted'
+                }">
+                    ${badge}
+                    <span class="ml-auto"
+                        >${
+                            item.lastTransitionedAt
+                                ? relativeTime(
+                                    item.lastTransitionedAt,
+                                )
+                                : DISPLAY_ABSENT
                         }</span>
-                        <span class="${
-                            'text-xs text-muted min-w-0'
-                        }">${
-                            idLabel('Work order', item.id)
-                        }</span>
-                    </a>
-                    <div class="${
-                        'flex items-center'
-                        + ' gap-2 text-sm'
-                        + ' text-muted'
-                    }">
-                        ${badge}
-                        <span class="ml-auto"
-                            >${
-                                item.lastTransitionedAt
-                                    ? relativeTime(
-                                        item.lastTransitionedAt,
-                                    )
-                                    : DISPLAY_ABSENT
-                            }</span>
-                    </div>
                 </div>
             </div>
-        </div>`;
+        </div>
+    </div>`;
+}
+
+// What the left box draws for the pressed pill: both
+// lists, claimed first; the claimed list alone; the
+// archive alone; or both lists narrowed to one flow.
+export function inboxSectionsOf(
+    lists: InboxLists,
+    pressed: PressedPill,
+): InboxSection[] {
+    if (pressed.kind === 'claimed') {
+        return [{ kind: 'claimed', items: lists.claimed }];
     }
+    if (pressed.kind === 'archivedByMe') {
+        return [{
+            kind: 'archivedByMe', items: lists.archivedByMe,
+        }];
+    }
+    if (pressed.kind === 'flow') {
+        return [
+            {
+                kind: 'claimed',
+                items: inFlow(lists.claimed, pressed.flowName),
+            },
+            {
+                kind: 'available',
+                items: inFlow(
+                    lists.available, pressed.flowName,
+                ),
+            },
+        ];
+    }
+    return [
+        { kind: 'claimed', items: lists.claimed },
+        { kind: 'available', items: lists.available },
+    ];
+}
+
+function inFlow(
+    items: readonly InboxItem[],
+    flowName: string,
+): InboxItem[] {
+    return items.filter((item) => item.flowName === flowName);
+}
+
+// The headed lists; an empty one keeps its heading and
+// says so.
+export function buildInboxLists(
+    sections: readonly InboxSection[],
+    filter: InboxFilter,
+    pressed: PressedPill,
+): SafeHtml {
+    return html`${sections.map(
+        (section, index) => buildInboxSection(
+            section, index === 0, filter, pressed,
+        ),
+    )}`;
+}
+
+function buildInboxSection(
+    section: InboxSection,
+    first: boolean,
+    filter: InboxFilter,
+    pressed: PressedPill,
+): SafeHtml {
+    const rows = section.items.length === 0
+        ? html`<p class="text-muted">${
+            emptyCopyOf(section.kind, filter, pressed)
+        }</p>`
+        : html`${section.items.map(buildInboxRow)}`;
+    return html`<h2 class="${
+        first
+            ? 'text-lg font-semibold mb-4'
+            : 'text-lg font-semibold mt-6 mb-4'
+    }">${LIST_TITLE[section.kind]}</h2>
+    <div
+        id="${LIST_ID[section.kind]}"
+        class="flex flex-col gap-3"
+        data-inbox-list="${section.kind}">${rows}</div>`;
+}
+
+// A search's empty line names its text; under a flow pill
+// a list's own line names the flow.
+function emptyCopyOf(
+    kind: InboxListKind,
+    filter: InboxFilter,
+    pressed: PressedPill,
+): string {
+    if (filter.kind === 'matched') {
+        return 'No work orders match “' + filter.text + '”';
+    }
+    if (pressed.kind === 'flow') {
+        return EMPTY_COPY[kind] + ' in ' + pressed.flowName;
+    }
+    return EMPTY_COPY[kind];
 }
 
 function archiveNode(
@@ -261,7 +334,6 @@ function toItem(wo: WorkOrder): InboxItem {
         transitionerName: null as string | null,
         claimedByName: null as string | null,
         lastTransitionedAt: wo.transition.at,
-        position: wo.position,
     };
     return curNode
         ? {
@@ -288,12 +360,6 @@ function byAtDesc(
     a: InboxItem, b: InboxItem,
 ): number {
     return byAtAsc(b, a);
-}
-
-function byPosition(
-    a: InboxItem, b: InboxItem,
-): number {
-    return a.position - b.position;
 }
 
 // Each work order into the list its membership rules name,
@@ -341,7 +407,7 @@ export function buildInboxItems(
     );
     return {
         available: lists.available.toSorted(byAtAsc),
-        claimed: lists.claimed.toSorted(byPosition),
+        claimed: lists.claimed.toSorted(byAtAsc),
         archivedByMe:
             lists.archivedByMe.toSorted(byAtDesc),
     };

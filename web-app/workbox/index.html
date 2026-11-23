@@ -49,64 +49,30 @@
     </div>
 
     <div
+        id="workbox-pills"
+        class="flex flex-wrap items-center gap-2 mb-6"
+        role="group"
+        aria-label="Filter work orders"
+    >
+    </div>
+
+    <div
         id="workbox-inbox"
         class="grid grid-cols-1
             md:grid-cols-2 gap-6"
     >
-        <div class="card p-4 min-w-0">
-            <h2
-                class="text-lg font-semibold
-                    mb-4"
-            >
-                Work Orders available to me
-            </h2>
-            <div
-                id="available-list"
-                class="flex flex-col gap-3"
-                data-inbox-list="available"
-            >
-            </div>
+        <div
+            id="work-order-lists"
+            class="card p-4 min-w-0"
+        >
         </div>
-        <div class="card p-4 min-w-0">
-            <div
-                class="flex items-center
-                    justify-between gap-3
-                    mb-4"
-            >
-                <h2
-                    class="text-lg
-                        font-semibold"
-                >
-                    Work Orders claimed by me
-                </h2>
-                <div
-                    class="flex items-center
-                        gap-2"
-                    role="group"
-                    aria-label="Claimed or archived by me"
-                >
-                    <button
-                        type="button"
-                        class="btn btn-secondary
-                            btn-sm"
-                        data-inbox-pill="claimed"
-                        aria-pressed="true"
-                    >Active</button>
-                    <button
-                        type="button"
-                        class="btn btn-secondary
-                            btn-sm"
-                        data-inbox-pill="archivedByMe"
-                        aria-pressed="false"
-                    >Archived by Me</button>
-                </div>
-            </div>
-            <div
-                id="claimed-list"
-                class="flex flex-col gap-3"
-                data-inbox-list="claimed"
-            >
-            </div>
-        </div>
+        <section
+            id="work-order-box"
+            class="card p-4 min-w-0
+                workbox-work-order"
+            aria-label="Work order"
+            tabindex="-1"
+        >
+        </section>
     </div>
 </div>

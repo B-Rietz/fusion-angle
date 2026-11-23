@@ -82,8 +82,5 @@
     },
     "workbox": {
         "readyMs": 87
-    },
-    "workbox-detail": {
-        "readyMs": 58
     }
 }

@@ -1,14 +1,10 @@
-import {
-    assert,
-    assertEquals,
-    assertStrictEquals,
-} from '@std/assert';
+import { assert, assertStrictEquals } from '@std/assert';
 import { buildMembers } from
     '../../api/mock-data/members.ts';
 import {
     getWorkOrders,
+    isClaimedAndUnlapsed,
     putWorkOrderClaim,
-    putWorkOrderPosition,
     queryWorkOrders,
     type RequestContext,
     type WorkOrder,
@@ -22,7 +18,6 @@ import {
     withAdminPage,
     type Origin,
     type Page,
-    type Point,
     type RequestHold,
     withHeldRequests,
 } from './fixtures.ts';
@@ -45,7 +40,6 @@ const CAPTURED = [
     'gButmqAicxcpsNuiTYQNKA', 'AbRcGuaSMFbUfPAexnegfw',
 ];
 const NOT_CAPTURED = 'cHhNpUQxX6iZyLZ6N6PLzQ';
-const FAR_POSITION = 100;
 const WRITE_TIMEOUT_MS = 10_000;
 
 function adminId(): string {
@@ -73,15 +67,13 @@ async function workOrderOf(
     return found;
 }
 
-async function claimAt(
+async function claim(
     ctx: RequestContext,
     workOrderId: string,
-    position: number,
 ): Promise<void> {
-    const claimed = await putWorkOrderClaim(
+    await putWorkOrderClaim(
         ctx, await workOrderOf(ctx, workOrderId),
     );
-    await putWorkOrderPosition(ctx, claimed, position);
 }
 
 async function matchedIds(
@@ -160,16 +152,6 @@ async function untilNarrowed(
     );
 }
 
-// A point on the card's padding, clear of its link, so
-// the press starts the inbox drag rather than a native
-// link drag.
-async function grip(
-    page: Page, selector: string,
-): Promise<Point> {
-    const r = await page.rect(selector);
-    return { x: r.x + 6, y: r.y + 6 };
-}
-
 // The page's work-orders QUERYs, held at the browser's
 // network layer while fn runs; every other request
 // passes.
@@ -188,439 +170,235 @@ function cardSelector(id: string): string {
     return `[data-work-order-card="${id}"]`;
 }
 
-async function dragFirstBelowSecond(
-    page: Page, order: readonly string[],
-): Promise<void> {
-    const second = await page.rect(
-        cardSelector(order[1]!),
+// A long list puts most rows below the fold: scroll the row
+// into view, click it, and wait for its claim switch.
+async function openRow(page: Page, id: string): Promise<void> {
+    const selector = JSON.stringify(cardSelector(id));
+    await page.evaluate(
+        `document.querySelector(${selector})`
+        + `.scrollIntoView({ block: 'center' })`,
     );
-    await page.drag(
-        await grip(page, cardSelector(order[0]!)),
-        {
-            x: second.x + second.width / 2,
-            y: second.y + second.height - 4,
-        },
+    await page.click(cardSelector(id));
+    await page.until(
+        `document.querySelector(`
+        + `'#work-order-header .badge-neutral')`
+        + `?.textContent.includes(${JSON.stringify(id)})`
+        + ` && document.getElementById(`
+        + `'work-order-claim-switch') !== null`,
+        'the box holds ' + id,
     );
 }
 
-Deno.test(
-    'the box narrows both lists',
-    async () => {
-        await withAdminPage(
-            browser.get(),
-            async (page, origin) => {
-                const ctx = await adminContext(origin);
-                await claimAt(ctx, CAPTURED[0]!, 1);
-                await claimAt(ctx, NOT_CAPTURED, 2);
-                await openWorkbox(page, origin);
-                await page.until(
-                    `document.querySelectorAll(`
-                    + `'#claimed-list `
-                    + `[data-work-order-card]')`
-                    + `.length === 2`,
-                    'two claimed cards',
-                );
-                const before = {
-                    available: await listIds(
-                        page, 'available-list',
-                    ),
-                    claimed: await listIds(
-                        page, 'claimed-list',
-                    ),
-                };
-                const matched = await matchedIds(ctx);
-                await typeInBox(page, TERM);
-                await untilNarrowed(page, matched);
-                await page.until(
-                    `document.querySelectorAll(`
-                    + `'#claimed-list `
-                    + `[data-work-order-card]')`
-                    + `.length === 1`,
-                    'one claimed match',
-                );
-                const after = {
-                    available: await listIds(
-                        page, 'available-list',
-                    ),
-                    claimed: await listIds(
-                        page, 'claimed-list',
-                    ),
-                };
-                for (
-                    const id of [
-                        ...after.available,
-                        ...after.claimed,
-                    ]
-                ) {
-                    assert(matched.has(id), id);
-                }
-                assert(
-                    after.available.length
-                        < before.available.length,
-                );
-                assert(
-                    after.claimed.length
-                        < before.claimed.length,
-                );
-            },
+Deno.test('the search narrows both lists', async () => {
+    await withAdminPage(browser.get(), async (page, origin) => {
+        const ctx = await adminContext(origin);
+        await claim(ctx, CAPTURED[0]!);
+        await claim(ctx, NOT_CAPTURED);
+        await openWorkbox(page, origin);
+        await page.until(
+            `document.querySelectorAll(`
+            + `'#claimed-list [data-work-order-card]')`
+            + `.length === 2`,
+            'two claimed cards',
         );
-    },
-);
+        const before = {
+            available: await listIds(page, 'available-list'),
+            claimed: await listIds(page, 'claimed-list'),
+        };
+        const matched = await matchedIds(ctx);
+        await typeInBox(page, TERM);
+        await untilNarrowed(page, matched);
+        await page.until(
+            `document.querySelectorAll(`
+            + `'#claimed-list [data-work-order-card]')`
+            + `.length === 1`,
+            'one claimed match',
+        );
+        const after = {
+            available: await listIds(page, 'available-list'),
+            claimed: await listIds(page, 'claimed-list'),
+        };
+        for (const id of [...after.available, ...after.claimed]) {
+            assert(matched.has(id), id);
+        }
+        assert(after.available.length < before.available.length);
+        assert(after.claimed.length < before.claimed.length);
+    });
+});
+
+Deno.test('Escape clears the filter', async () => {
+    await withAdminPage(browser.get(), async (page, origin) => {
+        const ctx = await adminContext(origin);
+        await openWorkbox(page, origin);
+        const today = await page.evaluate<string>(BOTH_LISTS);
+        await typeInBox(page, TERM);
+        await untilNarrowed(page, await matchedIds(ctx));
+        assert(
+            await page.evaluate<string>(BOTH_LISTS) !== today,
+        );
+        await page.click('#workbox-search');
+        await page.key('Escape');
+        await page.until(
+            `${BOTH_LISTS} === ${JSON.stringify(today)}`,
+            "today's lists",
+        );
+        assertStrictEquals(
+            await page.evaluate<string>(
+                `document.getElementById(`
+                + `'workbox-search').value`,
+            ),
+            '',
+        );
+    });
+});
 
 Deno.test(
-    'Escape clears the filter',
+    'a stale answer does not repaint a cleared search',
     async () => {
-        await withAdminPage(
-            browser.get(),
-            async (page, origin) => {
-                const ctx = await adminContext(origin);
-                await openWorkbox(page, origin);
-                const today = await page.evaluate<string>(
-                    BOTH_LISTS,
-                );
+        await withAdminPage(browser.get(), async (page, origin) => {
+            await openWorkbox(page, origin);
+            const today = await page.evaluate<string>(
+                BOTH_LISTS,
+            );
+            await holdQueries(page, async (hold) => {
                 await typeInBox(page, TERM);
-                await untilNarrowed(
-                    page, await matchedIds(ctx),
+                const inFlight = await hold.next();
+                // The cleared box's GET repaints the same
+                // cards as new nodes; only once it has may
+                // the old answer land.
+                await page.evaluate(
+                    `document.querySelectorAll(`
+                    + `'#available-list `
+                    + `[data-work-order-card]')`
+                    + `.forEach(c => c.dataset.painted`
+                    + ` = 'before')`,
                 );
-                assert(
-                    await page.evaluate<string>(BOTH_LISTS)
-                        !== today,
-                );
-                await page.click('#workbox-search');
-                await page.key('Escape');
+                await typeInBox(page, '');
                 await page.until(
-                    `${BOTH_LISTS} === ${
+                    `document.querySelector(`
+                    + `'#available-list `
+                    + `[data-painted]') === null`
+                    + ` && ${BOTH_LISTS} === ${
                         JSON.stringify(today)}`,
-                    "today's lists",
+                    "today's lists repainted",
                 );
+                await hold.release(inFlight);
+                await stays(page, BOTH_LISTS, SETTLE_MS);
                 assertStrictEquals(
-                    await page.evaluate<string>(
-                        `document.getElementById(`
-                        + `'workbox-search').value`,
-                    ),
-                    '',
+                    await page.evaluate<string>(BOTH_LISTS),
+                    today,
                 );
-            },
-        );
+            });
+        });
     },
 );
 
 Deno.test(
-    'a stale answer does not repaint a cleared box',
+    'a claim during a QUERY still shows its answer',
     async () => {
-        await withAdminPage(
-            browser.get(),
-            async (page, origin) => {
-                await openWorkbox(page, origin);
-                const today = await page.evaluate<string>(
-                    BOTH_LISTS,
+        await withAdminPage(browser.get(), async (page, origin) => {
+            const ctx = await adminContext(origin);
+            const claimedId = CAPTURED[0]!;
+            await openWorkbox(page, origin);
+            await openRow(page, claimedId);
+            await holdQueries(page, async (hold) => {
+                await typeInBox(page, TERM);
+                await hold.next();
+                await page.click('#work-order-claim-switch');
+                await page.waitFor(
+                    '#claimed-list ' + cardSelector(claimedId),
                 );
-                await holdQueries(page, async (hold) => {
-                    await typeInBox(page, TERM);
-                    const inFlight = await hold.next();
-                    // The cleared box's GET repaints the
-                    // same cards as new nodes; only once
-                    // it has may the old answer land.
-                    await page.evaluate(
-                        `document.querySelectorAll(`
-                        + `'#available-list `
-                        + `[data-work-order-card]')`
-                        + `.forEach(c => c.dataset.painted`
-                        + ` = 'before')`,
-                    );
-                    await typeInBox(page, '');
-                    await page.until(
-                        `document.querySelector(`
-                        + `'#available-list `
-                        + `[data-painted]') === null`
-                        + ` && ${BOTH_LISTS} === ${
-                            JSON.stringify(today)}`,
-                        "today's lists repainted",
-                    );
-                    await hold.release(inFlight);
-                    await stays(page, BOTH_LISTS, SETTLE_MS);
-                    assertStrictEquals(
-                        await page.evaluate<string>(
-                            BOTH_LISTS,
-                        ),
-                        today,
-                    );
-                });
-            },
-        );
-    },
-);
-
-Deno.test(
-    'a drop during a QUERY still shows its answer',
-    async () => {
-        await withAdminPage(
-            browser.get(),
-            async (page, origin) => {
-                const ctx = await adminContext(origin);
-                const dragged = await workOrderOf(
-                    ctx, CAPTURED[0]!,
+                hold.stopHolding();
+                await hold.releaseHeld();
+                await untilNarrowed(page, await matchedIds(ctx));
+                await page.waitFor(
+                    '#claimed-list ' + cardSelector(claimedId),
                 );
-                await openWorkbox(page, origin);
-                await holdQueries(page, async (hold) => {
-                    await typeInBox(page, TERM);
-                    await hold.next();
-                    const target = await page.rect(
-                        '#workbox-inbox > .card:has('
-                        + '#claimed-list)',
-                    );
-                    await page.drag(
-                        await grip(
-                            page, cardSelector(dragged.id),
-                        ),
-                        {
-                            x: target.x + target.width / 2,
-                            y: target.y + target.height / 2,
-                        },
-                    );
-                    hold.stopHolding();
-                    await hold.releaseHeld();
-                    await untilNarrowed(
-                        page, await matchedIds(ctx),
-                    );
-                    await page.waitFor(
-                        '#claimed-list '
-                        + cardSelector(dragged.id),
-                    );
-                });
-            },
-        );
+            });
+        });
     },
 );
 
 Deno.test(
     'a pill after a failed QUERY keeps the error',
     async () => {
-        await withAdminPage(
-            browser.get(),
-            async (page, origin) => {
-                const ctx = await adminContext(origin);
-                await openWorkbox(page, origin);
-                await holdQueries(page, async (hold) => {
-                    await typeInBox(page, TERM);
-                    await hold.release(await hold.next());
-                    await untilNarrowed(
-                        page, await matchedIds(ctx),
-                    );
-                    // The same text again: the answer on
-                    // hand is for it, and this QUERY fails.
-                    await typeInBox(page, TERM + ' ');
-                    await hold.fail(await hold.next());
-                    await page.waitFor(
-                        '#claimed-list [data-retry-btn]',
-                    );
-                    await page.click(
-                        '[data-inbox-pill="archivedByMe"]',
-                    );
-                    const rerun = await hold.next();
-                    assert(
-                        await page.evaluate<boolean>(
-                            `!!document.querySelector(`
-                            + `'#claimed-list `
-                            + `[data-retry-btn]')`,
-                        ),
-                    );
-                    await hold.release(rerun);
-                    await page.until(
-                        `document.getElementById(`
-                        + `'claimed-list').textContent`
-                        + `.includes('No work orders match`
-                        + ` “${TERM}”')`,
-                        'the archived list answers',
-                    );
-                });
-            },
-        );
-    },
-);
-
-Deno.test(
-    'a drag between the lists still claims while'
-    + ' filtered',
-    async () => {
-        await withAdminPage(
-            browser.get(),
-            async (page, origin) => {
-                const ctx = await adminContext(origin);
-                await claimAt(
-                    ctx, NOT_CAPTURED, FAR_POSITION,
-                );
-                await openWorkbox(page, origin);
+        await withAdminPage(browser.get(), async (page, origin) => {
+            const ctx = await adminContext(origin);
+            await openWorkbox(page, origin);
+            await holdQueries(page, async (hold) => {
                 await typeInBox(page, TERM);
-                await untilNarrowed(
-                    page, await matchedIds(ctx),
-                );
-                const [id] = await listIds(
-                    page, 'available-list',
-                );
-                assert(id !== undefined);
-                const target = await page.rect(
-                    '#workbox-inbox > .card:has('
-                    + '#claimed-list)',
-                );
-                await page.drag(
-                    await grip(page, cardSelector(id)),
-                    {
-                        x: target.x + target.width / 2,
-                        y: target.y + target.height / 2,
-                    },
-                );
+                await hold.release(await hold.next());
+                await untilNarrowed(page, await matchedIds(ctx));
+                // The same text again: the answer on hand is
+                // for it, and this QUERY fails.
+                await typeInBox(page, TERM + ' ');
+                await hold.fail(await hold.next());
                 await page.waitFor(
-                    '#claimed-list ' + cardSelector(id),
+                    '#work-order-lists [data-retry-btn]',
                 );
-                const fresh = await pollUntil(
-                    'the claim saved', WRITE_TIMEOUT_MS,
-                    async () => {
-                        const wo = (await getWorkOrders(ctx))
-                            .find((each) => each.id === id);
-                        return wo?.claim.state === 'claimed'
-                            && wo.position > FAR_POSITION
-                            ? wo.claim
-                            : false;
-                    },
+                await page.click(
+                    '[data-workbox-pill="archivedByMe"]',
                 );
-                assert(fresh.state === 'claimed');
-                assertStrictEquals(
-                    fresh.memberId, adminId(),
+                const rerun = await hold.next();
+                assert(await page.evaluate<boolean>(
+                    `!!document.querySelector(`
+                    + `'#work-order-lists [data-retry-btn]')`,
+                ));
+                await hold.release(rerun);
+                await page.until(
+                    `document.getElementById('archived-list')`
+                    + `?.textContent.includes('No work orders`
+                    + ` match “${TERM}”')`,
+                    'the archived list answers',
                 );
-            },
-        );
+            });
+        });
     },
 );
 
-Deno.test(
-    'a drag within claimed does not reorder while'
-    + ' filtered',
-    async () => {
-        await withAdminPage(
-            browser.get(),
-            async (page, origin) => {
-                const ctx = await adminContext(origin);
-                await claimAt(ctx, CAPTURED[0]!, 1);
-                await claimAt(ctx, CAPTURED[1]!, 2);
-                await openWorkbox(page, origin);
-                await typeInBox(page, TERM);
-                await untilNarrowed(
-                    page, await matchedIds(ctx),
-                );
-                await page.until(
-                    `document.querySelectorAll(`
-                    + `'#claimed-list `
-                    + `[data-work-order-card]')`
-                    + `.length === 2`,
-                    'two claimed matches',
-                );
-                const order = await listIds(
-                    page, 'claimed-list',
-                );
-                const positions = async () =>
-                    (await getWorkOrders(ctx))
-                        .filter((wo) => order.includes(wo.id))
-                        .map((wo) => [wo.id, wo.position]);
-                const before = await positions();
-                await dragFirstBelowSecond(page, order);
-                await stays(
-                    page, idsOf('claimed-list'), SETTLE_MS,
-                );
-                assertEquals(
-                    await listIds(page, 'claimed-list'),
-                    order,
-                );
-                assertEquals(await positions(), before);
-                // The same gesture on the cleared box
-                // reorders: filtering is what held it.
-                await page.click('#workbox-search');
-                await page.key('Escape');
-                await page.until(
-                    `document.getElementById(`
-                    + `'workbox-search').value === ''`
-                    + ` && document.querySelectorAll(`
-                    + `'#available-list `
-                    + `[data-work-order-card]').length`
-                    + ` > ${CAPTURED.length}`,
-                    "today's lists",
-                );
-                const dragged = await listIds(
-                    page, 'claimed-list',
-                );
-                await dragFirstBelowSecond(page, dragged);
-                await page.until(
-                    `${idsOf('claimed-list')} === ${
-                        JSON.stringify(JSON.stringify([
-                            dragged[1], dragged[0],
-                        ]))}`,
-                    'reordered when unfiltered',
-                );
+Deno.test('the switch claims while filtered', async () => {
+    await withAdminPage(browser.get(), async (page, origin) => {
+        const ctx = await adminContext(origin);
+        await openWorkbox(page, origin);
+        await typeInBox(page, TERM);
+        await untilNarrowed(page, await matchedIds(ctx));
+        const [id] = await listIds(page, 'available-list');
+        assert(id !== undefined);
+        await openRow(page, id);
+        await page.click('#work-order-claim-switch');
+        await page.waitFor('#claimed-list ' + cardSelector(id));
+        const fresh = await pollUntil(
+            'the claim saved', WRITE_TIMEOUT_MS,
+            async () => {
+                const wo = await workOrderOf(ctx, id);
+                return isClaimedAndUnlapsed(wo.claim)
+                    ? wo.claim
+                    : false;
             },
         );
-    },
-);
+        assertStrictEquals(fresh.memberId, adminId());
+    });
+});
 
 Deno.test(
-    'on a phone claimed comes first',
+    'on a phone the search follows the button',
     async () => {
-        await withAdminPage(
-            browser.get(),
-            async (page, origin) => {
-                await page.setViewport(375, 800, true);
-                await openWorkbox(page, origin);
-                assert(
-                    await page.until<boolean>(
-                        `(() => {
-                            const of = id => document
-                                .getElementById(id)
-                                .closest('.card');
-                            const claimed = of(
-                                'claimed-list');
-                            const available = of(
-                                'available-list');
-                            return (claimed
-                                .compareDocumentPosition(
-                                    available)
-                                & Node
-                                .DOCUMENT_POSITION_FOLLOWING)
-                                !== 0;
-                        })()`,
-                        'claimed before available',
-                    ),
-                );
-            },
-        );
-    },
-);
-
-Deno.test(
-    'on a phone the box follows the button',
-    async () => {
-        await withAdminPage(
-            browser.get(),
-            async (page, origin) => {
-                await page.setViewport(375, 800, true);
-                await openWorkbox(page, origin);
-                assert(
-                    await page.until<boolean>(
-                        `(() => {
-                            const actions = document
-                                .getElementById(
-                                    'workbox-header-actions');
-                            const box = document
-                                .getElementById(
-                                    'workbox-search');
-                            return (actions
-                                .compareDocumentPosition(box)
-                                & Node
-                                .DOCUMENT_POSITION_FOLLOWING)
-                                !== 0;
-                        })()`,
-                        'box after the button',
-                    ),
-                );
-            },
-        );
+        await withAdminPage(browser.get(), async (page, origin) => {
+            await page.setViewport(375, 800, true);
+            await openWorkbox(page, origin);
+            assert(await page.until<boolean>(
+                `(() => {
+                    const actions = document.getElementById(
+                        'workbox-header-actions');
+                    const box = document.getElementById(
+                        'workbox-search');
+                    return (actions
+                        .compareDocumentPosition(box)
+                        & Node.DOCUMENT_POSITION_FOLLOWING)
+                        !== 0;
+                })()`,
+                'box after the button',
+            ));
+        });
     },
 );

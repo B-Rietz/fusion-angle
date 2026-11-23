@@ -84,18 +84,18 @@ Deno.test(
             );
             await page.ready('workbox');
             await page.click(
-                '[data-inbox-pill="archivedByMe"]',
+                '[data-workbox-pill="archivedByMe"]',
             );
             assert(
                 await page.until<boolean>(
                     `document.querySelector(`
-                    + `'[data-inbox-pill=`
+                    + `'[data-workbox-pill=`
                     + `"archivedByMe"]')`
                     + `?.getAttribute(`
                     + `'aria-pressed')`
                     + ` === 'true'`
                     + ` && document.querySelector(`
-                    + `'#claimed-list')`
+                    + `'#archived-list')`
                     + `?.textContent.includes(`
                     + `'No work orders archived`
                     + ` by me')`,

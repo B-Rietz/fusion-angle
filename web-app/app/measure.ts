@@ -88,7 +88,6 @@ const DETAIL_FROM_LIST: Record<string, string> = {
     'record-detail': 'records',
     'member-detail': 'members',
     'identity-detail': 'identities',
-    'workbox-detail': 'workbox',
 };
 
 // ── CLI ──────
@@ -134,9 +133,8 @@ function usageText(): string {
         '                       page-init time not spent in',
         '                       fetch/render. If --pages is',
         '                       omitted, uses organization,',
-        '                       workbox, workbox-detail,',
-        '                       projects. If --runs is',
-        '                       omitted, uses 1.',
+        '                       workbox, projects. If',
+        '                       --runs is omitted, uses 1.',
         '  --base-url URL       Hit this origin instead',
         '                       of building and spawning',
         '                       ./fusion-angle serve.',
