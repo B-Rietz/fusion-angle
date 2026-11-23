@@ -60,6 +60,12 @@ async function runTest(
 // otherwise record the stub's pass under the real SHA, in
 // the operator's cache, replay it to the next case, and
 // ask deno its version twice more for every step.
+//
+// The timer is handed /dev/null for its ledger, which
+// means there is none. With one it would run the stub
+// twice more for every step, and write the stub's
+// instant passes into the operator's ledger as the
+// recent duration of the real suite.
 async function denoCalls(
     args: readonly string[],
     env: Record<string, string>,
@@ -96,6 +102,7 @@ async function denoCalls(
             env: {
                 PATH: `${dir}:${Deno.env.get('PATH') ?? ''}`,
                 SHA_RESULT_CACHE_ROOT: '/dev/null',
+                TOOL_DURATIONS_PATH: '/dev/null',
                 ...env,
             },
             stdout: 'null',
@@ -396,15 +403,17 @@ Deno.test('test-browser asks the result cache per browser',
     assertMatch(suite, /trap 'rm -rf "\$RUN_DIR"' EXIT/);
     assertMatch(suite, /bundle_client "\$BUNDLE"/);
     assertMatch(suite, /tests\/browser\/\*\.test\.ts/);
-    assertMatch(
-        src,
-        /replay_or_run "browser \$CHROME_DEBUG_URL" -- .*browser_suite/,
+    // Each ask's command is the timed suite, so a replay
+    // is never a sample.
+    const timed = " -- \\\n        timed './test browser' browser_suite\n";
+    assertStringIncludes(
+        src, 'replay_or_run "browser $CHROME_DEBUG_URL"' + timed,
     );
     assertMatch(src, /BROWSER="\$\("\$CHROME" --version/);
     // A Chrome that says nothing names no browser.
     assertMatch(src, /&& \[ -n "\$BROWSER" \]\nthen\n/);
-    assertMatch(
-        src, /replay_or_run "browser \$BROWSER" -- .*browser_suite/,
+    assertStringIncludes(
+        src, 'replay_or_run "browser $BROWSER"' + timed,
     );
 });
 
@@ -426,10 +435,13 @@ Deno.test('build replays only its ZIP', () => {
     assert(noZipAt >= 0, 'the --no-zip branch is missing');
     assert(elseAt > noZipAt, 'the ZIP branch is missing');
     const noZip = src.slice(noZipAt, elseAt);
-    assertMatch(noZip, /^    build$/m);
+    assertMatch(
+        noZip, /^    timed '\.\/bin\/build --no-zip' build$/m,
+    );
     assertNotMatch(noZip, /replay_or_run/);
     assertStringIncludes(
         src.slice(elseAt),
-        'replay_or_run build "$SERVER_ZIP" -- build',
+        'replay_or_run build "$SERVER_ZIP"'
+        + " -- timed './bin/build' build\n",
     );
 });

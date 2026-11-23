@@ -9,6 +9,8 @@ cd "$ROOT"
 . "$BIN/compose-lib"
 # shellcheck disable=SC1091
 . "$BIN/sha-result-cache-lib"
+# shellcheck disable=SC1091
+. "$BIN/duration-lib"
 
 postgres_suite() {
     if ! command -v docker >/dev/null; then
@@ -47,5 +49,6 @@ postgres_suite() {
 # A suite that passed on this SHA replays instead of
 # running again. Docker, the minted stack, and its
 # teardown are all inside the step: a replay needs none
-# of them.
-replay_or_run postgres -- postgres_suite
+# of them. The timer is inside the ask, so a replay is
+# never a sample.
+replay_or_run postgres -- timed './test postgres' postgres_suite

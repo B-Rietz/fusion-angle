@@ -16,6 +16,8 @@ cd "$ROOT"
 source "$BIN/build-lib"
 # shellcheck source=sha-result-cache-lib
 source "$BIN/sha-result-cache-lib"
+# shellcheck source=duration-lib
+source "$BIN/duration-lib"
 
 if [ -z "${CHROME_DEBUG_URL:-}" ]; then
     CHROME="${CHROME:-/Applications/Google Chrome.app}"
@@ -110,13 +112,16 @@ browser_suite() {
 # URL and runs its files one at a time, a launched one
 # by its version and runs them together. The worker
 # count is left out: it sets how many files run at once,
-# never which tests run or what they assert.
+# never which tests run or what they assert. The timer
+# is inside each ask, so a replay is never a sample.
 if [ -n "${CHROME_DEBUG_URL:-}" ]; then
-    replay_or_run "browser $CHROME_DEBUG_URL" -- browser_suite
+    replay_or_run "browser $CHROME_DEBUG_URL" -- \
+        timed './test browser' browser_suite
 elif BROWSER="$("$CHROME" --version 2>/dev/null)" \
     && [ -n "$BROWSER" ]
 then
-    replay_or_run "browser $BROWSER" -- browser_suite
+    replay_or_run "browser $BROWSER" -- \
+        timed './test browser' browser_suite
 else
-    browser_suite
+    timed './test browser' browser_suite
 fi

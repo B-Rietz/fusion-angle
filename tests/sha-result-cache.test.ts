@@ -7,6 +7,10 @@ import {
     assertStringIncludes,
 } from '@std/assert';
 import { basename, dirname, join, relative } from '@std/path';
+import {
+    type DurationSample,
+    parseLedger,
+} from '../web-app/app/tool-duration-core.ts';
 
 // bin/sha-result-cache-lib, driven through /bin/bash: the
 // shell its callers' `#!/bin/bash` names. bash and POSIX
@@ -35,6 +39,14 @@ const HERMETIC_GIT = {
 };
 
 const REPLAYING = /^sha-result-cache: replaying /m;
+
+// The shipping scripts time each step they run
+// (bin/duration-lib). /dev/null for the ledger means
+// there is none: the timer runs no program and says
+// nothing, so a case about the cache counts only what the
+// script itself runs. A case about the timer names a
+// ledger of its own.
+const NO_LEDGER = '/dev/null';
 
 type Scene = {
     readonly dir: string;
@@ -122,6 +134,7 @@ async function sh(
         env: {
             PATH: searchPath(),
             SHA_RESULT_CACHE_ROOT: scene.root,
+            TOOL_DURATIONS_PATH: NO_LEDGER,
             GIT_CEILING_DIRECTORIES: scene.dir,
             ...HERMETIC_GIT,
             ...how.env,
@@ -215,6 +228,7 @@ async function interrupted(
         env: {
             PATH: searchPath(),
             SHA_RESULT_CACHE_ROOT: scene.root,
+            TOOL_DURATIONS_PATH: NO_LEDGER,
             GIT_CEILING_DIRECTORIES: scene.dir,
             ...HERMETIC_GIT,
             STARTED: join(held, 'started'),
@@ -1057,7 +1071,56 @@ async () => {
     });
 });
 
-// The real `test` script and the real library, copied
+// What a replica carries of the timer every shipping
+// script sources: the library and the three programs it
+// runs, which import nothing else.
+const TIMER_FILES = [
+    'bin/duration-lib',
+    'web-app/app/tool-duration.ts',
+    'web-app/app/tool-duration-core.ts',
+    'web-app/app/measure-core.ts',
+];
+
+async function copyTimer(repo: string): Promise<void> {
+    for (const file of TIMER_FILES) {
+        await Deno.mkdir(dirname(join(repo, file)), {
+            recursive: true,
+        });
+        await Deno.copyFile(file, join(repo, file));
+    }
+}
+
+// The first lines of a stand-in `deno`: the timer's own
+// two runs go to the real one, so a case that names a
+// ledger gets real samples.
+const TIMER_RUNS_FOR_REAL = 'case "$*" in\n'
+    + '    *web-app/app/tool-duration.ts*)\n'
+    + '        exec "$REAL_DENO" "$@"\n'
+    + '        ;;\n'
+    + 'esac\n';
+
+// The real `deno`, and what it needs to find its cache
+// in an environment that is otherwise cleared.
+function realDeno(): Record<string, string> {
+    const env: Record<string, string> = {
+        REAL_DENO: Deno.execPath(),
+    };
+    for (const name of ['HOME', 'DENO_DIR']) {
+        const value = Deno.env.get(name);
+        if (value !== undefined) {
+            env[name] = value;
+        }
+    }
+    return env;
+}
+
+function samplesIn(ledger: string): DurationSample[] {
+    return parseLedger(Deno.readTextFileSync(ledger));
+}
+
+const DURATION_LINE = /^duration: /gm;
+
+// The real `test` script and the real libraries, copied
 // into a repository of their own beside stand-ins for
 // what the script runs: a `deno` that answers
 // `--version`, notes each other call with its TZ, and
@@ -1081,6 +1144,7 @@ async function withReplica(
         await Deno.writeTextFile(
             join(stubs, 'deno'),
             '#!/bin/sh\n'
+            + TIMER_RUNS_FOR_REAL
             + 'if [ "$1" = "--version" ]; then\n'
             + '    echo "deno 0.0.0 (stand-in)"\n'
             + '    exit 0\n'
@@ -1096,6 +1160,7 @@ async function withReplica(
         await Deno.copyFile(
             LIBRARY, join(scene.repo, 'bin/sha-result-cache-lib'),
         );
+        await copyTimer(scene.repo);
         await Deno.writeTextFile(
             join(scene.repo, 'bin/generate-api-documentation'),
             '#!/bin/sh\n'
@@ -1119,8 +1184,10 @@ async function withReplica(
                         CALLS: scene.ran,
                         UTC_PASS_STATUS: '0',
                         SHA_RESULT_CACHE_ROOT: scene.root,
+                        TOOL_DURATIONS_PATH: NO_LEDGER,
                         GIT_CEILING_DIRECTORIES: scene.dir,
                         ...HERMETIC_GIT,
+                        ...realDeno(),
                         ...env,
                     },
                     signal: AbortSignal.timeout(RUN_TIMEOUT_MS),
@@ -1231,6 +1298,47 @@ async () => {
     });
 });
 
+// A replay is not a run. The timer sits inside the ask, so
+// a step that really runs appends one sample and prints
+// one `duration:` line; its replay appends none and
+// prints none. The line travels on the script's own
+// stderr and is no part of what the entry keeps.
+Deno.test('the real test script times a run and never its replay',
+async () => {
+    await withReplica(async ({ scene, run }) => {
+        const ledger = join(scene.dir, 'tool-durations.jsonl');
+        const timed = { TOOL_DURATIONS_PATH: ledger };
+        const first = await run([], timed);
+        assertStrictEquals(first.status, 0);
+        assertNotMatch(first.stderr, REPLAYING);
+        assertMatch(
+            first.stderr, /^duration: \.\/test memory took /m,
+        );
+        assertStrictEquals(
+            first.stderr.match(DURATION_LINE)?.length, 1,
+        );
+        const samples = samplesIn(ledger);
+        assertEquals(
+            samples.map((sample) => [
+                sample.tool,
+                sample.arguments,
+                sample.exitStatus,
+                sample.tree,
+            ]),
+            [['./test', ['memory'], 0, 'clean']],
+        );
+
+        const replay = await run([], timed);
+        assertStrictEquals(replay.status, 0);
+        assertMatch(
+            replay.stderr,
+            /^sha-result-cache: replaying memory, /m,
+        );
+        assertNotMatch(replay.stderr, /duration/i);
+        assertEquals(samplesIn(ledger), samples);
+    });
+});
+
 // The real `bin/test-browser` and the real library,
 // copied into a repository of their own beside stand-ins
 // for what the script runs: a build library whose
@@ -1260,6 +1368,7 @@ async function withBrowserReplica(
         await Deno.writeTextFile(
             join(stubs, 'deno'),
             '#!/bin/bash\n'
+            + TIMER_RUNS_FOR_REAL
             + 'case "$1" in\n'
             + '    --version)\n'
             + '        echo "deno 0.0.0 (stand-in)"\n'
@@ -1295,6 +1404,7 @@ async function withBrowserReplica(
         await Deno.copyFile(
             LIBRARY, join(scene.repo, 'bin/sha-result-cache-lib'),
         );
+        await copyTimer(scene.repo);
         await Deno.writeTextFile(
             join(scene.repo, 'bin/build-lib'),
             'bundle_client() {\n'
@@ -1315,6 +1425,7 @@ async function withBrowserReplica(
             BUNDLE_STATUS: '0',
             SEED_STATUS: '0',
             FILES_STATUS: '0',
+            ...realDeno(),
         };
         await body({
             scene,
@@ -1327,6 +1438,7 @@ async function withBrowserReplica(
                     env: {
                         ...standIns,
                         SHA_RESULT_CACHE_ROOT: scene.root,
+                        TOOL_DURATIONS_PATH: NO_LEDGER,
                         GIT_CEILING_DIRECTORIES: scene.dir,
                         ...HERMETIC_GIT,
                         ...env,
@@ -1460,5 +1572,47 @@ async () => {
             assertEquals(namesIn(tmp), [], where);
             assertStrictEquals(entries(scene).length, kept, where);
         }
+    });
+});
+
+// The same at a door of its own: the browser script times
+// its suite inside its ask. A run that begins and fails
+// is a run, recorded red with no line of its own; a run
+// that passes is one sample and one line; its replay is
+// neither.
+Deno.test('the real browser script times a run and never its replay',
+async () => {
+    await withBrowserReplica(async ({ scene, run }) => {
+        const ledger = join(scene.dir, 'tool-durations.jsonl');
+        const timed = { TOOL_DURATIONS_PATH: ledger };
+        const taken = () =>
+            samplesIn(ledger).map((sample) => [
+                sample.tool, sample.arguments, sample.exitStatus,
+            ]);
+
+        const red = await run({ ...timed, FILES_STATUS: '5' });
+        assertStrictEquals(red.status, 5);
+        assertNotMatch(red.stderr, /duration/i);
+        assertEquals(taken(), [['./test', ['browser'], 5]]);
+        assertEquals(entries(scene), []);
+
+        const green = await run(timed);
+        assertStrictEquals(green.status, 0);
+        assertMatch(
+            green.stderr, /^duration: \.\/test browser took /m,
+        );
+        assertStrictEquals(
+            green.stderr.match(DURATION_LINE)?.length, 1,
+        );
+        assertEquals(taken(), [
+            ['./test', ['browser'], 5],
+            ['./test', ['browser'], 0],
+        ]);
+
+        const replay = await run(timed);
+        assertStrictEquals(replay.status, 0);
+        assertMatch(replay.stderr, REPLAYING);
+        assertNotMatch(replay.stderr, /duration/i);
+        assertStrictEquals(taken().length, 2);
     });
 });

@@ -1,0 +1,108 @@
+# The one timer for the build and test chain. Source me;
+# do not exec. Run from the repository root.
+
+# timed LABEL COMMAND [ARGUMENT...]
+#
+# Run COMMAND as one timed step, append its sample to the
+# duration ledger, and say how a green run compares with
+# its recent ones. LABEL is the tool and the words
+# that fix its work, such as './test memory'. It is never
+# "$@": an argument can be a secret, and a port or a
+# destination does not change the work.
+#
+# The command's exit status is returned unchanged. A
+# recording that fails says so and changes nothing else.
+#
+# The ledger is tool-durations.jsonl under the git common
+# dir: every worktree shares it, it outlives a reboot,
+# and no working tree is dirtied. TOOL_DURATIONS_PATH
+# redirects it for a test. /dev/null there means no
+# ledger: the command runs, nothing is recorded, no
+# program is run for it, and nothing is said.
+#
+# Time real execution only. A replay is not a run, so the
+# timer goes inside the result cache's ask, after its
+# `--`: `replay_or_run WAY -- timed LABEL COMMAND`.
+#
+# The timer speaks on a descriptor of its own, 9: a copy
+# of the script's stderr, taken as this file is sourced.
+# Inside an ask the step's stderr is being recorded for
+# the SHA. How long this run took is news of the run and
+# no part of that result: replayed, it would report a run
+# that never happened. The step never sees the
+# descriptor.
+#
+# Whether the tree is clean is what `git status
+# --porcelain` says, as it is for the result cache: no
+# variable overrides it, so a test that needs a clean
+# tree or a dirty one makes one.
+#
+# The command runs in a subshell under the caller's own
+# errexit setting, and its status is read with errexit
+# off around it. `COMMAND || status=$?` would switch
+# errexit off inside COMMAND, and a function would run on
+# past its first failure. For the same reason, never call
+# `timed` itself inside `if`, `&&`, or `||`: bash ignores
+# errexit for everything such a command runs.
+
+# A script whose stderr is closed gives the timer no
+# voice, and loses nothing else.
+if true >&2; then
+    exec 9>&2
+else
+    exec 9>/dev/null
+fi
+
+timed() {
+    local label="$1"
+    shift
+    local sha worktree common porcelain tree ledger
+    local begun errexit status
+    begun=''
+    if [ "${TOOL_DURATIONS_PATH:-}" = /dev/null ]; then
+        # No ledger: the command runs untimed.
+        ledger=''
+    elif ! sha=$(git rev-parse HEAD 2>/dev/null) \
+        || ! worktree=$(git rev-parse --show-toplevel 2>&9) \
+        || ! common=$(git rev-parse --git-common-dir 2>&9) \
+        || ! porcelain=$(git status --porcelain 2>&9)
+    then
+        echo "duration: $label not recorded:" \
+            "git could not describe this checkout" >&9
+    else
+        tree=dirty
+        if [ -z "$porcelain" ]; then
+            tree=clean
+        fi
+        ledger="$common/tool-durations.jsonl"
+        ledger="${TOOL_DURATIONS_PATH:-$ledger}"
+        if ! begun=$(deno run --frozen --no-prompt \
+            --allow-sys=loadavg \
+            web-app/app/tool-duration.ts begin \
+            "$label" "$sha" "$tree" "$worktree" 2>&9)
+        then
+            echo "duration: $label not recorded" >&9
+            begun=''
+        fi
+    fi
+    errexit=+e
+    case $- in
+        *e*) errexit=-e ;;
+    esac
+    set +e
+    (
+        set "$errexit"
+        "$@"
+    ) 9>&-
+    status=$?
+    set "$errexit"
+    if [ -n "$begun" ] && ! deno run --frozen --no-prompt \
+        --allow-sys=loadavg \
+        --allow-read="$ledger" --allow-write="$ledger" \
+        web-app/app/tool-duration.ts end \
+        "$begun" "$status" "$ledger" 2>&9
+    then
+        echo "duration: $label not recorded in $ledger" >&9
+    fi
+    return "$status"
+}

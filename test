@@ -20,6 +20,8 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
 # shellcheck source=bin/sha-result-cache-lib
 . "$ROOT/bin/sha-result-cache-lib"
+# shellcheck source=bin/duration-lib
+. "$ROOT/bin/duration-lib"
 
 # Instants render in LOCAL time, so date-formatting
 # output shifts with the runner's zone — a false prophet
@@ -37,9 +39,10 @@ cd "$ROOT"
 # listeners), run (the metafile test now spawns deno;
 # serve, develop, deploy, test, measure, and
 # postgres-gun CLI pins spawn those scripts;
-# the build-lib pins source their library through sh,
-# and the result-cache pins theirs through /bin/bash,
-# the shell its callers name; /status reads git).
+# the build-lib and duration-lib pins source their
+# libraries through sh, and the result-cache pins theirs
+# through /bin/bash, the shell its callers name; /status
+# reads git).
 #
 # Workers: four per pass, not deno's one per CPU. The
 # operator's machine is usually running other work
@@ -109,6 +112,7 @@ run_lint() {
             bin/postgres-lib bin/postgres-seed \
             bin/compose-lib bin/worktree-add \
             bin/sha-result-cache-lib \
+            bin/duration-lib \
             deno.json Dockerfile compose.yaml \
             .dockerignore
     } )
@@ -272,27 +276,33 @@ run_api_docs() {
 # With POSTGRES_URL set the memory suite also runs its
 # Postgres files against that database, and no SHA names
 # a database.
+#
+# Every step is timed where it really runs
+# (bin/duration-lib). The timer goes inside the ask,
+# after its `--`, so a replay is never a sample; check
+# and schema are never asked, so each is timed as it
+# stands.
 replay_or_run_memory() {
     if [ -n "${POSTGRES_URL:-}" ]; then
-        run_memory
+        timed './test memory' run_memory
     else
-        replay_or_run memory -- run_memory
+        replay_or_run memory -- timed './test memory' run_memory
     fi
 }
 
 replay_or_run_lint() {
-    replay_or_run lint -- run_lint
+    replay_or_run lint -- timed './test lint' run_lint
 }
 
 replay_or_run_api_docs() {
-    replay_or_run api-docs -- run_api_docs
+    replay_or_run api-docs -- timed './test api-docs' run_api_docs
 }
 
 run_validate() {
-    run_check
+    timed './test check' run_check
     replay_or_run_memory
     replay_or_run_lint
-    run_schema
+    timed './test schema' run_schema
     replay_or_run_api_docs
 }
 
@@ -316,9 +326,9 @@ case "${1:-memory}" in
             exit 1
         fi
         case "$1" in
-            check) run_check ;;
+            check) timed './test check' run_check ;;
             lint) replay_or_run_lint ;;
-            schema) run_schema ;;
+            schema) timed './test schema' run_schema ;;
             api-docs) replay_or_run_api_docs ;;
             postgres) exec "$ROOT/bin/test-postgres" ;;
             browser) exec "$ROOT/bin/test-browser" ;;
@@ -331,7 +341,7 @@ case "${1:-memory}" in
         elif [ $# -eq 1 ] && [ "$1" = "--syntax" ]; then
             # Check only: it asks nothing of the
             # result cache and records nothing in it.
-            run_check
+            timed './test check' run_check
         elif [ $# -eq 1 ] && [ "$1" = "browser" ]; then
             run_validate
             exec "$ROOT/bin/test-browser"
