@@ -1,0 +1,280 @@
+# Sourced, never executed: the SHA result cache.
+#
+#     replay_or_run WAY [ARTIFACT...] -- COMMAND [ARG...]
+#
+# A step that passed on a clean tree does not run again
+# for that SHA: its stdout and stderr replay, between two
+# lines on stderr that say so. Red never replays, and a
+# tree no SHA names (uncommitted changes, no commit, no
+# repository) neither reads nor writes an entry.
+#
+# WAY names the step, its arguments, and whatever its
+# result reads from the machine; the Deno version and
+# NO_COLOR are added here. Each ARTIFACT is a file the
+# step leaves. Its path is part of the entry's name, and
+# a replay first proves the file still holds the bytes
+# the step wrote.
+#
+# A step takes part when a second run on one SHA costs
+# more than five seconds, the operator's line, or when it
+# is a step of a command whose second run would. The
+# measurements and the reasons are in
+# docs/superpowers/specs/sha-result-cache-design.md.
+#
+# Call it under `set -e`, as a plain statement. A step
+# whose first command failed must stop there, or a later
+# passing command would turn it green and the green would
+# be recorded. bash ignores `set -e` in everything called
+# under `if`, `&&`, `||`, or `!`, and clears it inside
+# `$( )`; a call from either place is refused. The same
+# holds inside COMMAND, where this file cannot look: a
+# timer or any other wrapper goes after the `--`, as
+# `replay_or_run WAY -- TIMER COMMAND`, and calls its
+# command as a plain statement too.
+#
+# Each script that does a step's work asks at its own
+# door: test for the steps it runs itself, and
+# bin/test-postgres, bin/test-browser, and bin/build for
+# theirs.
+#
+# No cache failure sets an exit status: each says what
+# failed on stderr, and the step runs for real.
+
+: "${SHA_RESULT_CACHE_ROOT:=/tmp/fusion-angle-sha-result-cache}"
+
+# Its body is a subshell that ignores SIGPIPE: a reader
+# who has left loses this line and never takes the caller
+# down with it.
+sha_result_cache_say() (
+    trap '' PIPE
+    printf 'sha-result-cache: %s\n' "$*" >&2
+    exit 0
+)
+
+# Print the entry that names WAY and ARTIFACTS at HEAD.
+# Fail silently when no SHA names the tree, aloud when
+# the cache cannot be used.
+result_entry() {
+    local way="$1" artifacts="$2" sha porcelain deno id
+    sha=$(git rev-parse --verify --quiet HEAD 2>/dev/null) \
+        || return 1
+    porcelain=$(git status --porcelain 2>/dev/null) \
+        || return 1
+    [ -z "$porcelain" ] || return 1
+    # /tmp is every user's to write, and a planted entry
+    # would turn a red tree green: the root is this
+    # user's own and closed to every other, even one
+    # found open.
+    if ! mkdir -p -m 700 "$SHA_RESULT_CACHE_ROOT" \
+            2>/dev/null \
+        || [ -L "$SHA_RESULT_CACHE_ROOT" ] \
+        || [ ! -O "$SHA_RESULT_CACHE_ROOT" ] \
+        || ! chmod 700 "$SHA_RESULT_CACHE_ROOT" \
+            2>/dev/null \
+        || ! mkdir -p "$SHA_RESULT_CACHE_ROOT/$sha" \
+            2>/dev/null
+    then
+        sha_result_cache_say \
+            "cannot use $SHA_RESULT_CACHE_ROOT;" \
+            "running without it"
+        return 1
+    fi
+    if ! deno=$(deno --version 2>/dev/null) \
+        || ! id=$(
+            printf '%s\n' "$way" "$artifacts" "$deno" \
+                "NO_COLOR ${NO_COLOR:+set}" \
+                | git hash-object --stdin 2>/dev/null
+        )
+    then
+        sha_result_cache_say \
+            "cannot name $way; running without the cache"
+        return 1
+    fi
+    printf '%s\n' "$SHA_RESULT_CACHE_ROOT/$sha/$id"
+}
+
+# Print the id of the bytes at PATH, as they are on disk:
+# without --no-filters git hashes a file in the tree as
+# it would store it, line endings normalised.
+artifact_id() {
+    git hash-object --no-filters -- "$1" 2>/dev/null
+}
+
+# Replay ENTRY. Fail when no whole entry of this user's
+# is there, or a file it claims is gone or holds other
+# bytes. Its body is a subshell so the trap ends with it.
+replay_result() (
+    way="$1"
+    entry="$2"
+    [ -f "$entry" ] && [ -O "$entry" ] || exit 1
+    sha="${entry%/*}"
+    sha="${sha##*/}"
+    if ! scratch=$(
+        mktemp -d "${entry%/*}/replay.XXXXXX" 2>/dev/null
+    ); then
+        sha_result_cache_say \
+            "cannot read the entry for $way; running it"
+        exit 1
+    fi
+    trap 'rm -rf "$scratch"' EXIT
+    if ! tar -xzf "$entry" -C "$scratch" \
+        passed-at stdout stderr artifacts 2>/dev/null
+    then
+        sha_result_cache_say \
+            "the entry for $way is unreadable; running it"
+        exit 1
+    fi
+    while read -r id path; do
+        if [ "$(artifact_id "$path")" != "$id" ]; then
+            sha_result_cache_say \
+                "$path is not the file $way left;" \
+                "running it"
+            exit 1
+        fi
+    done < "$scratch/artifacts"
+    sha_result_cache_say "replaying $way, which passed at" \
+        "$(cat "$scratch/passed-at") on $sha"
+    cat "$scratch/stdout"
+    cat "$scratch/stderr" >&2
+    sha_result_cache_say "replayed $way; nothing ran"
+    # The replay stands even where a caller closed stderr,
+    # or a reader took its first lines and left: the step
+    # must not run for real behind it.
+    exit 0
+)
+
+# Write ENTRY from the transcripts in ASIDE: beside its
+# name, then renamed onto it, so it appears whole or not
+# at all. Quiet: the caller says what failed.
+write_entry() {
+    local entry="$1" aside="$2" listed="$3"
+    printf '%s' "$listed" > "$aside/artifacts" \
+        && date -u +'%Y-%m-%dT%H:%M:%SZ' > "$aside/passed-at" \
+        && tar -czf "$aside/entry" -C "$aside" \
+            passed-at stdout stderr artifacts \
+        && mv -f "$aside/entry" "$entry"
+} 2>/dev/null
+
+# Record what COMMAND printed, unless the run no longer
+# has the name it started with or left no artifact.
+record_result() {
+    local way="$1" entry="$2" artifacts="$3" aside="$4"
+    local path id listed=''
+    if [ "$(result_entry "$way" "$artifacts")" != "$entry" ]
+    then
+        sha_result_cache_say \
+            "HEAD, the tree, or Deno changed under $way;" \
+            "not recorded"
+        return 1
+    fi
+    while IFS= read -r path; do
+        [ -n "$path" ] || continue
+        if ! id=$(artifact_id "$path"); then
+            sha_result_cache_say \
+                "$way left no $path; not recorded"
+            return 1
+        fi
+        listed="${listed}${id} ${path}
+"
+    done <<ARTIFACTS
+$artifacts
+ARTIFACTS
+    if ! write_entry "$entry" "$aside" "$listed"; then
+        sha_result_cache_say "cannot write the entry for" \
+            "$way; not recorded"
+        return 1
+    fi
+}
+
+# Run COMMAND with each stream passing through a tee, and
+# record it if it passes. Its body is a subshell: the
+# trap, the tees, and `set +e` end with it, and the
+# caller's own traps and options are never touched.
+run_and_record() (
+    way="$1"
+    entry="$2"
+    artifacts="$3"
+    shift 3
+    set +e
+    if ! aside=$(
+        mktemp -d "${entry%/*}/aside.XXXXXX" 2>/dev/null
+    ); then
+        sha_result_cache_say \
+            "cannot record $way; running without the cache"
+        set -e
+        "$@"
+        exit
+    fi
+    if ! mkfifo "$aside/stdout.fifo" "$aside/stderr.fifo" \
+        2>/dev/null
+    then
+        rm -rf "$aside"
+        sha_result_cache_say \
+            "cannot record $way; running without the cache"
+        set -e
+        "$@"
+        exit
+    fi
+    trap 'rm -rf "$aside"' EXIT
+    tee "$aside/stdout" < "$aside/stdout.fifo" &
+    stdout_tee=$!
+    tee "$aside/stderr" < "$aside/stderr.fifo" >&2 &
+    stderr_tee=$!
+    # A plain subshell, with `set -e` put back inside it:
+    # a failing command still stops COMMAND, and its
+    # status still reaches this line.
+    ( set -e; "$@" ) \
+        > "$aside/stdout.fifo" 2> "$aside/stderr.fifo"
+    status=$?
+    wait "$stdout_tee"
+    stdout_written=$?
+    wait "$stderr_tee"
+    stderr_written=$?
+    if [ "$status" -ne 0 ]; then
+        exit "$status"
+    fi
+    if [ "$stdout_written" -ne 0 ] \
+        || [ "$stderr_written" -ne 0 ]
+    then
+        sha_result_cache_say \
+            "cannot keep what $way printed; not recorded"
+        exit 0
+    fi
+    record_result "$way" "$entry" "$artifacts" "$aside"
+    exit 0
+)
+
+replay_or_run() {
+    local way="$1" artifacts='' entry
+    shift
+    while [ "$1" != '--' ]; do
+        artifacts="${artifacts}${1}
+"
+        shift
+    done
+    shift
+    case "$-" in
+        *e*) ;;
+        *)
+            echo "Error: replay_or_run $way needs set -e" >&2
+            exit 1
+            ;;
+    esac
+    set +e
+    ( set -e; false; true )
+    if [ "$?" -eq 0 ]; then
+        # The subshell ran past `false`.
+        echo "Error: replay_or_run $way is called" \
+            "where set -e cannot bite" >&2
+        exit 1
+    fi
+    set -e
+    if ! entry=$(result_entry "$way" "$artifacts"); then
+        "$@"
+        return
+    fi
+    if replay_result "$way" "$entry"; then
+        return 0
+    fi
+    run_and_record "$way" "$entry" "$artifacts" "$@"
+}

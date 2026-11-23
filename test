@@ -62,6 +62,7 @@ run_memory() {
     ALLOW_RUN="$ALLOW_RUN,./bin/measure"
     ALLOW_RUN="$ALLOW_RUN,./bin/develop"
     ALLOW_RUN="$ALLOW_RUN,./bin/worktree-add"
+    ALLOW_RUN="$ALLOW_RUN,/bin/bash"
     DENO_TEST=(
         deno test --frozen --no-check
         --sanitize-ops --sanitize-resources
@@ -103,6 +104,7 @@ run_lint() {
             bin/measure bin/postgres-wipe \
             bin/postgres-lib bin/postgres-seed \
             bin/compose-lib bin/worktree-add \
+            bin/sha-result-cache-lib \
             deno.json Dockerfile compose.yaml \
             .dockerignore
     } )
