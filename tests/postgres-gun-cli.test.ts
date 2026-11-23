@@ -66,7 +66,10 @@ async function runGun(
     // POSTGRES_URL and JWT_HMAC_SIGNING_KEY are
     // blanked deliberately: ./test exports the
     // latter ambiently, and a merge would leak it.
-    // signal only bounds the async output().
+    // signal only bounds the async output(). The
+    // program is whatever script the case names, so
+    // the result cache's root is /dev/null by the rule
+    // tests/sha-result-cache-isolation.test.ts pins.
     const output = await new Deno.Command(script, {
         args,
         signal: AbortSignal.timeout(4000),
@@ -77,6 +80,7 @@ async function runGun(
             ),
             POSTGRES_URL: '',
             JWT_HMAC_SIGNING_KEY: '',
+            SHA_RESULT_CACHE_ROOT: '/dev/null',
             ...(home === undefined ? {} : { HOME: home }),
         },
     }).output();

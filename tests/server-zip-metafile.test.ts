@@ -256,7 +256,10 @@ async () => {
             '-c',
             line[0] + '\nprintf %s "$COMMIT_LOG_BASE64"',
         ],
-        env: { COMMIT_LOG: log },
+        // This file names ./bin/build, so the shell is
+        // handed /dev/null for the result cache's root
+        // (tests/sha-result-cache-isolation.test.ts).
+        env: { COMMIT_LOG: log, SHA_RESULT_CACHE_ROOT: '/dev/null' },
         stdout: 'piped',
     }).output();
     assertStrictEquals(output.success, true);

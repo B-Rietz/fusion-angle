@@ -10,7 +10,9 @@ import { join } from '@std/path';
 // the environment the wrapper handed it, docker its
 // compose project and arguments. Every ambient value is
 // a decoy the wrapper must not pass through to a local
-// sweep.
+// sweep. The result cache's root is /dev/null by the rule
+// tests/sha-result-cache-isolation.test.ts pins for every
+// script a test spawns in this checkout.
 const AMBIENT = 'ambient';
 
 type WrapperRun = {
@@ -56,6 +58,7 @@ async function runMeasureWrapper(
                 JWT_HMAC_SIGNING_KEY: AMBIENT,
                 PORT: AMBIENT,
                 COMPOSE_PROJECT_NAME: AMBIENT,
+                SHA_RESULT_CACHE_ROOT: '/dev/null',
             },
             stdout: 'null',
             stderr: 'null',

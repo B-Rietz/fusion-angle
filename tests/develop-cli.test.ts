@@ -236,6 +236,11 @@ async function runDevelop(
                     : '')
                 + 'exit 0\n',
         );
+        // Each spawn below also hands the result cache
+        // /dev/null for its root, in its own call, by
+        // the rule tests/sha-result-cache-isolation.test.ts
+        // pins for every script a test spawns in this
+        // checkout.
         const env = {
             PATH: `${dir}:${Deno.env.get('PATH') ?? ''}`,
             POSTGRES_URL: AMBIENT,
@@ -255,7 +260,7 @@ async function runDevelop(
             || options.pressReturn === true) {
             const child = new Deno.Command('./bin/develop', {
                 args: [...args],
-                env,
+                env: { ...env, SHA_RESULT_CACHE_ROOT: '/dev/null' },
                 stdout: 'piped',
                 stderr: 'piped',
                 stdin: options.pressReturn === true
@@ -359,7 +364,10 @@ async function runDevelop(
                 {
                     args: [...args],
                     signal: AbortSignal.timeout(15_000),
-                    env,
+                    env: {
+                        ...env,
+                        SHA_RESULT_CACHE_ROOT: '/dev/null',
+                    },
                 },
             ).output();
             code = output.code;

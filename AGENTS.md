@@ -195,7 +195,13 @@ left; `--no-zip` builds every time. To run for real,
 script that does a step's work asks at its own door:
 `test` for the three steps it runs itself, and
 `bin/test-postgres`, `bin/test-browser`, and `bin/build`
-for theirs.
+for theirs. A test that spawns one of those scripts, or
+`./deploy`, `./bin/measure`, or `./bin/develop`, hands
+it a `SHA_RESULT_CACHE_ROOT` of its own, in the env of
+that spawn: a directory beside a repository of the
+test's own, or `/dev/null` in this checkout, where the
+script then runs for real on any tree.
+`tests/sha-result-cache-isolation.test.ts` pins it.
 
 Run for real on master's `873c89b4b`, before the SHA
 result cache's tests were added, `./test` took about
