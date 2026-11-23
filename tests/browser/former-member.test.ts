@@ -63,12 +63,15 @@ Deno.test(
                 'six idea cards',
             );
             assert(cards >= 6);
+            // Each card's submitter lands on its own read
+            // after the list paints.
+            await page.until(
+                `document.body.textContent.includes('Former member')`,
+                'a former member on a card',
+            );
             assertStrictEquals(
                 await page.evaluate<boolean>(ERROR_CARD), false,
             );
-            assert(await page.evaluate<boolean>(
-                `document.body.textContent.includes('Former member')`,
-            ));
         });
     },
 );

@@ -17,7 +17,6 @@ import { ORGANIZATIONS_PATH } from
     '../api/organization-hold.ts';
 import { BODY_INDEXED_PATH } from
     '../api/schema-postgres.ts';
-import type { Tx } from '../api/db.ts';
 import { serializeWire } from
     '../shared/http-message/wire-codec.ts';
 import { Octets } from
@@ -167,25 +166,25 @@ async function storedRow(
     };
 }
 
-async function appendRow(
-    tx: Tx,
+type StoredRow = Awaited<ReturnType<typeof storedRow>>;
+
+function messageRow(
     n: number,
     collection: string,
     name: string,
     message: string,
     method: string,
-): Promise<void> {
-    await tx.append(await storedRow(
+): Promise<StoredRow> {
+    return storedRow(
         n, collection, name, message, message, method,
-    ));
+    );
 }
 
-async function putAuthorize(
-    tx: Tx,
+function authorizeRow(
     n: number,
     code: string,
-): Promise<void> {
-    await tx.append(await storedRow(
+): Promise<StoredRow> {
+    return storedRow(
         n,
         AUTH_COLLECTION,
         '',
@@ -193,7 +192,7 @@ async function putAuthorize(
             + ' HTTP/1.1\r\n\r\n',
         jsonWire({ code }),
         'GET',
-    ));
+    );
 }
 
 function organizationIdFor(n: number): string {
@@ -207,14 +206,15 @@ function identityIdFor(n: number): string {
 // Enough rows, spread across organizations, that the
 // containment plan is the body index rather than a walk
 // of the table. One organization is the probe.
-async function seedMembershipRows(tx: Tx): Promise<void> {
+async function membershipRows(): Promise<StoredRow[]> {
+    const rows: StoredRow[] = [];
     for (let i = 0; i < MEMBERSHIP_COUNT; i++) {
         const organizationId = organizationIdFor(
             i % MEMBERSHIP_ORGANIZATIONS,
         );
         const identityId = identityIdFor(i);
         const name = organizationId + ':' + identityId;
-        await tx.append(await storedRow(
+        rows.push(await storedRow(
             MEMBERSHIP_ID_START + i,
             BODY_INDEXED_PATH,
             name,
@@ -227,77 +227,76 @@ async function seedMembershipRows(tx: Tx): Promise<void> {
             'PUT',
         ));
     }
+    return rows;
 }
 
+// Every row the plans read, in the order it lands.
+async function seededRows(): Promise<StoredRow[]> {
+    const rows = [
+        await authorizeRow(AUTH_N, AUTH_CONTAINMENT.code),
+    ];
+    for (let i = 0; i < AUTH_OTHER_COUNT; i++) {
+        const n = AUTH_OTHER_START + i;
+        rows.push(await authorizeRow(n, 'c' + String(n)));
+    }
+    for (let n = 1; n <= 4; n++) {
+        rows.push(await messageRow(
+            n,
+            IDEA_COLLECTION,
+            String(n),
+            putWire(IDEA_COLLECTION + String(n), ''),
+            'PUT',
+        ));
+    }
+    // Fat document (81 pairs at one name):
+    // document ORDER BY prefers
+    // fa_message_pairs_document.
+    // Keep /organizations/AjdvjuECVZEgZoFajaIEkg/ideas/ small for the
+    // collection pin.
+    rows.push(await messageRow(
+        VERSION_N,
+        VERSION_COLLECTION,
+        VERSION_NAME,
+        putWire(VERSION_COLLECTION + VERSION_NAME, ''),
+        'PUT',
+    ));
+    for (let i = 0; i < VERSION_EXTRA_COUNT; i++) {
+        rows.push(await messageRow(
+            VERSION_EXTRA_START + i,
+            VERSION_COLLECTION,
+            VERSION_NAME,
+            putWire(VERSION_COLLECTION + VERSION_NAME, ''),
+            'PUT',
+        ));
+    }
+    for (let i = 0; i < FILLER_COUNT; i++) {
+        const n = FILLER_START + i;
+        rows.push(await messageRow(
+            n,
+            FILLER_COLLECTION,
+            String(n),
+            putWire('', ''),
+            'PUT',
+        ));
+    }
+    rows.push(...await membershipRows());
+    return rows;
+}
+
+// The appends are issued in order and awaited together,
+// so the driver pipelines them on the transaction's one
+// connection: the table fills in the same order with no
+// round trip per row.
 async function seedRows(
     backend: PostgresBackend,
 ): Promise<void> {
-    await backend.transaction('readwrite',
+    const rows = await seededRows();
+    await backend.transaction(
+        'readwrite',
         async (tx) => {
-            await putAuthorize(
-                tx,
-                AUTH_N,
-                AUTH_CONTAINMENT.code,
+            await Promise.all(
+                rows.map((row) => tx.append(row)),
             );
-            for (let i = 0; i < AUTH_OTHER_COUNT; i++) {
-                const n = AUTH_OTHER_START + i;
-                await putAuthorize(tx, n, 'c' + String(n));
-            }
-            for (let n = 1; n <= 4; n++) {
-                await appendRow(
-                    tx,
-                    n,
-                    IDEA_COLLECTION,
-                    String(n),
-                    putWire(
-                        IDEA_COLLECTION + String(n),
-                        '',
-                    ),
-                    'PUT',
-                );
-            }
-            // Fat document (81 pairs at one name):
-            // document ORDER BY prefers
-            // fa_message_pairs_document.
-            // Keep /organizations/AjdvjuECVZEgZoFajaIEkg/ideas/ small for the
-            // collection pin.
-            await appendRow(
-                tx,
-                VERSION_N,
-                VERSION_COLLECTION,
-                VERSION_NAME,
-                putWire(
-                    VERSION_COLLECTION + VERSION_NAME,
-                    '',
-                ),
-                'PUT',
-            );
-            for (let i = 0; i < VERSION_EXTRA_COUNT; i++) {
-                const n = VERSION_EXTRA_START + i;
-                await appendRow(
-                    tx,
-                    n,
-                    VERSION_COLLECTION,
-                    VERSION_NAME,
-                    putWire(
-                        VERSION_COLLECTION + VERSION_NAME,
-                        '',
-                    ),
-                    'PUT',
-                );
-            }
-            for (let i = 0; i < FILLER_COUNT; i++) {
-                const n = FILLER_START + i;
-                await appendRow(
-                    tx,
-                    n,
-                    FILLER_COLLECTION,
-                    String(n),
-                    putWire('', ''),
-                    'PUT',
-                );
-            }
-            await seedMembershipRows(tx);
         },
     );
 }

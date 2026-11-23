@@ -1,10 +1,13 @@
 // Tier 2 fixtures: an in-process origin on the memory
-// backend, one Chrome per file, one browser context per
-// test, compositor input, condition waits. Runs only
-// under ./test-browser (FUSION_ANGLE_STATIC_ROOT).
+// backend, one mock seed per run, one Chrome per file,
+// one browser context per test, compositor input,
+// condition waits. Runs only under ./test-browser
+// (FUSION_ANGLE_STATIC_ROOT).
 
+import { MemoryStorageBackend } from
+    '../../api/backend-memory.ts';
 import {
-    memoryDbAdapter,
+    memoryDbAdapterOver,
     type MemoryDbAdapter,
 } from '../../api/db-memory.ts';
 import {
@@ -26,7 +29,6 @@ import {
     CHROME_READY_MS,
     CdpClient,
     CdpSession,
-    type KillableChild,
     browserWsUrl,
     killProcessTree,
     launchChrome,
@@ -48,6 +50,12 @@ const CONDITION_TIMEOUT_MS = 10_000;
 const DRAG_STEPS = 8;
 const STAY_SAMPLE_MS = 50;
 const HELD_TIMEOUT_MS = 5_000;
+// A killed Chrome exits in milliseconds. Past this bound
+// the wait fails by name; its profile is removed anyway.
+const CHROME_EXIT_TIMEOUT_MS = 10_000;
+const PROFILE_REMOVAL_ATTEMPTS = 3;
+const PROFILE_REMOVAL_BACKOFF_MS = 100;
+const DIRECTORY_NOT_EMPTY = 'ENOTEMPTY';
 
 export type Origin = {
     readonly baseUrl: string;
@@ -55,6 +63,169 @@ export type Origin = {
     readonly credentials: SeededCredentials;
     close(): Promise<void>;
 };
+
+type FileSeed = {
+    readonly backend: MemoryStorageBackend;
+    readonly credentials: SeededCredentials;
+};
+
+// ./test-browser lands one mock seed for the run before
+// any file starts and names its file here. A file run
+// alone with deno test has none named and seeds its own.
+export const RUN_SEED_ENV = 'FUSION_ANGLE_BROWSER_SEED';
+// Read-only for everyone: written once, then only read.
+const RUN_SEED_MODE = 0o444;
+
+type RunSeed = {
+    readonly rows: readonly { readonly id: string }[];
+    readonly credentials: SeededCredentials;
+};
+
+async function seedMockData(): Promise<FileSeed> {
+    const backend = new MemoryStorageBackend();
+    const credentials = await postMockDataLoad(
+        memoryDbAdapterOver(backend),
+        { hashPassword: testHashPassword },
+    );
+    return { backend, credentials };
+}
+
+// Writes a seed's rows and sign-ins to a file that must not
+// exist yet, read-only once written.
+export async function writeRunSeed(
+    path: string,
+    seed: FileSeed,
+): Promise<void> {
+    const runSeed: RunSeed = {
+        rows: await seed.backend.read((tx) => tx.getAll()),
+        credentials: seed.credentials,
+    };
+    await Deno.writeTextFile(path, JSON.stringify(runSeed), {
+        createNew: true, mode: RUN_SEED_MODE,
+    });
+}
+
+// Seeds once and writes what landed.
+export async function landRunSeed(
+    path: string,
+): Promise<FileSeed> {
+    const seed = await seedMockData();
+    await writeRunSeed(path, seed);
+    return seed;
+}
+
+function isStringRecord(
+    value: unknown,
+): value is Readonly<Record<string, string>> {
+    return typeof value === 'object' && value !== null
+        && !Array.isArray(value)
+        && Object.values(value).every(
+            (field) => typeof field === 'string',
+        );
+}
+
+function isSeedRow(
+    value: unknown,
+): value is { readonly id: string } {
+    return isStringRecord(value)
+        && typeof value['id'] === 'string';
+}
+
+function isCredential(value: unknown): boolean {
+    return isStringRecord(value)
+        && typeof value['identityId'] === 'string'
+        && typeof value['username'] === 'string'
+        && typeof value['password'] === 'string';
+}
+
+// The file was written by this run, but it crosses a
+// process boundary, so it is read at the gate.
+function runSeedOf(path: string, text: string): RunSeed {
+    const refused = new Error(`${path} is not a run seed`);
+    // The parser's message quotes the text around a bad
+    // token, and the file holds sign-ins: none of it goes
+    // into the refusal.
+    let parsed: unknown;
+    try {
+        parsed = JSON.parse(text);
+    } catch {
+        throw refused;
+    }
+    if (typeof parsed !== 'object' || parsed === null) {
+        throw refused;
+    }
+    const { rows, credentials } =
+        parsed as Record<string, unknown>;
+    if (
+        !Array.isArray(rows) || !rows.every(isSeedRow)
+        || typeof credentials !== 'object'
+        || credentials === null
+    ) {
+        throw refused;
+    }
+    const { identities } =
+        credentials as Record<string, unknown>;
+    if (
+        !Array.isArray(identities)
+        || !identities.every(isCredential)
+    ) {
+        throw refused;
+    }
+    return {
+        rows,
+        credentials: credentials as SeededCredentials,
+    };
+}
+
+// The landed rows, appended in the order they landed to a
+// backend that has no table yet: the rows the seed left,
+// in a backend of this file's own.
+async function rebuiltFrom(
+    path: string,
+    rows: RunSeed['rows'],
+): Promise<MemoryStorageBackend> {
+    const backend = new MemoryStorageBackend();
+    await backend.seedTransaction(async (tx) => {
+        for (const row of rows) {
+            if (!await tx.append(row)) {
+                throw new Error(
+                    `${path} repeats row ${row.id}`,
+                );
+            }
+        }
+    });
+    return backend;
+}
+
+// No path named: seed. A path named: rebuild from it, and
+// a file that cannot be read fails rather than seeds.
+export async function fileSeedFrom(
+    path: string | undefined,
+): Promise<FileSeed> {
+    if (path === undefined) {
+        return seedMockData();
+    }
+    if (path === '') {
+        throw new Error(`${RUN_SEED_ENV} names no file`);
+    }
+    const runSeed = runSeedOf(
+        path, await Deno.readTextFile(path),
+    );
+    return {
+        backend: await rebuiltFrom(path, runSeed.rows),
+        credentials: runSeed.credentials,
+    };
+}
+
+// A file takes its seed once and never serves or writes
+// it again. Rows are appended and never changed in place,
+// so each origin takes them under a backend of its own.
+let fileSeed: Promise<FileSeed> | undefined;
+
+function seededOnce(): Promise<FileSeed> {
+    fileSeed ??= fileSeedFrom(Deno.env.get(RUN_SEED_ENV));
+    return fileSeed;
+}
 
 // A status test fixes the commit, so no refresh waits on
 // git, and widens the API's wait past a loaded machine's.
@@ -69,10 +240,8 @@ export async function startOrigin(
             + ' (run ./test-browser)',
         );
     }
-    const db = memoryDbAdapter();
-    const credentials = await postMockDataLoad(db, {
-        hashPassword: testHashPassword,
-    });
+    const seed = await seededOnce();
+    const db = memoryDbAdapterOver(seed.backend.copy());
     const listener = await listenHttp({
         adapter: db,
         staticRoot,
@@ -83,7 +252,7 @@ export async function startOrigin(
     return {
         baseUrl: `http://127.0.0.1:${listener.port}`,
         db,
-        credentials,
+        credentials: seed.credentials,
         close: () => listener.close(),
     };
 }
@@ -378,14 +547,63 @@ function keyCodeOf(name: string): [string, number] {
     return entry;
 }
 
+// A helper Chrome started after the kill's ps snapshot can
+// still write into the profile while it is removed, and
+// the removal then answers not empty. That is transient:
+// try again, backing off, a bounded number of times.
+async function removeProfile(userDataDir: string):
+Promise<void> {
+    for (let attempt = 1; ; attempt += 1) {
+        try {
+            Deno.removeSync(userDataDir, { recursive: true });
+            return;
+        } catch (error) {
+            const code = (error as { code?: unknown }).code;
+            if (
+                attempt === PROFILE_REMOVAL_ATTEMPTS
+                || code !== DIRECTORY_NOT_EMPTY
+            ) {
+                throw error;
+            }
+        }
+        await sleep(
+            PROFILE_REMOVAL_BACKOFF_MS * 2 ** (attempt - 1)
+                * (1 + Math.random()),
+        );
+    }
+}
+
+// Kills Chrome, waits for it to exit, then removes its
+// profile. A Chrome still exiting writes into its
+// profile: removed first, the directory either answers
+// not empty or keeps what the late write puts back.
+// killProcessTree walks a ps snapshot and can throw, and
+// the wait can time out, so the removal is their finally.
+export async function releaseChrome(
+    chrome: Deno.ChildProcess | null,
+    userDataDir: string,
+): Promise<void> {
+    try {
+        killProcessTree(chrome);
+        if (chrome !== null) {
+            await withTimeout(
+                chrome.status, 'Chrome exit',
+                CHROME_EXIT_TIMEOUT_MS,
+            );
+        }
+    } finally {
+        await removeProfile(userDataDir);
+    }
+}
+
 export class Browser {
     readonly client: CdpClient;
-    private readonly chrome: KillableChild | null;
+    private readonly chrome: Deno.ChildProcess | null;
     private readonly userDataDir: string | null;
 
     private constructor(
         client: CdpClient,
-        chrome: KillableChild | null,
+        chrome: Deno.ChildProcess | null,
         userDataDir: string | null,
     ) {
         this.client = client;
@@ -408,7 +626,7 @@ export class Browser {
         // orphan outlives this process and holds its
         // profile. Release both on every failure path,
         // then rethrow — the caller must still see why.
-        let chrome: KillableChild | null = null;
+        let chrome: Deno.ChildProcess | null = null;
         try {
             chrome = launchChrome({
                 userDataDir,
@@ -425,16 +643,7 @@ export class Browser {
                 client, chrome, userDataDir,
             );
         } catch (error) {
-            // killProcessTree walks a ps snapshot and can
-            // throw, so the profile's removal nests inside
-            // it rather than following it.
-            try {
-                killProcessTree(chrome);
-            } finally {
-                Deno.removeSync(userDataDir, {
-                    recursive: true,
-                });
-            }
+            await releaseChrome(chrome, userDataDir);
             throw error;
         }
     }
@@ -514,22 +723,19 @@ export class Browser {
         );
     }
 
-    // Each release runs even if the one before it
-    // throws. killProcessTree can, and a throw between
-    // the socket and the profile would leave a detached
-    // Chrome holding a directory nothing later removes.
+    // The Chrome is released even if closing the socket
+    // throws: a throw between the socket and the profile
+    // would leave a detached Chrome holding a directory
+    // nothing later removes. An attached Chrome is not
+    // this fixture's to release.
     async close(): Promise<void> {
         try {
             this.client.close();
         } finally {
-            try {
-                killProcessTree(this.chrome);
-            } finally {
-                if (this.userDataDir !== null) {
-                    Deno.removeSync(this.userDataDir, {
-                        recursive: true,
-                    });
-                }
+            if (this.userDataDir !== null) {
+                await releaseChrome(
+                    this.chrome, this.userDataDir,
+                );
             }
         }
     }

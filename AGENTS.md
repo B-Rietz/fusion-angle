@@ -179,9 +179,17 @@ script's own comment block.
 `./test browser` needs Chrome (`CHROME` or
 `CHROME_DEBUG_URL`); it bundles with `deno bundle`
 into `$TMPDIR` on any tree and runs
-`tests/browser/*.test.ts` under `deno test` serially.
-It is not part of `./test validate`; `./deploy --local`
-runs it after `./test postgres`.
+`tests/browser/*.test.ts` under `deno test --parallel`,
+four files at a time (an exported `DENO_JOBS` wins) and
+one Chrome per file. Under `CHROME_DEBUG_URL` every file
+attaches to the one Chrome, so the files run one at a
+time. Either way it lands the mock seed once, before any
+file starts, into a read-only file in the run's
+directory; each file rebuilds its backend from those
+rows, and each origin takes a copy. A file run alone under
+`deno test` seeds its own. It is not part of
+`./test validate`; `./deploy --local` runs it after
+`./test postgres`.
 
 Three layers verify this product. Layer 1 is
 `./test validate`, run after the branch is squashed to

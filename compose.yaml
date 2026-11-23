@@ -25,6 +25,11 @@ services:
             interval: 2s
             timeout: 2s
             retries: 15
+            # Docker's first probe waits one interval, so a
+            # starting Postgres is asked every 200 ms.
+            # start_interval needs Docker Engine 25.0 or later.
+            start_period: 30s
+            start_interval: 200ms
 
     server:
         build:
