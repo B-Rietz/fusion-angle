@@ -16,6 +16,11 @@
     background-color: hsl(var(--primary));
 }
 
+.switch:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .switch-thumb {
     position: absolute;
     top: 0.125rem;
