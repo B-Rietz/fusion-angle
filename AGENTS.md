@@ -55,8 +55,36 @@ therefore not a `node` process: `npm:postgres@4.1.1`
 needs no npm CLI, and a `node:path` import resolves with
 no `node` binary on `PATH` at all.
 
-**Commit before building.** `./bin/build` and `./deploy`
-require a clean working directory.
+**Commit before building, and before testing.** Every
+form of `./test`, `bin/test-postgres`,
+`bin/test-browser`, `./bin/build`, and `./deploy`
+refuse a working directory that is not clean, before
+any work, with one message from `bin/clean-tree-lib`:
+commit, then run; amend the commit to fix what a run
+finds. `./test`, `./bin/build`, and `./deploy` take
+arguments, and answer `--help` and a usage error on any
+tree; the two door scripts take no arguments and read
+none.
+One test file run under `deno test` asks nothing of the
+tree. That is the edit loop:
+
+```bash
+TZ=UTC deno test --frozen --no-check \
+    --sanitize-ops --sanitize-resources \
+    --allow-env --allow-read --allow-write --allow-net \
+    --allow-run \
+    --preload ./tests/hmac-test-key.ts \
+    --preload ./tests/local-storage-stub.ts \
+    --preload ./tests/session-storage-stub.ts \
+    --preload ./tests/worker-name-prefix.ts \
+    tests/NAME.test.ts
+```
+
+Those are the flags `run_memory` builds in `test`, as
+`DENO_TEST`, with `--allow-run` left open where the
+suite names each program in `ALLOW_RUN`: a program a
+test spawns goes on that list. A file under `tests/tz/`
+takes `TZ=Pacific/Honolulu`.
 Each commit on a development branch runs
 `./test validate --syntax`. Squash that branch to one
 commit per feature and run `./test validate` before the
@@ -146,6 +174,14 @@ runs for real.
 All are agent-environment accommodations, never baked
 into a repo script: the operator's machine writes the
 defaults.
+Inside the sandbox `/bin/bash` also writes each
+here-document's temp file, `sh-thd-<number>`, into the
+current directory, the root of the tree, and removes it
+at once; outside it they go to the system temp
+directory. A script run in a worktree while another
+runs there, or while a test file that spawns one does,
+can therefore be refused, with `?? sh-thd-…` listed.
+Run one at a time.
 
 ## Gates
 
@@ -164,8 +200,15 @@ and scripts (not `.md`), the `org` identifier ban
 under `api/`, `client/`, `web-app/`, `tests/`, and `shared/`,
 then `generate-schema-svg --check` and
 `generate-api-documentation --check`, both `deno run`.
-Clean tree for `./bin/build`, `./deploy`, and
-`./bin/measure`.
+Clean tree for every form of `./test`, its two door
+scripts, `./bin/build`, and `./deploy`: each calls
+`require_clean_tree` once its arguments are read, and
+it lists what `git status --porcelain
+--untracked-files=normal` listed, so no git setting
+hides an untracked file. A git
+that cannot answer is refused too. `./bin/build` asks
+only where there is a repository, since an image build
+may hold none. `./bin/measure` asks in its own program.
 
 A step that passed on a clean tree does not run
 again for that SHA. The memory suite, lint, the API
@@ -182,9 +225,10 @@ result. A repeat
 replays both streams between two lines on stderr,
 `sha-result-cache: replaying <step>, which passed at
 <time> on <sha>` and `sha-result-cache: replayed <step>;
-nothing ran`. Red never replays. A dirty tree neither
-reads nor writes the cache, and neither does `./test`
-with `POSTGRES_URL` set. A replay runs nothing, so it
+nothing ran`. Red never replays. A tree that turns dirty
+under a run neither reads nor writes the cache, and
+neither does `./test` with `POSTGRES_URL` set. A replay
+runs nothing, so it
 reads no `DENO_JOBS` and refuses none. `check` and
 `schema` repeat in
 under a second and always run, so `./test validate` on a
@@ -237,15 +281,28 @@ root and a ledger of its own, `SHA_RESULT_CACHE_ROOT`
 and `TOOL_DURATIONS_PATH` both, in the env of each
 spawn. Each is a path the test made, or `/dev/null`,
 which means none. In this checkout the root is
-`/dev/null`: the script then runs for real on any tree,
-where a usable root would record a stand-in's pass under
-a real SHA and replay it to the next test. A ledger is a
+`/dev/null`, where a usable root would record a
+stand-in's pass under a real SHA and replay it to the
+next test. A ledger is a
 file of the test's own where the test is about the timer
 and `/dev/null` where it is not: the timer then runs the
 step, runs no program of its own, and says nothing,
 where a real ledger would take a stand-in's instant
 pass for the step's recent duration.
 `tests/sha-result-cache-isolation.test.ts` pins both.
+
+No test asks whether this checkout is clean. The first
+five of those scripts refuse a dirty tree, so a test
+runs one past its arguments only in a repository of its
+own: `tests/fixtures/script-replica.ts` copies the files
+the test names from the working tree, so an edit is
+tested before it is committed, and commits them there.
+In this checkout a test reaches `--help` and a usage
+error and nothing else, and hands the script
+`GIT_DIR=/dev/null`, which is no repository: a case that
+got past the arguments would be refused on any tree.
+`tests/sha-result-cache-isolation.test.ts` pins that as
+well.
 
 Run for real, `./test` takes about 60 s on its four
 workers with the sanitizers on, `./test validate` about
@@ -264,7 +321,7 @@ script's own comment block.
 
 `./test browser` needs Chrome (`CHROME` or
 `CHROME_DEBUG_URL`); it bundles with `deno bundle`
-into `$TMPDIR` on any tree and runs
+into `$TMPDIR` and runs
 `tests/browser/*.test.ts` under `deno test --parallel`,
 four files at a time (an exported `DENO_JOBS` wins) and
 one Chrome per file. Under `CHROME_DEBUG_URL` every file
@@ -471,11 +528,14 @@ when asked.
   stylesheet, for tests that pin a CSS rule),
   `create-archive-graph.ts` (the least graph the flow
   gate accepts, one Create node and one Archive node,
-  and the delta a flow is born with), and
+  and the delta a flow is born with),
   `api-documentation-pane.ts` (the API documentation's
   message pane at the side-by-side width, which the
   pane-height test derives from and the browser
-  checks);
+  checks), and `script-replica.ts` (a repository of a
+  test's own that holds the scripts as the working tree
+  has them, committed, for the scripts that refuse a
+  dirty tree);
   `client-init.ts` (the test composition
   root) and `in-page-facade.ts` (the in-process
   transport)

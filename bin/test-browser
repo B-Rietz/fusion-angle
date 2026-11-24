@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Layer 2: deterministic browser tests. Bundles the
-# client into $TMPDIR (any tree), then runs
+# client into $TMPDIR, then runs
 # tests/browser/*.test.ts, each test against an
 # in-process origin of its own on the memory backend.
 # Needs Chrome: CHROME (binary) or CHROME_DEBUG_URL (a
@@ -18,6 +18,13 @@ source "$BIN/build-lib"
 source "$BIN/sha-result-cache-lib"
 # shellcheck source=duration-lib
 source "$BIN/duration-lib"
+# shellcheck source=clean-tree-lib
+source "$BIN/clean-tree-lib"
+
+# This script is run directly too, and execed after a
+# validate that took a minute: it asks for itself, before
+# it looks for a browser.
+require_clean_tree
 
 if [ -z "${CHROME_DEBUG_URL:-}" ]; then
     CHROME="${CHROME:-/Applications/Google Chrome.app}"

@@ -18,6 +18,8 @@ USAGE
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
+# shellcheck source=bin/clean-tree-lib
+. "$ROOT/bin/clean-tree-lib"
 # shellcheck source=bin/sha-result-cache-lib
 . "$ROOT/bin/sha-result-cache-lib"
 # shellcheck source=bin/duration-lib
@@ -113,6 +115,7 @@ run_lint() {
             bin/compose-lib bin/worktree-add \
             bin/sha-result-cache-lib \
             bin/duration-lib \
+            bin/clean-tree-lib \
             deno.json Dockerfile compose.yaml \
             .dockerignore
     } )
@@ -306,6 +309,12 @@ run_validate() {
     replay_or_run_api_docs
 }
 
+# Every form refuses a dirty tree (bin/clean-tree-lib),
+# in its own arm: after that arm has read its arguments,
+# so --help and a usage error answer on any tree, and
+# before its step. The two suites this script execs are
+# asked again at their own doors, where they are also run
+# directly.
 case "${1:-memory}" in
     --help|-h)
         usage
@@ -317,6 +326,7 @@ case "${1:-memory}" in
             usage >&2
             exit 1
         fi
+        require_clean_tree
         replay_or_run_memory
         ;;
     check|lint|schema|api-docs|postgres|browser)
@@ -325,6 +335,7 @@ case "${1:-memory}" in
             usage >&2
             exit 1
         fi
+        require_clean_tree
         case "$1" in
             check) timed './test check' run_check ;;
             lint) replay_or_run_lint ;;
@@ -337,15 +348,19 @@ case "${1:-memory}" in
     validate)
         shift
         if [ $# -eq 0 ]; then
+            require_clean_tree
             run_validate
         elif [ $# -eq 1 ] && [ "$1" = "--syntax" ]; then
             # Check only: it asks nothing of the
             # result cache and records nothing in it.
+            require_clean_tree
             timed './test check' run_check
         elif [ $# -eq 1 ] && [ "$1" = "browser" ]; then
+            require_clean_tree
             run_validate
             exec "$ROOT/bin/test-browser"
         elif [ $# -eq 1 ] && [ "$1" = "postgres" ]; then
+            require_clean_tree
             run_validate
             exec "$ROOT/bin/test-postgres"
         else

@@ -56,6 +56,10 @@ async function runDeploy(
     // cache and are timed, so the cache's root and
     // the timer's ledger are /dev/null by the rule
     // tests/sha-result-cache-isolation.test.ts pins.
+    // GIT_DIR is /dev/null by the same file's other
+    // rule: with no repository to read, a case that
+    // got past its arguments would be refused on
+    // any tree, clean or not.
     const output = await new Deno.Command('./deploy', {
         args,
         signal: AbortSignal.timeout(4000),
@@ -63,6 +67,7 @@ async function runDeploy(
             PATH: pathWithDockerStub(stamp),
             POSTGRES_URL: '',
             JWT_HMAC_SIGNING_KEY: '',
+            GIT_DIR: '/dev/null',
             SHA_RESULT_CACHE_ROOT: '/dev/null',
             TOOL_DURATIONS_PATH: '/dev/null',
         },

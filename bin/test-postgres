@@ -11,6 +11,12 @@ cd "$ROOT"
 . "$BIN/sha-result-cache-lib"
 # shellcheck disable=SC1091
 . "$BIN/duration-lib"
+# shellcheck disable=SC1091
+. "$BIN/clean-tree-lib"
+
+# This script is run directly too, and execed after a
+# validate that took a minute: it asks for itself.
+require_clean_tree
 
 postgres_suite() {
     if ! command -v docker >/dev/null; then

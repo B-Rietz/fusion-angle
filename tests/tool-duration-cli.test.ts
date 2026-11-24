@@ -10,6 +10,17 @@ import {
     type DurationSample,
     parseLedger,
 } from '../web-app/app/tool-duration-core.ts';
+import {
+    commitAll,
+    copyFromCheckout,
+    GATE_LIBRARIES,
+    realDeno,
+    runInReplica,
+    withRepository,
+} from './fixtures/script-replica.ts';
+
+// Where the test command lives in this checkout.
+const TEST = 'test';
 
 // A hang bound, never a timing assertion: each spawn is
 // two short deno runs around the command.
@@ -30,10 +41,10 @@ function freshLedgerPath(): string {
     );
 }
 
-// A script or a shell, run with a ledger of the test's
-// own. The result cache is handed /dev/null for its root:
-// this checkout's tree is not a test's to keep clean
-// (tests/sha-result-cache-isolation.test.ts).
+// A shell that sources the timer in this checkout, run
+// with a ledger of the test's own. It asks the tree only
+// to label a sample. The result cache is handed /dev/null
+// for its root (tests/sha-result-cache-isolation.test.ts).
 async function spawned(
     command: string,
     args: string[],
@@ -157,35 +168,47 @@ async () => {
 // No variable says a tree is clean: the timer asks git, as
 // the result cache does. So git is told of a repository
 // of the test's own, first as committed and then with a
-// file it does not know.
+// file it does not know. And no git setting answers for
+// the tree: `status.showUntrackedFiles=no` makes a bare
+// `git status` leave that file out, so the timer asks for
+// untracked files by name.
 Deno.test('a sample says whether the tree was clean',
 async () => {
-    const dir = await Deno.makeTempDir({
-        prefix: 'tool-durations-tree-',
-    });
-    try {
-        await git(['-C', dir, 'init', '--quiet']);
-        await git([
-            '-C', dir, 'commit', '--quiet', '--allow-empty',
-            '-m', 'Empty',
-        ]);
-        const ledger = freshLedgerPath();
-        const result = await runTimed(
-            'timed "./probe clean" true;'
-            + ' echo x > "$GIT_WORK_TREE/untracked";'
-            + ' timed "./probe dirty" true',
-            ledger,
-            { GIT_DIR: join(dir, '.git'), GIT_WORK_TREE: dir },
-        );
-        assertStrictEquals(result.status, 0);
-        assertEquals(
-            samplesIn(ledger).map((sample) => [
-                sample.arguments, sample.tree,
-            ]),
-            [[['clean'], 'clean'], [['dirty'], 'dirty']],
-        );
-    } finally {
-        await Deno.remove(dir, { recursive: true });
+    for (const hidesUntracked of [false, true]) {
+        const dir = await Deno.makeTempDir({
+            prefix: 'tool-durations-tree-',
+        });
+        try {
+            await git(['-C', dir, 'init', '--quiet']);
+            await git([
+                '-C', dir, 'commit', '--quiet', '--allow-empty',
+                '-m', 'Empty',
+            ]);
+            if (hidesUntracked) {
+                await git([
+                    '-C', dir, 'config',
+                    'status.showUntrackedFiles', 'no',
+                ]);
+            }
+            const ledger = freshLedgerPath();
+            const result = await runTimed(
+                'timed "./probe clean" true;'
+                + ' echo x > "$GIT_WORK_TREE/untracked";'
+                + ' timed "./probe dirty" true',
+                ledger,
+                { GIT_DIR: join(dir, '.git'), GIT_WORK_TREE: dir },
+            );
+            assertStrictEquals(result.status, 0);
+            assertEquals(
+                samplesIn(ledger).map((sample) => [
+                    sample.arguments, sample.tree,
+                ]),
+                [[['clean'], 'clean'], [['dirty'], 'dirty']],
+                `hidesUntracked=${hidesUntracked}`,
+            );
+        } finally {
+            await Deno.remove(dir, { recursive: true });
+        }
     }
 });
 
@@ -436,16 +459,42 @@ async () => {
 
 // ── ./test ──────
 
-function runTest(
+// The test command in a repository of its own, with a
+// ledger of the test's own: the script refuses a dirty
+// tree, and this checkout's tree is not a test's to keep
+// clean (tests/fixtures/script-replica.ts). The replica
+// holds the script, the browser door it execs, and a
+// stand-in for the schema generator; the timer's own
+// programs are the real ones, run by the real deno.
+async function runTest(
     args: string[],
     ledger: string,
     env: Record<string, string> = {},
 ): Promise<Spawned> {
-    return spawned('./test', args, ledger, {
-        POSTGRES_URL: '',
-        JWT_HMAC_SIGNING_KEY: '',
-        ...env,
+    const runs: Spawned[] = [];
+    await withRepository(async (repository) => {
+        copyFromCheckout(repository.repo, [
+            TEST,
+            'bin/test-browser',
+            'bin/build-lib',
+            ...GATE_LIBRARIES,
+        ]);
+        await Deno.writeTextFile(
+            join(repository.repo, 'bin/generate-schema-svg'),
+            '#!/bin/sh\necho "SCHEMA.svg is up to date"\n',
+            { mode: 0o755 },
+        );
+        await commitAll(repository.repo, 'The test script');
+        runs.push(await runInReplica(
+            repository, `./${TEST}`, args,
+            {
+                TOOL_DURATIONS_PATH: ledger,
+                ...realDeno(),
+                ...env,
+            },
+        ));
     });
+    return runs[0]!;
 }
 
 Deno.test('./test schema records a green sample', async () => {

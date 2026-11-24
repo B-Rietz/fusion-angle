@@ -1,0 +1,46 @@
+# Sourced, never executed: the one clean-tree check.
+#
+#     require_clean_tree
+#
+# A result belongs to a SHA, and a tree that holds
+# uncommitted work has none. Every script that tests,
+# builds, or deploys this tree calls this once it has read
+# its arguments and before it does anything else. On a
+# dirty tree it says so, lists what git listed, and exits
+# 1. --help and a usage error are about the command line,
+# so a script that takes arguments answers those first,
+# on any tree.
+#
+# Dirty is what `git status --porcelain` prints: a staged
+# change, an unstaged one, a deletion, or an untracked
+# file that is not ignored. Untracked files are asked for
+# by name: `status.showUntrackedFiles=no`, in the
+# repository's config or the operator's own, would
+# otherwise leave a new file out and call the tree clean.
+# The result cache and the timer ask git the same
+# question, the same way, for ends of their own, and keep
+# asking: a tree can turn dirty under a run.
+#
+# A git that cannot answer is never read as clean. Its
+# own words reach stderr and the script stops: a run
+# outside a repository has no SHA to belong to. bin/build
+# alone has cause to run where there is no repository, in
+# an image build, and calls this only where there is one.
+#
+# Call it from the repository root, as a plain statement.
+require_clean_tree() {
+    local porcelain
+    if ! porcelain=$(git status --porcelain --untracked-files=normal)
+    then
+        echo "Error: git could not say whether the" \
+            "working directory is clean." >&2
+        exit 1
+    fi
+    if [ -n "$porcelain" ]; then
+        echo "Error: working directory is not clean." >&2
+        printf '%s\n' "$porcelain" >&2
+        echo "Commit, then run this again; amend the" \
+            "commit to fix what a run finds." >&2
+        exit 1
+    fi
+}

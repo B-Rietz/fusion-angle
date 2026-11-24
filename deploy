@@ -149,6 +149,17 @@ else
     MODE='--mock-data'
 fi
 
+# Every form refuses a dirty tree, once its arguments
+# are read and before anything else. --local stands up an
+# image of this tree. --render builds nothing from it,
+# and what it deploys is the SHA it is handed, never this
+# checkout; it refuses all the same, so that no
+# uncommitted edit to this script or to the wipe and seed
+# scripts it runs acts on production.
+# shellcheck source=bin/clean-tree-lib
+. "$ROOT/bin/clean-tree-lib"
+require_clean_tree
+
 # shellcheck disable=SC1091
 . "$ROOT/bin/compose-lib"
 

@@ -4,8 +4,8 @@
 # and bundles the client into DEST; commit_log reads
 # the commit log a build embeds, and fetched_commit
 # reads it for a build without a checkout;
-# ./bin/build owns the clean-tree gate, the
-# executable, and the ZIP.
+# ./bin/build owns the executable and the ZIP, and
+# asks bin/clean-tree-lib about the tree.
 
 # Fail when the artifact is empty or absent; report its
 # size otherwise — one voice for every emitted artifact.
