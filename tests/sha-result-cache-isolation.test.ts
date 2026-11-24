@@ -62,20 +62,22 @@ import { walkSync } from '@std/fs';
 // and never spells it; and what value a name is given.
 const RESOURCES = ['SHA_RESULT_CACHE_ROOT', 'TOOL_DURATIONS_PATH'];
 
-// A script's path as source spells it. The two at the
-// root are ordinary words without their `./`.
+// A script's path as source spells it. What follows the
+// name keeps bin/test from standing for bin/test-browser,
+// and a script from standing for a test file named after
+// it.
 const SCRIPT_PATH = new RegExp(
-    '\\./(test|deploy)(?![\\w./-])'
-    + '|(?<![\\w-])bin/'
-    + '(build|test-browser|test-postgres|measure|develop)'
+    '(?<![\\w-])bin/'
+    + '(build|deploy|develop|measure'
+    + '|test|test-browser|test-postgres)'
     + '(?![\\w./-])',
 );
 
 // The five that refuse a dirty tree, as a spawn names its
 // program.
 const REFUSES_A_DIRTY_TREE = new RegExp(
-    '^\\./(test|deploy)$'
-    + '|^(\\./)?bin/(build|test-browser|test-postgres)$',
+    '^(\\./)?bin/'
+    + '(build|deploy|test|test-browser|test-postgres)$',
 );
 
 // What a spawn of one of those in this checkout names in

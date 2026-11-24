@@ -7,7 +7,7 @@ import {
 // The Office of Time: instants render to LOCAL time. Under TZ=UTC
 // (the main suite) local and UTC agree, so the distinction is
 // invisible there — this suite must run under a fixed
-// negative-offset zone. ./test launches it with
+// negative-offset zone. ./bin/test launches it with
 // TZ=Pacific/Honolulu (UTC-10, no DST). Guard the zone so a stray
 // invocation fails loudly instead of asserting nonsense.
 Deno.test('runs under the expected UTC-10 zone', () => {

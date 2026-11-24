@@ -98,7 +98,7 @@ browser_suite() {
     # worker-name-prefix.ts: files run together are workers in
     # one process, where BroadcastChannel and navigator.locks
     # name process-wide buses and locks. The prefix gives each
-    # worker names of its own, as it does for ./test.
+    # worker names of its own, as it does for ./bin/test.
     TMPDIR="$RUN_DIR/tmp" TZ=UTC \
         deno test --frozen --no-check $SCHEDULE \
         --sanitize-resources \
@@ -123,12 +123,12 @@ browser_suite() {
 # is inside each ask, so a replay is never a sample.
 if [ -n "${CHROME_DEBUG_URL:-}" ]; then
     replay_or_run "browser $CHROME_DEBUG_URL" -- \
-        timed './test browser' browser_suite
+        timed './bin/test browser' browser_suite
 elif BROWSER="$("$CHROME" --version 2>/dev/null)" \
     && [ -n "$BROWSER" ]
 then
     replay_or_run "browser $BROWSER" -- \
-        timed './test browser' browser_suite
+        timed './bin/test browser' browser_suite
 else
-    timed './test browser' browser_suite
+    timed './bin/test browser' browser_suite
 fi

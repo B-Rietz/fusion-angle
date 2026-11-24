@@ -25,7 +25,7 @@ import { offeredVerbs, uriOf } from
 
 Deno.test('test validate runs generate-api-documentation'
     + ' --check', () => {
-    const src = Deno.readTextFileSync('test');
+    const src = Deno.readTextFileSync('bin/test');
     assertMatch(
         src,
         /generate-api-documentation --check/,

@@ -18,7 +18,7 @@ import {
 } from './fixtures/script-replica.ts';
 
 // Where the test command lives in this checkout.
-const TEST = 'test';
+const TEST = 'bin/test';
 
 // The source of one shell function, header to closing
 // brace.
@@ -48,7 +48,7 @@ async function runTest(
     readonly stdout: string;
     readonly stderr: string;
 }> {
-    const output = await new Deno.Command('./test', {
+    const output = await new Deno.Command('./bin/test', {
         args,
         signal: AbortSignal.timeout(4000),
         env: {
@@ -199,7 +199,7 @@ Deno.test('test unknown suite exits 1 with usage',
 async () => {
     const result = await runTest(['bogus']);
     assertStrictEquals(result.status, 1);
-    assertMatch(result.stderr, /Usage: \.\/test/);
+    assertMatch(result.stderr, /Usage: \.\/bin\/test/);
 });
 
 // Each script that does a step's work asks the result
@@ -208,8 +208,8 @@ async () => {
 // their process ids the ones a signal reaches.
 Deno.test('test asks the result cache for its own three steps',
 () => {
-    const src = Deno.readTextFileSync('test');
-    assertMatch(src, /\. "\$ROOT\/bin\/sha-result-cache-lib"/);
+    const src = Deno.readTextFileSync('bin/test');
+    assertMatch(src, /\. "\$BIN\/sha-result-cache-lib"/);
     assertMatch(src, /replay_or_run memory -- .*run_memory/);
     assertMatch(src, /replay_or_run lint -- .*run_lint/);
     assertMatch(
@@ -217,10 +217,10 @@ Deno.test('test asks the result cache for its own three steps',
     );
     assertNotMatch(src, /replay_or_run (postgres|browser)/);
     assertMatch(
-        src, /postgres\) exec "\$ROOT\/bin\/test-postgres" ;;/,
+        src, /postgres\) exec "\$BIN\/test-postgres" ;;/,
     );
     assertMatch(
-        src, /browser\) exec "\$ROOT\/bin\/test-browser" ;;/,
+        src, /browser\) exec "\$BIN\/test-browser" ;;/,
     );
     assertNotMatch(
         src, /most-recently-validated-sha|already validated/,
@@ -233,7 +233,7 @@ Deno.test('test asks the result cache for its own three steps',
 Deno.test('validate composes cached and uncached steps',
 () => {
     const body = functionBody(
-        Deno.readTextFileSync('test'), 'run_validate',
+        Deno.readTextFileSync('bin/test'), 'run_validate',
     );
     const order = [
         'run_check',
@@ -252,13 +252,13 @@ Deno.test('validate composes cached and uncached steps',
 // check and schema repeat in under a second; a cache
 // over them would guard a cost that is not there.
 Deno.test('check and schema run every time', () => {
-    const src = Deno.readTextFileSync('test');
+    const src = Deno.readTextFileSync('bin/test');
     assertNotMatch(src, /replay_or_run.*run_(check|schema)/);
     assertNotMatch(src, /replay_or_run (check|schema)/);
 });
 
 Deno.test('test dispatcher names combinations', () => {
-    const src = Deno.readTextFileSync('test');
+    const src = Deno.readTextFileSync('bin/test');
     assertMatch(src, /validate browser/);
     assertMatch(src, /validate \[--syntax\]/);
     assertNotMatch(src, /VALIDATE_OK/);
@@ -267,7 +267,7 @@ Deno.test('test dispatcher names combinations', () => {
 
 Deno.test('validate --syntax is check and records nothing',
 () => {
-    const src = Deno.readTextFileSync('test');
+    const src = Deno.readTextFileSync('bin/test');
     const at = src.indexOf('"$1" = "--syntax"');
     assert(at >= 0, '--syntax branch missing');
     const end = src.indexOf('elif', at);
@@ -291,21 +291,21 @@ async () => {
         'validate', '--syntax', 'browser',
     ]);
     assertStrictEquals(result.status, 1);
-    assertMatch(result.stderr, /Usage: \.\/test/);
+    assertMatch(result.stderr, /Usage: \.\/bin\/test/);
 });
 
 // A replay returns to its caller, which
 // tests/sha-result-cache.test.ts pins, so a validate that
 // replays every step still reaches the suite after it.
 Deno.test('validate browser reaches the browser suite', () => {
-    const src = Deno.readTextFileSync('test');
+    const src = Deno.readTextFileSync('bin/test');
     const comboAt = src.indexOf('"$1" = "browser"');
     assert(comboAt >= 0, 'browser combination missing');
     const comboEnd = src.indexOf('elif', comboAt + 1);
     assert(comboEnd > comboAt, 'browser combo unclosed');
     const combo = src.slice(comboAt, comboEnd);
     const runAt = combo.indexOf('run_validate');
-    const execAt = combo.indexOf('bin/test-browser');
+    const execAt = combo.indexOf('exec "$BIN/test-browser"');
     assert(runAt >= 0, 'run_validate missing in combo');
     assert(execAt >= 0, 'test-browser exec missing');
     assert(
@@ -419,7 +419,8 @@ Deno.test('test-browser asks the result cache per browser',
     assertMatch(suite, /tests\/browser\/\*\.test\.ts/);
     // Each ask's command is the timed suite, so a replay
     // is never a sample.
-    const timed = " -- \\\n        timed './test browser' browser_suite\n";
+    const timed = ' -- \\\n'
+        + "        timed './bin/test browser' browser_suite\n";
     assertStringIncludes(
         src, 'replay_or_run "browser $CHROME_DEBUG_URL"' + timed,
     );

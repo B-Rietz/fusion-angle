@@ -16,7 +16,7 @@ point into this tree instead of a retired worktree,
 and the two drivers read their URL from
 `FA_PROBE_POSTGRES_URL` instead of a literal.
 
-None of these gates anything. `./test validate` neither
+None of these gates anything. `./bin/test validate` neither
 lints nor type-checks this directory. The ledger sweep in
 TODO.md's `## Later work` is their successor.
 
@@ -197,7 +197,7 @@ as a sequential scan (`enable_bitmapscan` off and
 
 The figures in
 `docs/superpowers/specs/faster-layer-one-design.md`: where
-`./test`'s seconds go, and what one mock seed costs. Deno
+`./bin/test`'s seconds go, and what one mock seed costs. Deno
 2.9.8, one 16-core machine shared with three other
 suites, so every figure carries its load. Run from the
 repository root.

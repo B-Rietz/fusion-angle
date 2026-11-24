@@ -39,7 +39,7 @@ import { organizationToken } from
 import { seedAdminSchema } from './test-fixtures.ts';
 
 // Status overlay pins. Skip when POSTGRES_URL is
-// unset so ./test validate stays Postgres-free.
+// unset so ./bin/test validate stays Postgres-free.
 // One scratch schema; do not share it.
 
 const POSTGRES_URL = Deno.env.get('POSTGRES_URL');

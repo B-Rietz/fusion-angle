@@ -2,12 +2,13 @@ import { assertEquals } from '@std/assert';
 import { dirname, join } from '@std/path';
 
 // A repository of a test's own for the scripts that refuse
-// a dirty tree: test, bin/test-postgres, bin/test-browser,
-// bin/build, and deploy. The replica holds the files a
-// test names as this checkout's working tree has them, so
-// an edit is tested before it is committed, and commits
-// them there, so its tree is clean whatever this one is.
-// A test that needs a dirty tree dirties its replica.
+// a dirty tree: bin/test, bin/test-postgres,
+// bin/test-browser, bin/build, and bin/deploy. The replica
+// holds the files a test names as this checkout's working
+// tree has them, so an edit is tested before it is
+// committed, and commits them there, so its tree is clean
+// whatever this one is. A test that needs a dirty tree
+// dirties its replica.
 //
 // No test asks whether this checkout is clean. A script
 // run here reaches only --help and a usage error, which

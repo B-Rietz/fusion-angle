@@ -4,7 +4,7 @@ import { connectPostgres } from
 import { probePostgres } from '../api/postgres-probe.ts';
 
 // Live probes run only when POSTGRES_URL is set
-// (./test postgres).
+// (./bin/test postgres).
 
 const POSTGRES_URL = Deno.env.get('POSTGRES_URL');
 

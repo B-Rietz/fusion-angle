@@ -5,16 +5,16 @@ Claude Code reads it through `CLAUDE.md`, a one-line
 `@AGENTS.md` import stub.
 
 ```bash
-./test                 # memory suite
-./test validate        # Layer 1, after the squash
-./test validate --syntax # per-commit deno check
-./test validate browser  # Layer 2
-./test postgres        # AT4; own Docker Postgres
-./test browser         # AT5; Chrome, in-process memory
-./test check|lint|schema|api-docs
-./deploy --local PORT --postgres mock-data|bootstrap
-./deploy --render TOKEN --commit SHA
-./deploy --render TOKEN --postgres mock-data|bootstrap
+./bin/test                 # memory suite
+./bin/test validate        # Layer 1, after the squash
+./bin/test validate --syntax # per-commit deno check
+./bin/test validate browser  # Layer 2
+./bin/test postgres        # AT4; own Docker Postgres
+./bin/test browser         # AT5; Chrome, in-process memory
+./bin/test check|lint|schema|api-docs
+./bin/deploy --local PORT --postgres mock-data|bootstrap
+./bin/deploy --render TOKEN --commit SHA
+./bin/deploy --render TOKEN --postgres mock-data|bootstrap
 ./bin/build            # executable ZIP to ~/Desktop/
 ./bin/build --no-zip dir/
 ./bin/worktree-add SLUG # .worktrees/SLUG, branch SLUG
@@ -32,12 +32,12 @@ hosts 301 to their apex. Render's `onrender.com`
 subdomain is blocked and 404s on every path — never
 treat it as production.
 
-Deno 2.9.8 runs `./test`, `./test validate`,
-`./bin/build`, `./test browser`, `./bin/measure`,
+Deno 2.9.8 runs `./bin/test`, `./bin/test validate`,
+`./bin/build`, `./bin/test browser`, `./bin/measure`,
 `./bin/develop`, and both generators, each
 invoking the `deno` CLI directly.
 `postgres-lib`'s eight inline programs pipe
-into `deno run --frozen` on stdin. `./deploy`
+into `deno run --frozen` on stdin. `./bin/deploy`
 composes the walk origin, and `./bin/serve` execs
 the `deno compile` binary, which embeds the
 runtime — neither calls `deno` itself.
@@ -45,7 +45,7 @@ runtime — neither calls `deno` itself.
 Deno is the only server-side runtime this repository uses;
 the browser is the other, and runs the pages. No script
 invokes `node` or `npm` (pinned by
-`tests/root-scripts-exec-deno.test.ts`); there is no
+`tests/operator-scripts-exec-deno.test.ts`); there is no
 `package.json` and no
 `node_modules`, and `deno.json` sets `nodeModulesDir:
 none`. `deno.json` and `deno.lock` are the whole dependency
@@ -56,12 +56,12 @@ needs no npm CLI, and a `node:path` import resolves with
 no `node` binary on `PATH` at all.
 
 **Commit before building, and before testing.** Every
-form of `./test`, `bin/test-postgres`,
-`bin/test-browser`, `./bin/build`, and `./deploy`
+form of `./bin/test`, `bin/test-postgres`,
+`bin/test-browser`, `./bin/build`, and `./bin/deploy`
 refuse a working directory that is not clean, before
 any work, with one message from `bin/clean-tree-lib`:
 commit, then run; amend the commit to fix what a run
-finds. `./test`, `./bin/build`, and `./deploy` take
+finds. `./bin/test`, `./bin/build`, and `./bin/deploy` take
 arguments, and answer `--help` and a usage error on any
 tree; the two door scripts take no arguments and read
 none.
@@ -80,25 +80,25 @@ TZ=UTC deno test --frozen --no-check \
     tests/NAME.test.ts
 ```
 
-Those are the flags `run_memory` builds in `test`, as
+Those are the flags `run_memory` builds in `bin/test`, as
 `DENO_TEST`, with `--allow-run` left open where the
 suite names each program in `ALLOW_RUN`: a program a
 test spawns goes on that list. A file under `tests/tz/`
 takes `TZ=Pacific/Honolulu`.
 Each commit on a development branch runs
-`./test validate --syntax`. Squash that branch to one
-commit per feature and run `./test validate` before the
-operator's merge. Run `./test validate browser` before a
+`./bin/test validate --syntax`. Squash that branch to one
+commit per feature and run `./bin/test validate` before the
+operator's merge. Run `./bin/test validate browser` before a
 build, a deploy, or a walk.
 
 `./bin/serve` needs `POSTGRES_URL` and
 `JWT_HMAC_SIGNING_KEY` already set;
 `./bin/serve dir/ port` sets `PORT` from `port`.
-`./deploy --local`,
-`./test postgres`, and a local `./bin/measure` sweep
+`./bin/deploy --local`,
+`./bin/test postgres`, and a local `./bin/measure` sweep
 mint those for their children through `bin/compose-lib`
 and take their compose stack down on exit; the measure
-and `./test postgres` name a compose project of their
+and `./bin/test postgres` name a compose project of their
 own, so neither touches an operator's stack. Each needs
 127.0.0.1:5432 free.
 
@@ -156,7 +156,7 @@ POST 401 is the signed-out session probe.
 When running under the Claude Code sandbox:
 
 ```bash
-./deploy --local 8080 --postgres mock-data
+./bin/deploy --local 8080 --postgres mock-data
 # open http://localhost:8080/landing/index.html
 ```
 
@@ -166,7 +166,7 @@ Chrome MCP tools can drive the page normally.
 
 The sandbox cannot write `~/Library/Caches/deno`
 either, so `export DENO_DIR="$TMPDIR/deno-dir"` before
-any `deno` command and before `./test` or `./deploy`.
+any `deno` command and before `./bin/test` or `./bin/deploy`.
 It cannot write `/tmp` itself, so `export
 SHA_RESULT_CACHE_ROOT="$TMPDIR/fusion-angle-sha-result-cache"`
 too: without it every cached step says `cannot use` and
@@ -185,8 +185,8 @@ Run one at a time.
 
 ## Gates
 
-`./test validate` composes `deno check --frozen api client shared
-server tests web-app`, then `./test` — `Deno.test`
+`./bin/test validate` composes `deno check --frozen api client shared
+server tests web-app`, then `./bin/test` — `Deno.test`
 suites written against `@std/assert`, run as `deno
 test --frozen --parallel --no-check
 --sanitize-ops --sanitize-resources` with four
@@ -200,8 +200,8 @@ and scripts (not `.md`), the `org` identifier ban
 under `api/`, `client/`, `web-app/`, `tests/`, and `shared/`,
 then `generate-schema-svg --check` and
 `generate-api-documentation --check`, both `deno run`.
-Clean tree for every form of `./test`, its two door
-scripts, `./bin/build`, and `./deploy`: each calls
+Clean tree for every form of `./bin/test`, its two door
+scripts, `./bin/build`, and `./bin/deploy`: each calls
 `require_clean_tree` once its arguments are read, and
 it lists what `git status --porcelain
 --untracked-files=normal` listed, so no git setting
@@ -227,11 +227,11 @@ replays both streams between two lines on stderr,
 <time> on <sha>` and `sha-result-cache: replayed <step>;
 nothing ran`. Red never replays. A tree that turns dirty
 under a run neither reads nor writes the cache, and
-neither does `./test` with `POSTGRES_URL` set. A replay
+neither does `./bin/test` with `POSTGRES_URL` set. A replay
 runs nothing, so it
 reads no `DENO_JOBS` and refuses none. `check` and
 `schema` repeat in
-under a second and always run, so `./test validate` on a
+under a second and always run, so `./bin/test validate` on a
 validated SHA runs only those two. `./bin/build`'s ZIP
 form takes part too, and its replay first proves that
 the ZIP at its path still holds the bytes that build
@@ -239,16 +239,16 @@ left; `--no-zip` builds every time. To run for real,
 `rm -rf` the root or one `<sha>` directory in it.
 `bin/sha-result-cache-lib` is the whole of it. Each
 script that does a step's work asks at its own door:
-`test` for the three steps it runs itself, and
+`bin/test` for the three steps it runs itself, and
 `bin/test-postgres`, `bin/test-browser`, and `bin/build`
 for theirs.
 
 Every step is timed where it really runs, by `timed
 LABEL COMMAND` from `bin/duration-lib`: `check`,
-`memory`, `lint`, `schema`, and `api-docs` in `test`;
+`memory`, `lint`, `schema`, and `api-docs` in `bin/test`;
 the Postgres and browser suites in `bin/test-postgres`
-and `bin/test-browser`, as `./test postgres` and
-`./test browser`; and the build in `bin/build`. Where a
+and `bin/test-browser`, as `./bin/test postgres` and
+`./bin/test browser`; and the build in `bin/build`. Where a
 step is asked of the SHA result cache the timer is
 inside the ask, `replay_or_run WAY -- timed LABEL
 COMMAND`, so a replay is not a run: it appends no sample
@@ -269,13 +269,14 @@ slow run in a row prints `DURATION REGRESSION:`. It
 gates nothing: no exit status changes, and a run on a
 loaded machine is recorded but never compared.
 `tests/tool-duration-cli.test.ts` fails when a tracked
-executable at the root or directly under `bin/` neither
-calls `timed` nor is named there with its reason, when
-`./test` runs a step outside a timed call, and when it
+executable or symbolic link sits anywhere but directly
+under `bin/`, when one there neither calls `timed` nor is
+named in the test with its reason, when
+`./bin/test` runs a step outside a timed call, and when it
 `exec`s a script that does not time its own work.
 
-A test that spawns `./test`, `bin/test-postgres`,
-`bin/test-browser`, `bin/build`, `./deploy`,
+A test that spawns `./bin/test`, `bin/test-postgres`,
+`bin/test-browser`, `bin/build`, `./bin/deploy`,
 `./bin/measure`, or `./bin/develop` hands it a cache
 root and a ledger of its own, `SHA_RESULT_CACHE_ROOT`
 and `TOOL_DURATIONS_PATH` both, in the env of each
@@ -304,22 +305,22 @@ got past the arguments would be refused on any tree.
 `tests/sha-result-cache-isolation.test.ts` pins that as
 well.
 
-Run for real, `./test` takes about 60 s on its four
-workers with the sanitizers on, `./test validate` about
-66 s, `./test browser` about 72 s, and `./test postgres`
+Run for real, `./bin/test` takes about 60 s on its four
+workers with the sanitizers on, `./bin/test validate` about
+66 s, `./bin/test browser` about 72 s, and `./bin/test postgres`
 about 13 s: one run each on a quiet 16-core machine,
 measured 2026-11-23. A repeat on the same clean SHA
 replays in under half a second. `--no-check`
 costs nothing: `deno check` has already covered
-`tests/`. `./test postgres` carries the same two
-sanitizer flags; `./test browser` carries
+`tests/`. `./bin/test postgres` carries the same two
+sanitizer flags; `./bin/test browser` carries
 `--sanitize-resources` only, because `useBrowser()`
 opens one CDP WebSocket per file in
 `Deno.test.beforeAll`, whose pending receive always
 crosses a test boundary — the reason lives in that
 script's own comment block.
 
-`./test browser` needs Chrome (`CHROME` or
+`./bin/test browser` needs Chrome (`CHROME` or
 `CHROME_DEBUG_URL`); it bundles with `deno bundle`
 into `$TMPDIR` and runs
 `tests/browser/*.test.ts` under `deno test --parallel`,
@@ -334,20 +335,20 @@ rows, and each origin takes a copy. A file run alone under
 work, so a replay bundles nothing, lands no seed, and
 launches no browser; it still asks `Chrome --version`
 at the door, for the entry's name. It is not part of
-`./test validate`; `./deploy --local` runs it after
-`./test postgres`.
+`./bin/test validate`; `./bin/deploy --local` runs it after
+`./bin/test postgres`.
 
 Three layers verify this product. Layer 1 is
-`./test validate`, run after the branch is squashed to
+`./bin/test validate`, run after the branch is squashed to
 one commit per feature and before the operator's merge.
 Each commit before that squash runs
-`./test validate --syntax`, which is `deno check
+`./bin/test validate --syntax`, which is `deno check
 --frozen` and records nothing in the SHA result cache.
 Layer 2 is
-`./test validate browser` — Layer 1 then `./test browser`
+`./bin/test validate browser` — Layer 1 then `./bin/test browser`
 — the operator's gate before `./bin/build`, a deploy, or
 a walk. Layer 3 is the serial walk
-(`./deploy --local 8080 --postgres mock-data`, then
+(`./bin/deploy --local 8080 --postgres mock-data`, then
 explorers through TEST-PLAN.md until every case has
 a scored line); it is exploration and
 gates nothing. The master relays a successor
@@ -359,7 +360,7 @@ only through a red test at Layer 1 or Layer 2: a
 product commit may cite a TEST-PLAN mitigation stub
 only when its `Reproduced by` names a red test.
 
-`./bin/measure` is not part of `./test validate`; it
+`./bin/measure` is not part of `./bin/test validate`; it
 needs Chrome. Full ceremony: `--record` + `--write-budgets`
 + `--runs 25` + `--visualize`. `--check` gates
 median readyMs against `measurements/budgets.json`.
@@ -395,9 +396,9 @@ plan (`<slug>.md`), and spec (`<slug>-design.md`).
 ./bin/worktree-add <slug>  # .worktrees/<slug>, branch <slug>
 cd .worktrees/<slug>
 git rebase master          # onto current master
-./test validate --syntax   # gate for each commit
+./bin/test validate --syntax # gate for each commit
 # squash to one commit per feature, local only, then:
-./test validate            # Layer 1
+./bin/test validate        # Layer 1
 ```
 
 When the operator asks to merge:
@@ -444,7 +445,7 @@ down the codebase-specific patterns the scripture itself
 cannot know:
 
 - **Voice rules.** 78-char max line in files
-  `./test lint` still lints, 4-space indent, no
+  `./bin/test lint` still lints, 4-space indent, no
   inline styles (use CSS custom properties + classes per
   DESIGN-SYSTEM.md), present-tense imperative
   commit messages, Co-Authored-By trailer.
@@ -473,7 +474,7 @@ skill, the patterns load via the prompt.
 
 Subagents work in the dispatching agent's worktree and never
 create their own — never pass the Agent tool `isolation`.
-Subagents never run `./deploy --render`. Merging is the
+Subagents never run `./bin/deploy --render`. Merging is the
 operator's to initiate, and the master session's to run
 when asked.
 
@@ -689,7 +690,7 @@ is — a green run is not evidence of a fence.
 
 The browser is what catches a stray `process` or `Deno.*`
 in client code now — a runtime `ReferenceError` that
-`./test browser` (Layer 2) and the walk (Layer 3) see
+`./bin/test browser` (Layer 2) and the walk (Layer 3) see
 only on a path they exercise. TODO.md carries the oracle
 for a gate that would restore the fence.
 
@@ -711,7 +712,7 @@ Deno ships a live Web Storage global whose store
 persists across processes, so assigning
 `globalThis.localStorage` is ignored.
 `tests/local-storage-stub.ts` installs the writable
-in-memory fake the tests then stub. `./test` loads it
+in-memory fake the tests then stub. `./bin/test` loads it
 as a `--preload`, not an import.
 
 ### Required env is never logged

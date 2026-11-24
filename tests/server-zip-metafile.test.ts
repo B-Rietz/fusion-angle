@@ -289,7 +289,7 @@ Deno.test('build --no-zip help names deploy', () => {
     );
     assertMatch(
         BUILD_SCRIPT,
-        /the fusion-angle executable — for \.\/deploy/,
+        /the fusion-angle executable — for \.\/bin\/deploy/,
     );
     assertNotMatch(
         BUILD_SCRIPT,

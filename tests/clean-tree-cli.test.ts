@@ -25,16 +25,16 @@ import {
 // stand-ins for every program they would run: each
 // stand-in notes its call, so "nothing ran" is a file
 // that was never made.
-const TEST = './test';
-const DEPLOY = './deploy';
+const TEST = './bin/test';
+const DEPLOY = './bin/deploy';
 const BUILD = './bin/build';
 const TEST_POSTGRES = './bin/test-postgres';
 const TEST_BROWSER = './bin/test-browser';
 
 // The five scripts and every library one of them sources.
 const SCRIPTS = [
-    'test',
-    'deploy',
+    'bin/test',
+    'bin/deploy',
     'bin/build',
     'bin/test-postgres',
     'bin/test-browser',
@@ -459,7 +459,7 @@ Deno.test('every reader of the tree asks for untracked files',
 // One rule, one place: the refusal is spelled in the
 // library alone, and no script reads the tree for itself.
 Deno.test('only the library refuses a dirty tree', () => {
-    const scripts = ['test', 'deploy'];
+    const scripts: string[] = [];
     for (const entry of Deno.readDirSync('bin')) {
         if (entry.isFile) {
             scripts.push(`bin/${entry.name}`);
@@ -490,7 +490,7 @@ Deno.test('only the library refuses a dirty tree', () => {
         ],
     );
     for (const path of [
-        'test', 'deploy', 'bin/build',
+        'bin/test', 'bin/deploy', 'bin/build',
         'bin/test-postgres', 'bin/test-browser',
     ]) {
         assertMatch(

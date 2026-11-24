@@ -9,9 +9,9 @@ is exploration, and nothing rides on its result.
 
 | Layer | Command | Standing |
 |---|---|---|
-| 1 | `./test validate` | Gate: before `--no-ff`, after one commit per feature. Per commit: `./test validate --syntax` |
-| 2 | `./test validate browser` | Gate: before a build, a deploy, or a walk; `./deploy --local` enforces it |
-| 3 | `./deploy --local 8080 --postgres mock-data` then the walk | Exploration |
+| 1 | `./bin/test validate` | Gate: before `--no-ff`, after one commit per feature. Per commit: `./bin/test validate --syntax` |
+| 2 | `./bin/test validate browser` | Gate: before a build, a deploy, or a walk; `./bin/deploy --local` enforces it |
+| 3 | `./bin/deploy --local 8080 --postgres mock-data` then the walk | Exploration |
 
 **A browser observation changes product only through a red
 test at Layer 1 or Layer 2.** The walk finds; the test
@@ -23,7 +23,7 @@ ruling is not evidence; the red test is.
 
 Use a fresh local Postgres via Docker. Do not set
 `POSTGRES_URL`, `JWT_HMAC_SIGNING_KEY`, or
-`PORT` by hand — `./deploy --local` mints them.
+`PORT` by hand — `./bin/deploy --local` mints them.
 
 The walk runs in the checkout under test. If another
 checkout holds 8080, deploy on a free port; every
@@ -46,13 +46,13 @@ not mid-walk.
 
 1. **A1** `./bin/build` from a clean tree, then **A2**
    inventory the artifact.
-2. **A3** `./deploy --local 8080 --postgres mock-data`.
-   Deploy runs Layer 1, `./test postgres` (AT4), and
-   `./test browser` (AT5) before it serves. Red
+2. **A3** `./bin/deploy --local 8080 --postgres mock-data`.
+   Deploy runs Layer 1, `./bin/test postgres` (AT4), and
+   `./bin/test browser` (AT5) before it serves. Red
    anywhere aborts the walk — no explorer is
    dispatched. Launch A3 as the harness's own
    background task. The task's command is
-   `./deploy --local 8080 --postgres mock-data`
+   `./bin/deploy --local 8080 --postgres mock-data`
    and nothing else: no `&`, `nohup`, `setsid`,
    `disown`, pid file, or wrapper that returns
    before deploy does. Read the seed reveal from
@@ -80,12 +80,12 @@ not mid-walk.
    checkpoint.
 5. Run **K8** (restart through owned deploy tasks —
    explorers have returned), then **J1–J3**. J1
-   stops the `./deploy` task K8's restore launched.
+   stops the `./bin/deploy` task K8's restore launched.
    Wait for `Removed` before any relaunch.
 
 The master does not drive the product and does not
 patch. The master does not invent deploy scripts;
-`./deploy --local` is the origin.
+`./bin/deploy --local` is the origin.
 
 ### Bookmark tags
 
@@ -548,7 +548,7 @@ plus F37a, F37b, F38a, F38b, F57a).
 
 The per-section table above counts 401 distinct
 TEST-PLAN cases (A3 is SV1; not counted twice). The
-CLI count is the most recent `./test` (AT2)
+CLI count is the most recent `./bin/test` (AT2)
 report — the main `tests/*.test.ts` suite plus the
 `tests/tz/*.test.ts` timezone suite; AT2 without
 `POSTGRES_URL` ignores 11 live-Postgres
@@ -574,22 +574,22 @@ outcome: it is the default `- [ ]`, not yet executed.
 
 ## AT. Automated Test Suite
 
-AT1–AT3 are Layer 1, the one `./test validate`
+AT1–AT3 are Layer 1, the one `./bin/test validate`
 deploy runs first. AT5 is Layer 2's browser
-suite. AT4 is `./test postgres`, which owns
+suite. AT4 is `./bin/test postgres`, which owns
 its own Docker Postgres, not the walk DB.
-Layer 3 runs all five through `./deploy --local`;
+Layer 3 runs all five through `./bin/deploy --local`;
 the walk never invokes them separately. Abort on
 any AT red.
 
 - [ ] **AT1** Run `deno check --frozen api client shared
   server tests web-app`. PASS: exits 0; no diagnostics emitted.
   Pin: exploratory — the command is its own witness
-- [ ] **AT2** Run `./test` (delegates to `TZ=UTC deno test --frozen --parallel --no-check --sanitize-ops --sanitize-resources tests/*.test.ts` for the main `Deno.test` suite, written against `@std/assert`, then `TZ=Pacific/Honolulu deno test --frozen --parallel --no-check --sanitize-ops --sanitize-resources tests/tz/*.test.ts` for the timezone suite; both carry the named permissions and four preloads — the HMAC key, the `localStorage` stub, the `sessionStorage` stub, the per-worker prefix on `BroadcastChannel` and `navigator.locks` names). PASS: exits 0; each pass reports `ok | N passed | 0 failed`, on 8 Oct `./test` printed `ok | 4152 passed | 0 failed | 11 ignored` for the main suite and `ok | 8 passed | 0 failed` for the timezone suite. The 11 ignored are the live-Postgres placeholders, which skip without `POSTGRES_URL`; AT4 runs the eleven files `bin/test-postgres` names: `tests/pg-acceptance.test.ts`, `tests/pg-races.test.ts`, `tests/pg-message-plane.test.ts`, `tests/pg-boot.test.ts`, `tests/pg-seed.test.ts`, `tests/pg-explain.test.ts`, `tests/pg-identifier-order.test.ts`, `tests/pg-standalone-read.test.ts`, `tests/schema-lifecycle.test.ts`, `tests/pg-ledger-store.test.ts`, and `tests/pg-ledger-seed.test.ts`.
+- [ ] **AT2** Run `./bin/test` (delegates to `TZ=UTC deno test --frozen --parallel --no-check --sanitize-ops --sanitize-resources tests/*.test.ts` for the main `Deno.test` suite, written against `@std/assert`, then `TZ=Pacific/Honolulu deno test --frozen --parallel --no-check --sanitize-ops --sanitize-resources tests/tz/*.test.ts` for the timezone suite; both carry the named permissions and four preloads — the HMAC key, the `localStorage` stub, the `sessionStorage` stub, the per-worker prefix on `BroadcastChannel` and `navigator.locks` names). PASS: exits 0; each pass reports `ok | N passed | 0 failed`, on 8 Oct `./bin/test` printed `ok | 4152 passed | 0 failed | 11 ignored` for the main suite and `ok | 8 passed | 0 failed` for the timezone suite. The 11 ignored are the live-Postgres placeholders, which skip without `POSTGRES_URL`; AT4 runs the eleven files `bin/test-postgres` names: `tests/pg-acceptance.test.ts`, `tests/pg-races.test.ts`, `tests/pg-message-plane.test.ts`, `tests/pg-boot.test.ts`, `tests/pg-seed.test.ts`, `tests/pg-explain.test.ts`, `tests/pg-identifier-order.test.ts`, `tests/pg-standalone-read.test.ts`, `tests/schema-lifecycle.test.ts`, `tests/pg-ledger-store.test.ts`, and `tests/pg-ledger-seed.test.ts`.
   Pin: exploratory — the command is its own witness
-- [ ] **AT3** Run `./test validate`. PASS: exits 0 (composes AT1's `deno check --frozen api client shared server tests web-app` and AT2 plus the 78-char awk lint over `api/`, `client/`, `web-app/`, `tests/`, `shared/`, `server/` `*.ts|html|css` with `compose.ts` exempt, and the root scripts `test`, `deploy`, plus `bin/build`, `bin/build-lib`, `bin/serve`, `bin/test-postgres`, `bin/test-browser`, `bin/generate-schema-svg`, `bin/generate-api-documentation`, `bin/measure`, `bin/postgres-wipe`, `bin/postgres-lib`, `bin/postgres-seed`, and `bin/compose-lib`, plus `deno.json`, `Dockerfile`, `compose.yaml`, `.dockerignore`; the org-abbreviation identifier lint over `api/`, `client/`, `web-app/`, `tests/`, `shared/`, `server/` `*.ts|html|css` with `compose.ts` exempt — reject `org` camel/Pascal/ORG_ identifier forms in favor of `organization`; then the `generate-schema-svg --check` SCHEMA.svg-drift gate; then `generate-api-documentation --check`, the API documentation drift gate (catalog, samples, grid)). Any long-line violation prints `FILE:LINE: N chars` to stderr and fails the script; any org-abbreviation hit prints `FILE:LINE:` and fails.
+- [ ] **AT3** Run `./bin/test validate`. PASS: exits 0 (composes AT1's `deno check --frozen api client shared server tests web-app` and AT2 plus the 78-char awk lint over `api/`, `client/`, `web-app/`, `tests/`, `shared/`, `server/` `*.ts|html|css` with `compose.ts` exempt, and the scripts `bin/test`, `bin/deploy`, plus `bin/build`, `bin/build-lib`, `bin/serve`, `bin/test-postgres`, `bin/test-browser`, `bin/generate-schema-svg`, `bin/generate-api-documentation`, `bin/measure`, `bin/postgres-wipe`, `bin/postgres-lib`, `bin/postgres-seed`, and `bin/compose-lib`, plus `deno.json`, `Dockerfile`, `compose.yaml`, `.dockerignore`; the org-abbreviation identifier lint over `api/`, `client/`, `web-app/`, `tests/`, `shared/`, `server/` `*.ts|html|css` with `compose.ts` exempt — reject `org` camel/Pascal/ORG_ identifier forms in favor of `organization`; then the `generate-schema-svg --check` SCHEMA.svg-drift gate; then `generate-api-documentation --check`, the API documentation drift gate (catalog, samples, grid)). Any long-line violation prints `FILE:LINE: N chars` to stderr and fails the script; any org-abbreviation hit prints `FILE:LINE:` and fails.
   Pin: exploratory — the command is its own witness
-- [ ] **AT4** Run `./test postgres`. It
+- [ ] **AT4** Run `./bin/test postgres`. It
   owns its own Docker Postgres, not the
   walk DB. The suite creates and drops
   its own `fusion_test_*` schema. PASS:
@@ -605,9 +605,9 @@ any AT red.
   `tests/pg-ledger-store.test.ts`, and
   `tests/pg-ledger-seed.test.ts`; on 4 Oct
   `ok | 112 passed | 0 failed`.
-  `./test validate` stays Postgres-free.
+  `./bin/test validate` stays Postgres-free.
   Pin: exploratory — the command is its own witness
-- [ ] **AT5** Run `./test browser`. It bundles the client with
+- [ ] **AT5** Run `./bin/test browser`. It bundles the client with
   `deno bundle` into `$TMPDIR` and runs `TZ=UTC deno
   test --frozen --no-check --sanitize-resources
   --allow-env --allow-read --allow-write --allow-net
@@ -620,7 +620,7 @@ any AT red.
   one CDP WebSocket per file in `Deno.test.beforeAll`,
   so its pending receive always crosses a test boundary.
   Needs Chrome (`CHROME` or `CHROME_DEBUG_URL`). PASS:
-  exits 0, `fail 0`. `./test validate browser` runs
+  exits 0, `fail 0`. `./bin/test validate browser` runs
   AT1–AT3 then AT5.
   Pin: exploratory — the command is its own witness
 
@@ -647,7 +647,7 @@ any AT red.
        `site/assets/styles.<hash>.css`, the fonts, and
        the generated samples under
        `site/api-documentation/samples/`
-- [ ] **A3** `./deploy --local 8080 --postgres
+- [ ] **A3** `./bin/deploy --local 8080 --postgres
   mock-data`. Deploy validates, mints secrets,
   starts compose postgres and server, wipes,
   seeds, and listens. Empty is the wipe step,
@@ -6863,7 +6863,7 @@ document order with the rest of this section.
 - [ ] **K8** Empty state: stop the A3 task with the
   harness-native task stop. Wait for its output to
   show the server, postgres, and network `Removed`.
-  Launch `./deploy --local 8080 --postgres bootstrap`
+  Launch `./bin/deploy --local 8080 --postgres bootstrap`
   as a new owned task, under step 2's rules. Sign in
   with the one admin line from its seed reveal. Open
   Organization. PASS: the empty-state copy "No
@@ -6871,7 +6871,7 @@ document order with the rest of this section.
   (bootstrap seeds org 1 with no objectives).
   Restore the mock garden: harness-stop that task,
   wait for `Removed` in the same way, then launch
-  `./deploy --local 8080 --postgres mock-data` as the
+  `./bin/deploy --local 8080 --postgres mock-data` as the
   next owned task and record its id. This is the one
   case that seeds `--bootstrap` rather than
   `--mock-data`; do not skip it. A K8 stop that
@@ -7687,7 +7687,7 @@ K30 only describes.
 J1–J3 are the master's: `## The walk` step 5 runs
 them after K8, once the explorer has returned.
 
-- [ ] **J1** Stop the live `./deploy` task (K8's
+- [ ] **J1** Stop the live `./bin/deploy` task (K8's
   restore, or A3's when K8 did not run) with the
   harness-native task stop. No shell signal of any
   kind. PASS: the harness reports the task stopped,
@@ -7932,10 +7932,10 @@ Build SHA: <git rev-parse --short HEAD>  (clean | dirty: N files)
 
 ## Automated (AT)
 - AT1 tsc: PASS (0 diagnostics)
-- AT2 ./test: PASS (N/N, 0 fail, Xs)
-- AT3 ./test validate: PASS (lint clean)
-- AT4 ./test postgres: PASS (0 fail)
-- AT5 ./test browser: PASS (0 fail)
+- AT2 ./bin/test: PASS (N/N, 0 fail, Xs)
+- AT3 ./bin/test validate: PASS (lint clean)
+- AT4 ./bin/test postgres: PASS (0 fail)
+- AT5 ./bin/test browser: PASS (0 fail)
 
 ## Manual Browser Regression
 Total: <N> cases — PASS X · FAIL Y · BLOCKED Z · DEFERRED D · DRIFT R

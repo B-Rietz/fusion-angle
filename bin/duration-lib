@@ -6,7 +6,7 @@
 # Run COMMAND as one timed step, append its sample to the
 # duration ledger, and say how a green run compares with
 # its recent ones. LABEL is the tool and the words
-# that fix its work, such as './test memory'. It is never
+# that fix its work, such as './bin/test memory'. It is never
 # "$@": an argument can be a secret, and a port or a
 # destination does not change the work.
 #

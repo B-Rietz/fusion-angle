@@ -3,27 +3,28 @@ set -euo pipefail
 
 usage() {
     cat <<'USAGE'
-Usage: ./test [memory]
-       ./test check
-       ./test lint
-       ./test schema
-       ./test api-docs
-       ./test postgres
-       ./test browser
-       ./test validate [--syntax]
-       ./test validate browser
-       ./test validate postgres
+Usage: ./bin/test [memory]
+       ./bin/test check
+       ./bin/test lint
+       ./bin/test schema
+       ./bin/test api-docs
+       ./bin/test postgres
+       ./bin/test browser
+       ./bin/test validate [--syntax]
+       ./bin/test validate browser
+       ./bin/test validate postgres
 USAGE
 }
 
-ROOT="$(cd "$(dirname "$0")" && pwd)"
+BIN="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "$BIN/.." && pwd)"
 cd "$ROOT"
-# shellcheck source=bin/clean-tree-lib
-. "$ROOT/bin/clean-tree-lib"
-# shellcheck source=bin/sha-result-cache-lib
-. "$ROOT/bin/sha-result-cache-lib"
-# shellcheck source=bin/duration-lib
-. "$ROOT/bin/duration-lib"
+# shellcheck source=clean-tree-lib
+. "$BIN/clean-tree-lib"
+# shellcheck source=sha-result-cache-lib
+. "$BIN/sha-result-cache-lib"
+# shellcheck source=duration-lib
+. "$BIN/duration-lib"
 
 # Instants render in LOCAL time, so date-formatting
 # output shifts with the runner's zone — a false prophet
@@ -33,7 +34,7 @@ cd "$ROOT"
 # (Honolulu, UTC-10, no DST). The tests/*.test.ts glob
 # is non-recursive, so it excludes tests/tz/.
 #
-# --no-check: deno check covers tests/ in ./test check;
+# --no-check: deno check covers tests/ in ./bin/test check;
 # checking again at run time buys nothing.
 # Permissions, named: env (signing key, TZ, POSTGRES_URL
 # skips), read (fixtures, scripts, source walkers),
@@ -65,7 +66,7 @@ run_memory() {
     fi
     JWT_HMAC_SIGNING_KEY="${JWT_HMAC_SIGNING_KEY:-test-hmac-signing-key}"
     export JWT_HMAC_SIGNING_KEY
-    ALLOW_RUN=deno,./bin/serve,./deploy,sh,./test,git
+    ALLOW_RUN=deno,./bin/serve,./bin/deploy,sh,./bin/test,git
     ALLOW_RUN="$ALLOW_RUN,./bin/postgres-wipe"
     ALLOW_RUN="$ALLOW_RUN,./bin/postgres-seed"
     ALLOW_RUN="$ALLOW_RUN,./bin/measure"
@@ -104,7 +105,7 @@ run_lint() {
                -o -name '*.css' \) \
             ! -path 'web-app/app/compose.ts' \
             -exec awk "$AWK_LINT" {} +
-        awk "$AWK_LINT" test deploy \
+        awk "$AWK_LINT" bin/test bin/deploy \
             bin/build bin/build-lib bin/serve \
             bin/develop \
             bin/test-postgres bin/test-browser \
@@ -287,25 +288,25 @@ run_api_docs() {
 # stands.
 replay_or_run_memory() {
     if [ -n "${POSTGRES_URL:-}" ]; then
-        timed './test memory' run_memory
+        timed './bin/test memory' run_memory
     else
-        replay_or_run memory -- timed './test memory' run_memory
+        replay_or_run memory -- timed './bin/test memory' run_memory
     fi
 }
 
 replay_or_run_lint() {
-    replay_or_run lint -- timed './test lint' run_lint
+    replay_or_run lint -- timed './bin/test lint' run_lint
 }
 
 replay_or_run_api_docs() {
-    replay_or_run api-docs -- timed './test api-docs' run_api_docs
+    replay_or_run api-docs -- timed './bin/test api-docs' run_api_docs
 }
 
 run_validate() {
-    timed './test check' run_check
+    timed './bin/test check' run_check
     replay_or_run_memory
     replay_or_run_lint
-    timed './test schema' run_schema
+    timed './bin/test schema' run_schema
     replay_or_run_api_docs
 }
 
@@ -337,12 +338,12 @@ case "${1:-memory}" in
         fi
         require_clean_tree
         case "$1" in
-            check) timed './test check' run_check ;;
+            check) timed './bin/test check' run_check ;;
             lint) replay_or_run_lint ;;
-            schema) timed './test schema' run_schema ;;
+            schema) timed './bin/test schema' run_schema ;;
             api-docs) replay_or_run_api_docs ;;
-            postgres) exec "$ROOT/bin/test-postgres" ;;
-            browser) exec "$ROOT/bin/test-browser" ;;
+            postgres) exec "$BIN/test-postgres" ;;
+            browser) exec "$BIN/test-browser" ;;
         esac
         ;;
     validate)
@@ -354,15 +355,15 @@ case "${1:-memory}" in
             # Check only: it asks nothing of the
             # result cache and records nothing in it.
             require_clean_tree
-            timed './test check' run_check
+            timed './bin/test check' run_check
         elif [ $# -eq 1 ] && [ "$1" = "browser" ]; then
             require_clean_tree
             run_validate
-            exec "$ROOT/bin/test-browser"
+            exec "$BIN/test-browser"
         elif [ $# -eq 1 ] && [ "$1" = "postgres" ]; then
             require_clean_tree
             run_validate
-            exec "$ROOT/bin/test-postgres"
+            exec "$BIN/test-postgres"
         else
             echo "Error: unknown suite" >&2
             usage >&2

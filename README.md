@@ -11,7 +11,7 @@ Production is always https://fusionangle.com.
 `www.` hosts redirect (301) to their apex. The Render
 `onrender.com` subdomain is blocked and answers 404 on
 every path; never use it as the production origin.
-`./deploy --render` probes these hosts after a deploy.
+`./bin/deploy --render` probes these hosts after a deploy.
 
 ## Modules
 
@@ -51,11 +51,11 @@ git clone <repo-url>
 cd fusion-angle
 ```
 
-[Deno](https://deno.com) 2.9.8 runs `./test`,
-`./test validate`, `./bin/build`, `./test browser`,
+[Deno](https://deno.com) 2.9.8 runs `./bin/test`,
+`./bin/test validate`, `./bin/build`, `./bin/test browser`,
 `./bin/measure`, and both generators, resolving its
 own dependencies from `deno.json` and `deno.lock`.
-`./deploy` composes the walk origin, and
+`./bin/deploy` composes the walk origin, and
 `./bin/serve` execs the `deno compile` binary;
 neither calls `deno` itself.
 

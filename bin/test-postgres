@@ -57,4 +57,4 @@ postgres_suite() {
 # teardown are all inside the step: a replay needs none
 # of them. The timer is inside the ask, so a replay is
 # never a sample.
-replay_or_run postgres -- timed './test postgres' postgres_suite
+replay_or_run postgres -- timed './bin/test postgres' postgres_suite

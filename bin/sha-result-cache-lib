@@ -45,7 +45,7 @@
 # at the top of its script.
 #
 # Each script that does a step's work asks at its own
-# door: test for the steps it runs itself, and
+# door: bin/test for the steps it runs itself, and
 # bin/test-postgres, bin/test-browser, and bin/build for
 # theirs.
 #

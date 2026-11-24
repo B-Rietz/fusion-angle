@@ -9,7 +9,7 @@ Options:
   path/      Output directory (trailing / required)
              Default: ~/Desktop/
   --no-zip   Create bundle directory without zipping
-             (the fusion-angle executable — for ./deploy)
+             (the fusion-angle executable — for ./bin/deploy)
   --help     Show this help message
 
 Examples:

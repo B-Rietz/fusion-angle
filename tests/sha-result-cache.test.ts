@@ -1056,9 +1056,9 @@ function samplesIn(ledger: string): DurationSample[] {
 const DURATION_LINE = /^duration: /gm;
 
 // Where the test command lives in this checkout.
-const TEST = 'test';
+const TEST = 'bin/test';
 
-// The real `test` script and the real libraries, copied
+// The real `bin/test` script and the real libraries, copied
 // into a repository of their own beside stand-ins for
 // what the script runs: a `deno` that answers
 // `--version`, notes each other call with its TZ, and
@@ -1230,7 +1230,7 @@ async () => {
         assertStrictEquals(first.status, 0);
         assertNotMatch(first.stderr, REPLAYING);
         assertMatch(
-            first.stderr, /^duration: \.\/test memory took /m,
+            first.stderr, /^duration: \.\/bin\/test memory took /m,
         );
         assertStrictEquals(
             first.stderr.match(DURATION_LINE)?.length, 1,
@@ -1243,7 +1243,7 @@ async () => {
                 sample.exitStatus,
                 sample.tree,
             ]),
-            [['./test', ['memory'], 0, 'clean']],
+            [['./bin/test', ['memory'], 0, 'clean']],
         );
 
         const replay = await run([], timed);
@@ -1492,20 +1492,20 @@ async () => {
         const red = await run({ ...timed, FILES_STATUS: '5' });
         assertStrictEquals(red.status, 5);
         assertNotMatch(red.stderr, /duration/i);
-        assertEquals(taken(), [['./test', ['browser'], 5]]);
+        assertEquals(taken(), [['./bin/test', ['browser'], 5]]);
         assertEquals(entries(scene), []);
 
         const green = await run(timed);
         assertStrictEquals(green.status, 0);
         assertMatch(
-            green.stderr, /^duration: \.\/test browser took /m,
+            green.stderr, /^duration: \.\/bin\/test browser took /m,
         );
         assertStrictEquals(
             green.stderr.match(DURATION_LINE)?.length, 1,
         );
         assertEquals(taken(), [
-            ['./test', ['browser'], 5],
-            ['./test', ['browser'], 0],
+            ['./bin/test', ['browser'], 5],
+            ['./bin/test', ['browser'], 0],
         ]);
 
         const replay = await run(timed);
