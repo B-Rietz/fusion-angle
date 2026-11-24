@@ -247,13 +247,12 @@ where a real ledger would take a stand-in's instant
 pass for the step's recent duration.
 `tests/sha-result-cache-isolation.test.ts` pins both.
 
-Run for real on master's `873c89b4b`, before the SHA
-result cache's tests were added, `./test` took about
-53 s on its four workers with the sanitizers on, and
-`./test validate` about 58 s: ten consecutive runs at
-53.0–54.2 s on a quiet 16-core machine, measured
-2026-11-23. Both take longer now, by tests that spawn
-real scripts. `--no-check`
+Run for real, `./test` takes about 60 s on its four
+workers with the sanitizers on, `./test validate` about
+66 s, `./test browser` about 72 s, and `./test postgres`
+about 13 s: one run each on a quiet 16-core machine,
+measured 2026-11-23. A repeat on the same clean SHA
+replays in under half a second. `--no-check`
 costs nothing: `deno check` has already covered
 `tests/`. `./test postgres` carries the same two
 sanitizer flags; `./test browser` carries
