@@ -5,6 +5,7 @@ import {
 } from '@std/assert';
 import { existsSync } from '@std/fs';
 import { join } from '@std/path';
+import { scratchDirectories } from './fixtures/scratch-directory.ts';
 
 type GunResult = {
     readonly status: number;
@@ -14,13 +15,16 @@ type GunResult = {
     readonly renderStamp: string;
 };
 
+// Every directory this file makes, for a stand-in, a
+// stamp, or a home, is one of its own, under the file's
+// (tests/fixtures/scratch-directory.ts).
+const scratchDirectory = scratchDirectories('fusion-postgres-gun-cli-');
+
 function pathWithStubs(
     dockerStamp: string,
     renderStamp: string,
 ): string {
-    const dir = Deno.makeTempDirSync({
-        prefix: 'fusion-gun-stub-',
-    });
+    const dir = scratchDirectory();
     Deno.writeTextFileSync(
         join(dir, 'docker'),
         '#!/bin/bash\n'
@@ -51,18 +55,8 @@ async function runGun(
     args: string[],
     home?: string,
 ): Promise<GunResult> {
-    const dockerStamp = join(
-        Deno.makeTempDirSync({
-            prefix: 'fusion-docker-stamp-',
-        }),
-        'called',
-    );
-    const renderStamp = join(
-        Deno.makeTempDirSync({
-            prefix: 'fusion-render-stamp-',
-        }),
-        'called',
-    );
+    const dockerStamp = join(scratchDirectory(), 'called');
+    const renderStamp = join(scratchDirectory(), 'called');
     // POSTGRES_URL and JWT_HMAC_SIGNING_KEY are
     // blanked deliberately: ./bin/test exports the
     // latter ambiently, and a merge would leak it.
@@ -259,9 +253,7 @@ Deno.test('gun source render path is the CLI',
 // The installed render CLI (v2.26.0) writes
 // expires_at as epoch seconds, not RFC-3339.
 function homeWithSession(expiresAt: string): string {
-    const home = Deno.makeTempDirSync({
-        prefix: 'fusion-render-home-',
-    });
+    const home = scratchDirectory();
     Deno.mkdirSync(join(home, '.render'));
     Deno.writeTextFileSync(
         join(home, '.render', 'cli.yaml'),

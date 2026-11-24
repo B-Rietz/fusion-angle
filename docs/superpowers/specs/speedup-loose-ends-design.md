@@ -69,6 +69,14 @@ can skip a removal, or for a file not yet written.
   holds. Four files make it a pattern, so it moves into
   one fixture, `tests/fixtures/scratch-directory.ts`, and
   the timer's test takes it too.
+- **A replica's script gets the test's own `TMPDIR`.**
+  `runInReplica` (`tests/fixtures/script-replica.ts`)
+  clears the environment, so a script it runs fell back
+  to `/tmp`, every user's and closed inside the agent
+  sandbox, where `./bin/test memory` now makes its run's
+  directory. The replica hands it the test's own
+  directory, removed with it, unless the case names
+  another.
 
 ### Proof
 

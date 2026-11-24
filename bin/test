@@ -55,6 +55,16 @@ cd "$ROOT"
 # refused: deno would read it as one worker and say
 # nothing. The count goes to the two passes alone, never
 # exported to the steps and suites that follow them.
+#
+# Temp files: one directory holds the run's, made in the
+# TMPDIR it was given and handed to both passes as their
+# TMPDIR, so whatever a test, or a script a test spawns,
+# leaves in its temp directory goes with the run, green or
+# red. It is made inside the step, so a replay makes none.
+# Its EXIT trap is set here, in the subshell `timed` runs
+# this in, as the browser suite's step sets its own: no
+# shell above an ask of the result cache ever holds one
+# (bin/sha-result-cache-lib).
 MEMORY_SUITE_WORKERS=4
 
 run_memory() {
@@ -84,9 +94,12 @@ run_memory() {
         --preload ./tests/session-storage-stub.ts
         --preload ./tests/worker-name-prefix.ts
     )
-    DENO_JOBS="$workers" TZ=UTC "${DENO_TEST[@]}" --parallel \
-        tests/*.test.ts
-    DENO_JOBS="$workers" TZ=Pacific/Honolulu \
+    RUN_TMPDIR="$(mktemp -d "${TMPDIR:-/tmp}/fusion-memory.XXXXXX")"
+    trap 'rm -rf "$RUN_TMPDIR"' EXIT
+    DENO_JOBS="$workers" TMPDIR="$RUN_TMPDIR" TZ=UTC \
+        "${DENO_TEST[@]}" --parallel tests/*.test.ts
+    DENO_JOBS="$workers" TMPDIR="$RUN_TMPDIR" \
+        TZ=Pacific/Honolulu \
         "${DENO_TEST[@]}" --parallel tests/tz/*.test.ts
 }
 

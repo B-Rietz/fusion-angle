@@ -189,7 +189,10 @@ export async function commitAll(
 // what is named here and in ENV. The result cache is
 // handed /dev/null for its root and the timer /dev/null
 // for its ledger unless ENV names one of the test's own
-// (tests/sha-result-cache-isolation.test.ts).
+// (tests/sha-result-cache-isolation.test.ts). Its TMPDIR
+// is the test's directory unless ENV names another: what
+// a script makes there goes with the directory, and the
+// default it would fall back to, /tmp, is every user's.
 export async function runInReplica(
     repository: Repository,
     script: string,
@@ -204,6 +207,7 @@ export async function runInReplica(
             PATH: searchPath(),
             SHA_RESULT_CACHE_ROOT: '/dev/null',
             TOOL_DURATIONS_PATH: '/dev/null',
+            TMPDIR: repository.dir,
             GIT_CEILING_DIRECTORIES: repository.dir,
             ...HERMETIC_GIT,
             ...env,

@@ -18,6 +18,7 @@ import {
     runInReplica,
     withRepository,
 } from './fixtures/script-replica.ts';
+import { scratchDirectories } from './fixtures/scratch-directory.ts';
 
 // Where the test command lives in this checkout.
 const TEST = 'bin/test';
@@ -35,23 +36,9 @@ type Spawned = {
 };
 
 // Every ledger and every stand-in directory this file
-// makes lives under one directory of its own, made before
-// the first test and removed after the last. A test that
-// fails or throws leaves what it made there, and the
-// directory goes all the same: nothing of this file's
-// outlives the file.
-let home = '';
-Deno.test.beforeAll(() => {
-    home = Deno.makeTempDirSync({ prefix: 'tool-durations-' });
-});
-Deno.test.afterAll(() => {
-    Deno.removeSync(home, { recursive: true });
-});
-
-// A directory of one test's own, under the file's.
-function scratchDirectory(): string {
-    return Deno.makeTempDirSync({ dir: home });
-}
+// makes is a directory of one test's own, under the
+// file's (tests/fixtures/scratch-directory.ts).
+const scratchDirectory = scratchDirectories('tool-durations-');
 
 function freshLedgerPath(): string {
     return join(scratchDirectory(), 'tool-durations.jsonl');
