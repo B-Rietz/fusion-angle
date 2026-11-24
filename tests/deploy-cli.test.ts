@@ -6,6 +6,7 @@ import {
 } from '@std/assert';
 import { existsSync } from '@std/fs';
 import { join } from '@std/path';
+import { scratchDirectories } from './fixtures/scratch-directory.ts';
 import { isIdentifier } from
     '../shared/identifier.ts';
 
@@ -16,10 +17,13 @@ type DeployResult = {
     readonly stamp: string;
 };
 
+// Every directory this file makes, for a stand-in or a
+// stamp, is one of its own, under the file's
+// (tests/fixtures/scratch-directory.ts).
+const scratchDirectory = scratchDirectories('fusion-deploy-cli-');
+
 function pathWithDockerStub(stamp: string): string {
-    const dir = Deno.makeTempDirSync({
-        prefix: 'fusion-docker-stub-',
-    });
+    const dir = scratchDirectory();
     Deno.writeTextFileSync(
         join(dir, 'docker'),
         '#!/bin/bash\n'
@@ -36,10 +40,7 @@ function pathWithDockerStub(stamp: string): string {
 async function runDeploy(
     args: string[],
 ): Promise<DeployResult> {
-    const stamp = join(
-        Deno.makeTempDirSync({ prefix: 'fusion-stamp-' }),
-        'called',
-    );
+    const stamp = join(scratchDirectory(), 'called');
     // signal only bounds the async output() — the
     // sync outputSync() ignores it and blocks
     // regardless.

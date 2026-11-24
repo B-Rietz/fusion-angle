@@ -6,7 +6,8 @@ import {
     assertStrictEquals,
     assertStringIncludes,
 } from '@std/assert';
-import { join } from '@std/path';
+import { existsSync } from '@std/fs';
+import { dirname, join } from '@std/path';
 import {
     commitAll,
     copyFromCheckout,
@@ -193,6 +194,89 @@ async () => {
         'unset serial unset run',
         'unset serial unset run',
     ]);
+});
+
+type TempRun = {
+    readonly status: number;
+    readonly stderr: string;
+    // The TMPDIR the run was given.
+    readonly given: string;
+    // The TMPDIR each of the stand-in's test calls saw.
+    readonly seen: readonly string[];
+    // Those of them still there after the run.
+    readonly remaining: readonly string[];
+    // What the TMPDIR the run was given holds after it.
+    readonly left: readonly string[];
+};
+
+// The memory suite in a replica, handed a TMPDIR of the
+// test's own, with a stand-in `deno` that leaves a
+// directory in whatever TMPDIR it is handed, as a test or
+// a script it spawns can, and exits STATUS.
+async function memoryRunTemp(status: number): Promise<TempRun> {
+    const results: TempRun[] = [];
+    await withRepository(async (repository) => {
+        const stubs = join(repository.dir, 'stubs');
+        const given = join(repository.dir, 'tmp');
+        const log = join(repository.dir, 'tmpdirs.log');
+        await Deno.mkdir(stubs);
+        await Deno.mkdir(given);
+        Deno.writeTextFileSync(
+            join(stubs, 'deno'),
+            '#!/bin/bash\n'
+            + 'mktemp -d "$TMPDIR/left-behind.XXXXXX" > /dev/null'
+            + ' || exit 2\n'
+            + `printf '%s\\n' "$TMPDIR" >> "${log}"\n`
+            + `exit ${status}\n`,
+            { mode: 0o755 },
+        );
+        Deno.writeTextFileSync(log, '');
+        copyFromCheckout(
+            repository.repo, [TEST, ...GATE_LIBRARIES],
+        );
+        await commitAll(repository.repo, 'The test script');
+        const run = await runInReplica(
+            repository, `./${TEST}`, ['memory'],
+            { PATH: `${stubs}:${searchPath()}`, TMPDIR: given },
+        );
+        const logText = Deno.readTextFileSync(log);
+        const seen = logText === ''
+            ? []
+            : logText.trimEnd().split('\n');
+        results.push({
+            status: run.status,
+            stderr: run.stderr,
+            given,
+            seen,
+            remaining: seen.filter((dir) => existsSync(dir)),
+            left: [...Deno.readDirSync(given)]
+                .map((entry) => entry.name),
+        });
+    });
+    return results[0]!;
+}
+
+// A test that leaves a temp directory, or a script it
+// spawns, leaves it in a directory the run made in its
+// TMPDIR, one for both passes, and the run removes that
+// directory as it ends, green or red: the TMPDIR it was
+// given holds nothing, and no pass's TMPDIR is left.
+Deno.test('test memory leaves nothing in its TMPDIR',
+async () => {
+    const green = await memoryRunTemp(0);
+    assertStrictEquals(green.status, 0, green.stderr);
+    assertStrictEquals(green.seen.length, 2);
+    assertStrictEquals(green.seen[0], green.seen[1]);
+    const red = await memoryRunTemp(1);
+    assertStrictEquals(red.status, 1, red.stderr);
+    assertStrictEquals(red.seen.length, 1);
+    for (const run of [green, red]) {
+        for (const dir of run.seen) {
+            assertStrictEquals(dirname(dir), run.given);
+        }
+        assertEquals(run.remaining, []);
+        assertEquals(run.left, []);
+    }
 });
 
 Deno.test('test unknown suite exits 1 with usage',

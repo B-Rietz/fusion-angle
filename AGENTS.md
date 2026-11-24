@@ -210,6 +210,16 @@ that cannot answer is refused too. `./bin/build` asks
 only where there is a repository, since an image build
 may hold none. `./bin/measure` asks in its own program.
 
+The two passes share a temp directory of the run's own:
+`run_memory` makes `fusion-memory.XXXXXX` in the
+`TMPDIR` it was given, hands it to both as `TMPDIR`, and
+removes it as the step ends, green or red, so nothing a
+test, or a script a test spawns, leaves in its temp
+directory outlives the run (`tests/test-cli.test.ts`).
+One file run alone under `deno test` has no such
+directory, so a test file removes what it makes itself:
+`tests/fixtures/scratch-directory.ts` is the way.
+
 The image build context drops no tracked file. A build
 from the main checkout carries `.git` into the image,
 where a tracked file `.dockerignore` had dropped reads as
@@ -541,10 +551,12 @@ when asked.
   `api-documentation-pane.ts` (the API documentation's
   message pane at the side-by-side width, which the
   pane-height test derives from and the browser
-  checks), and `script-replica.ts` (a repository of a
+  checks), `script-replica.ts` (a repository of a
   test's own that holds the scripts as the working tree
   has them, committed, for the scripts that refuse a
-  dirty tree);
+  dirty tree), and `scratch-directory.ts` (directories
+  of a test file's own, under one made before its first
+  test and removed after its last);
   `client-init.ts` (the test composition
   root) and `in-page-facade.ts` (the in-process
   transport)

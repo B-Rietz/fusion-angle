@@ -82,7 +82,7 @@ import {
     RECORD_TYPE_DETAIL_PATTERN,
 } from '../family-registry.ts';
 import {
-    MOCK_SEED_INVITATION_EXPIRES_AT,
+    MOCK_SEED_INVITATION_LIFETIME_DAYS,
     MOCK_SEED_TIMESTAMP,
     STARK_ORGANIZATION,
     ORGANIZATION_TWO,
@@ -2180,8 +2180,10 @@ export function formInvitationSeedInput(
         + '/invitations/';
     const body = {
         email: buildUnaffiliatedIdentity().email,
-        at: MOCK_SEED_TIMESTAMP,
-        expiresAt: MOCK_SEED_INVITATION_EXPIRES_AT,
+        at: daysFromNow(0, 0, 0),
+        expiresAt: daysFromNow(
+            MOCK_SEED_INVITATION_LIFETIME_DAYS, 0, 0,
+        ),
     };
     const model = buildRequestModel({
         method: 'POST',

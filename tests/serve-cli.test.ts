@@ -1,6 +1,7 @@
 import { assertMatch, assertNotMatch, assertStrictEquals } from '@std/assert';
 import { existsSync } from '@std/fs';
 import { join } from '@std/path';
+import { scratchDirectories } from './fixtures/scratch-directory.ts';
 
 type ServeResult = {
     readonly status: number;
@@ -9,10 +10,13 @@ type ServeResult = {
     readonly stamp: string;
 };
 
+// Every directory this file makes, for a stand-in or a
+// stamp, is one of its own, under the file's
+// (tests/fixtures/scratch-directory.ts).
+const scratchDirectory = scratchDirectories('fusion-serve-cli-');
+
 function pathWithDockerStub(stamp: string): string {
-    const dir = Deno.makeTempDirSync({
-        prefix: 'fusion-docker-stub-',
-    });
+    const dir = scratchDirectory();
     Deno.writeTextFileSync(
         join(dir, 'docker'),
         '#!/bin/bash\n'
@@ -30,10 +34,7 @@ async function runServe(
     args: string[],
     extraEnv: Record<string, string> = {},
 ): Promise<ServeResult> {
-    const stamp = join(
-        Deno.makeTempDirSync({ prefix: 'fusion-stamp-' }),
-        'called',
-    );
+    const stamp = join(scratchDirectory(), 'called');
     // POSTGRES_URL and JWT_HMAC_SIGNING_KEY are blanked
     // deliberately: ./bin/test exports the latter ambiently,
     // and a merge (unlike Node's env-replace) would

@@ -548,23 +548,18 @@ plus F37a, F37b, F38a, F38b, F57a).
 
 The per-section table above counts 401 distinct
 TEST-PLAN cases (A3 is SV1; not counted twice). The
-CLI count is the most recent `./bin/test` (AT2)
-report — the main `tests/*.test.ts` suite plus the
-`tests/tz/*.test.ts` timezone suite; AT2 without
-`POSTGRES_URL` ignores 11 live-Postgres
-placeholders, and AT4 runs the eleven files
-`tests/pg-acceptance.test.ts`, `tests/pg-races.test.ts`,
-`tests/pg-message-plane.test.ts`,
-`tests/pg-boot.test.ts`, `tests/pg-seed.test.ts`,
-`tests/pg-explain.test.ts`,
-`tests/pg-identifier-order.test.ts`,
-`tests/pg-standalone-read.test.ts`,
-`tests/schema-lifecycle.test.ts`,
-`tests/pg-ledger-store.test.ts`, and
-`tests/pg-ledger-seed.test.ts` against its own Postgres. The number grows as
-tests land in either
-glob and is not pinned here. Update the case count
-when a case is added or removed.
+CLI count is what the most recent `./bin/test` (AT2)
+printed: the summary line of each of its two passes,
+the main `tests/*.test.ts` suite and the
+`tests/tz/*.test.ts` timezone suite. Without
+`POSTGRES_URL` the main suite ignores one live-Postgres
+placeholder in each file `bin/test-postgres` names, and
+AT4 runs those files against its own Postgres; read
+their list there. The browser count is the summary line
+`./bin/test browser` (AT5) printed. No count is pinned
+here: each grows as tests land, so read it from the
+run. Update the case count when a case is added or
+removed.
 
 The five outcomes are defined once, in `## The walk`'s
 `### Scoring`. `pending` is the sixth and is not an
@@ -582,46 +577,118 @@ Layer 3 runs all five through `./bin/deploy --local`;
 the walk never invokes them separately. Abort on
 any AT red.
 
+Every form of `./bin/test` and `./bin/deploy` refuses a
+working tree that is not clean before it runs anything
+(only `--help` and a usage error answer on any tree), so
+AT2 to AT5 run on a committed SHA. AT1 as written is a
+bare `deno check`, which asks nothing of the tree;
+`./bin/test check` is its form that refuses one. A step
+that passed on a clean SHA does not run again for that
+SHA: AT2, AT3's lint and API documentation check, AT4,
+and AT5 replay what they printed, between
+`sha-result-cache: replaying <step>, which passed at
+<time> on <sha>` and `sha-result-cache: replayed <step>;
+nothing ran` on stderr. AT1 and AT3's schema check
+always run. The master session's ruling, on the
+operator's behalf: a replay of a pass recorded on the
+same clean SHA is that SHA's result, and the entry
+passes. To run an entry for real, remove that SHA's
+directory under the cache root,
+`/tmp/fusion-angle-sha-result-cache/<sha>` or the same
+under `SHA_RESULT_CACHE_ROOT`.
+
 - [ ] **AT1** Run `deno check --frozen api client shared
   server tests web-app`. PASS: exits 0; no diagnostics emitted.
   Pin: exploratory — the command is its own witness
-- [ ] **AT2** Run `./bin/test` (delegates to `TZ=UTC deno test --frozen --parallel --no-check --sanitize-ops --sanitize-resources tests/*.test.ts` for the main `Deno.test` suite, written against `@std/assert`, then `TZ=Pacific/Honolulu deno test --frozen --parallel --no-check --sanitize-ops --sanitize-resources tests/tz/*.test.ts` for the timezone suite; both carry the named permissions and four preloads — the HMAC key, the `localStorage` stub, the `sessionStorage` stub, the per-worker prefix on `BroadcastChannel` and `navigator.locks` names). PASS: exits 0; each pass reports `ok | N passed | 0 failed`, on 8 Oct `./bin/test` printed `ok | 4152 passed | 0 failed | 11 ignored` for the main suite and `ok | 8 passed | 0 failed` for the timezone suite. The 11 ignored are the live-Postgres placeholders, which skip without `POSTGRES_URL`; AT4 runs the eleven files `bin/test-postgres` names: `tests/pg-acceptance.test.ts`, `tests/pg-races.test.ts`, `tests/pg-message-plane.test.ts`, `tests/pg-boot.test.ts`, `tests/pg-seed.test.ts`, `tests/pg-explain.test.ts`, `tests/pg-identifier-order.test.ts`, `tests/pg-standalone-read.test.ts`, `tests/schema-lifecycle.test.ts`, `tests/pg-ledger-store.test.ts`, and `tests/pg-ledger-seed.test.ts`.
+- [ ] **AT2** Run `./bin/test`. It runs the main
+  `Deno.test` suite, written against `@std/assert`, as
+  `TZ=UTC deno test --frozen --no-check --sanitize-ops
+  --sanitize-resources` with the named permissions
+  (`--allow-run` names each program a test spawns) and
+  four preloads — the HMAC key, the `localStorage` stub,
+  the `sessionStorage` stub, the per-worker prefix on
+  `BroadcastChannel` and `navigator.locks` names — then
+  `--parallel tests/*.test.ts`; then the timezone suite,
+  the same command under `TZ=Pacific/Honolulu` on
+  `tests/tz/*.test.ts`. Each pass runs four files at a
+  time unless `DENO_JOBS` names another positive count,
+  and both run under a `TMPDIR` of the run's own,
+  `fusion-memory.XXXXXX`, which the run removes as it
+  ends. PASS: exits 0, and each pass's summary line
+  reads `ok | N passed | 0 failed`, the main suite's
+  with `| M ignored`: the live-Postgres placeholders,
+  one in each file `bin/test-postgres` names, which skip
+  without `POSTGRES_URL`. Read N and M from that line.
   Pin: exploratory — the command is its own witness
-- [ ] **AT3** Run `./bin/test validate`. PASS: exits 0 (composes AT1's `deno check --frozen api client shared server tests web-app` and AT2 plus the 78-char awk lint over `api/`, `client/`, `web-app/`, `tests/`, `shared/`, `server/` `*.ts|html|css` with `compose.ts` exempt, and the scripts `bin/test`, `bin/deploy`, plus `bin/build`, `bin/build-lib`, `bin/serve`, `bin/test-postgres`, `bin/test-browser`, `bin/generate-schema-svg`, `bin/generate-api-documentation`, `bin/measure`, `bin/postgres-wipe`, `bin/postgres-lib`, `bin/postgres-seed`, and `bin/compose-lib`, plus `deno.json`, `Dockerfile`, `compose.yaml`, `.dockerignore`; the org-abbreviation identifier lint over `api/`, `client/`, `web-app/`, `tests/`, `shared/`, `server/` `*.ts|html|css` with `compose.ts` exempt — reject `org` camel/Pascal/ORG_ identifier forms in favor of `organization`; then the `generate-schema-svg --check` SCHEMA.svg-drift gate; then `generate-api-documentation --check`, the API documentation drift gate (catalog, samples, grid)). Any long-line violation prints `FILE:LINE: N chars` to stderr and fails the script; any org-abbreviation hit prints `FILE:LINE:` and fails.
+- [ ] **AT3** Run `./bin/test validate`. PASS: exits 0.
+  It composes five steps, each also a form of its own:
+  `./bin/test check` (AT1's `deno check --frozen api
+  client shared server tests web-app`), `./bin/test
+  memory` (AT2), `./bin/test lint`, `./bin/test schema`
+  (`./bin/generate-schema-svg --check`, the SCHEMA.svg
+  drift gate), and `./bin/test api-docs`
+  (`./bin/generate-api-documentation --check`, the API
+  documentation drift gate: catalog, samples, grid). The
+  lint fails on a line over 78 characters in `api/`,
+  `client/`, `web-app/`, `tests/`, `shared/`, and
+  `server/` `*.ts|html|css` (`web-app/app/compose.ts`
+  exempt) and in each script and config file `run_lint`
+  in `bin/test` names, printing `FILE:LINE: N chars`;
+  on the `org` abbreviation in an identifier under those
+  six directories, printing `FILE:LINE:` (use
+  `organization`); on the retired storage-tier
+  vocabulary; on a whole-plane `messagePairs.getAll(`
+  under `api/`; on a deferral phrase, in any letter
+  case (`later work`,
+  `(later)`, `not built`, `coming soon`, `later
+  session`, `will be added when`) on a line of a root
+  `*.md` other than TODO.md and this file, unless the
+  line names TODO.md; on a `## Later work` heading in
+  ARCHITECTURE.md, or other than one `## KNOWN seams`
+  there or one `## Critical product path` in TODO.md;
+  and on a `tests/…` path this file cites that does not
+  exist.
   Pin: exploratory — the command is its own witness
 - [ ] **AT4** Run `./bin/test postgres`. It
   owns its own Docker Postgres, not the
-  walk DB. The suite creates and drops
-  its own `fusion_test_*` schema. PASS:
-  exits 0, `ok | N passed | 0 failed`
-  across the eleven files `bin/test-postgres`
-  names — `tests/pg-acceptance.test.ts`, `tests/pg-races.test.ts`,
-  `tests/pg-message-plane.test.ts`,
-  `tests/pg-boot.test.ts`, `tests/pg-seed.test.ts`,
-  `tests/pg-explain.test.ts`,
-  `tests/pg-identifier-order.test.ts`,
-  `tests/pg-standalone-read.test.ts`,
-  `tests/schema-lifecycle.test.ts`,
-  `tests/pg-ledger-store.test.ts`, and
-  `tests/pg-ledger-seed.test.ts`; on 4 Oct
-  `ok | 112 passed | 0 failed`.
-  `./bin/test validate` stays Postgres-free.
+  walk DB, under a compose project of its
+  own. The suite creates and drops
+  its own `fusion_test_*` schema. It runs
+  `TZ=UTC deno test --frozen --no-check
+  --sanitize-ops --sanitize-resources`, one file at a
+  time, over the files `bin/test-postgres` names, every
+  `tests/pg-*.test.ts` and
+  `tests/schema-lifecycle.test.ts`. PASS: exits 0, and
+  its summary line reads `ok | N passed | 0 failed`;
+  read N there. `./bin/test validate` stays
+  Postgres-free.
   Pin: exploratory — the command is its own witness
-- [ ] **AT5** Run `./bin/test browser`. It bundles the client with
-  `deno bundle` into `$TMPDIR` and runs `TZ=UTC deno
-  test --frozen --no-check --sanitize-resources
-  --allow-env --allow-read --allow-write --allow-net
-  --allow-run --preload ./tests/hmac-test-key.ts
-  --preload ./tests/local-storage-stub.ts
-  tests/browser/*.test.ts`, `Deno.test` suites against
-  `@std/assert`, serially against an in-process origin
-  on the memory backend, one Chrome browser context per
-  test. The ops sanitizer stays off: `useBrowser()` opens
-  one CDP WebSocket per file in `Deno.test.beforeAll`,
-  so its pending receive always crosses a test boundary.
-  Needs Chrome (`CHROME` or `CHROME_DEBUG_URL`). PASS:
-  exits 0, `fail 0`. `./bin/test validate browser` runs
-  AT1–AT3 then AT5.
+- [ ] **AT5** Run `./bin/test browser`. It makes one
+  directory for the run, `fusion-browser.XXXXXX` in
+  `$TMPDIR`, which its trap removes; bundles the client
+  into it with `deno bundle`; lands the mock seed once,
+  before any file starts, into a read-only file each
+  file rebuilds its backend from; and runs `TZ=UTC deno
+  test --frozen --no-check --parallel
+  --sanitize-resources --allow-env --allow-read
+  --allow-write --allow-net --allow-run --preload
+  ./tests/hmac-test-key.ts --preload
+  ./tests/local-storage-stub.ts --preload
+  ./tests/worker-name-prefix.ts tests/browser/*.test.ts`
+  with its `TMPDIR` inside the run's: `Deno.test` suites
+  against `@std/assert`, each test against an in-process
+  origin on the memory backend, one Chrome per file,
+  four files at a time unless `DENO_JOBS` names another
+  count, one Chrome browser context per test. Under
+  `CHROME_DEBUG_URL` every file attaches to that one
+  Chrome, so the files run one at a time, without
+  `--parallel`. The ops sanitizer stays off:
+  `useBrowser()` opens one CDP WebSocket per file in
+  `Deno.test.beforeAll`, so its pending receive always
+  crosses a test boundary. Needs Chrome (`CHROME` or
+  `CHROME_DEBUG_URL`). PASS: exits 0, and its summary
+  line reads `ok | N passed | 0 failed`. `./bin/test
+  validate browser` runs AT1–AT3 then AT5.
   Pin: exploratory — the command is its own witness
 
 ---
@@ -1744,7 +1811,7 @@ the second organization.
        bounce-to-invitations branch); exploratory —
        the live reload and the absence of an error
        card or retry loop
-- [ ] **B27** As the zero-membership identity, land on `invitations/index.html`. PASS: the page renders and STAYS — no redirect loop (the gate's self-guard exempts the invitations page); it shows the seeded pending invitation card — the absence marker (`—`) where an organization name and an inviter name are not on the read, a date sub-line with the invited date and expires in N days, a Pending state badge, and Accept / Decline buttons. No "Invited by" line. Click neither — B29 still needs the zero-membership state. The seeded pending invitation expires one year after `MOCK_SEED_TIMESTAMP`, at `2027-01-01T00:00:00.000000Z`. The case stays walkable through 2026, so Accept and Decline are still on the card during the walk. An expired pending invitation does not show and cannot be accepted (409).
+- [ ] **B27** As the zero-membership identity, land on `invitations/index.html`. PASS: the page renders and STAYS — no redirect loop (the gate's self-guard exempts the invitations page); it shows the seeded pending invitation card — the absence marker (`—`) where an organization name and an inviter name are not on the read, a date sub-line with the invited date and expires in N days, a Pending state badge, and Accept / Decline buttons. No "Invited by" line. Click neither — B29 still needs the zero-membership state. The seeded pending invitation is sent on the seed's day and expires a year after it (`MOCK_SEED_INVITATION_LIFETIME_DAYS`), so Accept and Decline are on the card whatever day the walk is seeded. An expired pending invitation does not show and cannot be accepted (409).
   Pin: tests/boot-organization-gate.test.ts
        'invitations page keeps an empty organization
        list' (its `resolveOrganizationGate([],
@@ -7928,10 +7995,10 @@ references. The doc itself is NOT mutated by the run.
 ```
 # Test Plan Run — <ISO-8601 timestamp, Zulu>
 
-Build SHA: <git rev-parse --short HEAD>  (clean | dirty: N files)
+Build SHA: <git rev-parse --short HEAD>  (clean)
 
 ## Automated (AT)
-- AT1 tsc: PASS (0 diagnostics)
+- AT1 deno check: PASS (0 diagnostics)
 - AT2 ./bin/test: PASS (N/N, 0 fail, Xs)
 - AT3 ./bin/test validate: PASS (lint clean)
 - AT4 ./bin/test postgres: PASS (0 fail)
