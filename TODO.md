@@ -1328,6 +1328,35 @@ Off the critical path; each with its oracle.
   received in-order POST's `supersedes` equals its
   `If-Match`, or SCHEMA.md states the rule and a test
   pins the root.
+- The memory backend hashes each row through
+  asynchronous digests, and a synchronous SHA-256 would
+  cut what a seed costs. Classifying a statement takes
+  five SHA-256 digests a row (`shared/pair-root.ts`,
+  `shared/digest.ts`), each a hop to the runtime's
+  blocking pool and back. Measured 2026-11-24 at
+  `04331e858`, under the suite lock on four workers, two
+  pairs in both orders, 5,096 tests passing in every
+  run: `./bin/test` took 60.9 s and 60.4 s as it stands
+  (245 s of CPU) and 52.3 s and 52.0 s (203 s) with the
+  memory backend's row hashes taken from `node:crypto`'s
+  `createHash` — 0.86 of the time, 8.6 s a run. The
+  variant was for measuring and is not kept: a
+  server-side module made the digests, and the memory
+  backend handed them to `classifyStatement` over the
+  same bytes. Its cost is a second product `node:`
+  import beside `server/scrypt-hash.ts` (AGENTS.md,
+  `### node:crypto scrypt`, whose counts it changes), and
+  it must stay out of `shared/digest.ts` and everything
+  the client reaches
+  (`tests/client-import-graph.test.ts`). A repeat on the
+  same SHA replays, so the saving is one real run a
+  commit. The operator held it on 2026-11-23 ("hold
+  node:crypto") and, shown this measurement, asked for it
+  to be listed here. Oracle: the hashes the memory and
+  Postgres backends store stay equal, the client's
+  import graph stays free of `node:`, and `./bin/test`
+  measured the same way takes at most 0.86 of its time
+  before
 
 ## Later work
 
@@ -3668,16 +3697,18 @@ Off the critical path; each with its oracle.
   `seededMockDb()`, which rehearse the mock seed 41 times
   a run in process, 26 of them the API documentation's
   replay stages and 15 direct `postMockDataLoad` or
-  `rehearseMockData` calls. Still open: the seed's own
-  cost, which the held synchronous digest would cut.
+  `rehearseMockData` calls. The seed's own cost is the
+  synchronous digest's entry under
+  `## Critical functionality path`, measured again with
+  per-file seeding in place.
   The earlier medians came from
   `measurements/probes/seed/rehearsal.ts`, which no
   longer runs.
-  Oracle: the seed measured again with per-file seeding
-  in place, by a probe that seeds directly
-  (`seed-time.ts` and `seed-pair.ts` time copies from
-  that change on), before the operator rules again on
-  the synchronous digest
+  Oracle: `./bin/test` measured under the suite lock
+  before and after those 41 rehearsals share a seed, by
+  a probe that seeds directly (`seed-time.ts` and
+  `seed-pair.ts` time copies from the per-file change
+  on)
 - The memory backend copies its whole table for every
   bare statement (`const copy = [...this.#rows]`,
   `api/backend-memory.ts:154`), a cost every test write
