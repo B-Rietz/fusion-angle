@@ -34,11 +34,27 @@ type Spawned = {
     readonly stderr: string;
 };
 
+// Every ledger and every stand-in directory this file
+// makes lives under one directory of its own, made before
+// the first test and removed after the last. A test that
+// fails or throws leaves what it made there, and the
+// directory goes all the same: nothing of this file's
+// outlives the file.
+let home = '';
+Deno.test.beforeAll(() => {
+    home = Deno.makeTempDirSync({ prefix: 'tool-durations-' });
+});
+Deno.test.afterAll(() => {
+    Deno.removeSync(home, { recursive: true });
+});
+
+// A directory of one test's own, under the file's.
+function scratchDirectory(): string {
+    return Deno.makeTempDirSync({ dir: home });
+}
+
 function freshLedgerPath(): string {
-    return join(
-        Deno.makeTempDirSync({ prefix: 'tool-durations-' }),
-        'tool-durations.jsonl',
-    );
+    return join(scratchDirectory(), 'tool-durations.jsonl');
 }
 
 // A shell that sources the timer in this checkout, run
@@ -175,40 +191,34 @@ async () => {
 Deno.test('a sample says whether the tree was clean',
 async () => {
     for (const hidesUntracked of [false, true]) {
-        const dir = await Deno.makeTempDir({
-            prefix: 'tool-durations-tree-',
-        });
-        try {
-            await git(['-C', dir, 'init', '--quiet']);
+        const dir = scratchDirectory();
+        await git(['-C', dir, 'init', '--quiet']);
+        await git([
+            '-C', dir, 'commit', '--quiet', '--allow-empty',
+            '-m', 'Empty',
+        ]);
+        if (hidesUntracked) {
             await git([
-                '-C', dir, 'commit', '--quiet', '--allow-empty',
-                '-m', 'Empty',
+                '-C', dir, 'config',
+                'status.showUntrackedFiles', 'no',
             ]);
-            if (hidesUntracked) {
-                await git([
-                    '-C', dir, 'config',
-                    'status.showUntrackedFiles', 'no',
-                ]);
-            }
-            const ledger = freshLedgerPath();
-            const result = await runTimed(
-                'timed "./probe clean" true;'
-                + ' echo x > "$GIT_WORK_TREE/untracked";'
-                + ' timed "./probe dirty" true',
-                ledger,
-                { GIT_DIR: join(dir, '.git'), GIT_WORK_TREE: dir },
-            );
-            assertStrictEquals(result.status, 0);
-            assertEquals(
-                samplesIn(ledger).map((sample) => [
-                    sample.arguments, sample.tree,
-                ]),
-                [[['clean'], 'clean'], [['dirty'], 'dirty']],
-                `hidesUntracked=${hidesUntracked}`,
-            );
-        } finally {
-            await Deno.remove(dir, { recursive: true });
         }
+        const ledger = freshLedgerPath();
+        const result = await runTimed(
+            'timed "./probe clean" true;'
+            + ' echo x > "$GIT_WORK_TREE/untracked";'
+            + ' timed "./probe dirty" true',
+            ledger,
+            { GIT_DIR: join(dir, '.git'), GIT_WORK_TREE: dir },
+        );
+        assertStrictEquals(result.status, 0);
+        assertEquals(
+            samplesIn(ledger).map((sample) => [
+                sample.arguments, sample.tree,
+            ]),
+            [[['clean'], 'clean'], [['dirty'], 'dirty']],
+            `hidesUntracked=${hidesUntracked}`,
+        );
     }
 });
 
@@ -290,7 +300,7 @@ async () => {
 Deno.test('an unwritable ledger changes nothing but a line',
 async () => {
     const ledger = join(
-        Deno.makeTempDirSync({ prefix: 'tool-durations-' }),
+        scratchDirectory(),
         'absent-directory',
         'tool-durations.jsonl',
     );
@@ -401,7 +411,7 @@ async () => {
 // hands it that, and may count every program the script
 // runs.
 Deno.test('no ledger means an untimed, silent run', async () => {
-    const dir = Deno.makeTempDirSync({ prefix: 'tool-durations-' });
+    const dir = scratchDirectory();
     const called = join(dir, 'called');
     for (const program of ['deno', 'git']) {
         Deno.writeTextFileSync(
