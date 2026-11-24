@@ -71,8 +71,8 @@ code comments cite; specs and plans written before the
   (`api/advisory-lock.ts:11`,
   `api/ledger-statement-sql.ts:229`), the test schema
   `fusion_test_…` and compose project
-  `fusion-test-postgres-$$` (`bin/test-postgres:22`,
-  `:17`), and `schema_marker`, which item 0h retires.
+  `fusion-test-postgres-$$` (`bin/test-postgres:26`,
+  `:21`), and `schema_marker`, which item 0h retires.
   Ships no later than the deploy
   of the ledger (item 0i), which already changes what operators
   configure, so they rename once. The brainstorm settles
@@ -80,13 +80,13 @@ code comments cite; specs and plans written before the
   compose's service and container names, the hosted
   service names, the test-only `CHROME` and
   `CHROME_DEBUG_URL`, and the scripts' and tests'
-  `FUSION_ANGLE_STATIC_ROOT` (`bin/test-browser:43`,
+  `FUSION_ANGLE_STATIC_ROOT` (`bin/test-browser:47`,
   `tests/browser/fixtures.ts:236`),
-  `FUSION_ANGLE_BROWSER_SEED` (`bin/test-browser:55`;
+  `FUSION_ANGLE_BROWSER_SEED` (`bin/test-browser:60`;
   named at `tests/browser/fixtures.ts:75`, read at `:226`
-  and `tests/browser/run-seed.test.ts:6`),
-  `MOST_RECENTLY_VALIDATED_SHA_PATH`, and
-  `WORKING_TREE_PORCELAIN` (`test:242`, `:246`), which
+  and `tests/browser/run-seed.test.ts:6`), and
+  `SHA_RESULT_CACHE_ROOT`
+  (`bin/sha-result-cache-lib:55`), which
   the oracle reaches. Oracle: `env | grep FA_` lists
   everything the system needs, and a test finds every
   environment read in product code and scripts and fails
@@ -1912,7 +1912,7 @@ Off the critical path; each with its oracle.
   `process` to every file in it. `web-app` carries none
   of its own, but the gate checks it
   in one invocation with `client`, `server`, and `tests`
-  (`test:64`), and
+  (`test:89`), and
   either alone suffices — `server/scrypt-hash.ts`'s
   `node:crypto` means retiring `node:test` will not
   restore it. `npm:` does not unlock; `Deno.*` never
@@ -2617,7 +2617,7 @@ Off the critical path; each with its oracle.
     --remove-orphans`, leaving no compose project and no
     `.env` (J1, J2) — Layer 1, a test that sends the
     signal; 'deploy INT TERM traps exit the park'
-    (`tests/deploy-cli.test.ts:248`) reads the traps as
+    (`tests/deploy-cli.test.ts:254`) reads the traps as
     source text
   - The `Secure` cookie attribute (SV3) — Layer 1, one
     `assert.match(cookie, /Secure/i)` in

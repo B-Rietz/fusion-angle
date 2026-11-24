@@ -30,12 +30,19 @@ async function git(args: string[]): Promise<string> {
     return decoder.decode(output.stdout).trim();
 }
 
+// This file names ./bin/build, so each shell it spawns
+// is handed /dev/null for the result cache's root, by the
+// rule tests/sha-result-cache-isolation.test.ts pins.
 async function fetchedCommit(
     url: string, sha: string, scratchTmp: string,
 ): Promise<{ code: number; stdout: string }> {
     const output = await new Deno.Command('sh', {
         args: ['-c', FETCHED_COMMIT, 'sh', url, sha],
-        env: { ...HERMETIC_GIT, TMPDIR: scratchTmp },
+        env: {
+            ...HERMETIC_GIT,
+            TMPDIR: scratchTmp,
+            SHA_RESULT_CACHE_ROOT: '/dev/null',
+        },
         stdout: 'piped',
         stderr: 'null',
     }).output();
@@ -128,7 +135,7 @@ async function shLibrary(
 ): Promise<{ code: number; stdout: string }> {
     const output = await new Deno.Command('sh', {
         args: ['-c', program, 'sh', arg],
-        env: HERMETIC_GIT,
+        env: { ...HERMETIC_GIT, SHA_RESULT_CACHE_ROOT: '/dev/null' },
         stdout: 'piped',
         stderr: 'null',
     }).output();
@@ -192,6 +199,7 @@ async () => {
             '. ./bin/compose-lib && mint_compose_env 8080'
             + ' && printf %s "$FUSION_COMMIT_LOG_BASE64"',
         ],
+        env: { SHA_RESULT_CACHE_ROOT: '/dev/null' },
         stdout: 'piped',
         stderr: 'null',
     }).output();

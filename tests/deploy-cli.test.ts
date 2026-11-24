@@ -51,7 +51,10 @@ async function runDeploy(
     // ./deploy past argument parsing (each exits
     // on a usage error or --help, before minting),
     // so no current assertion depends on the
-    // blank — kept for isolation.
+    // blank — kept for isolation. ./deploy --local
+    // runs the gates, whose steps ask the result
+    // cache, so its root is /dev/null by the rule
+    // tests/sha-result-cache-isolation.test.ts pins.
     const output = await new Deno.Command('./deploy', {
         args,
         signal: AbortSignal.timeout(4000),
@@ -59,6 +62,7 @@ async function runDeploy(
             PATH: pathWithDockerStub(stamp),
             POSTGRES_URL: '',
             JWT_HMAC_SIGNING_KEY: '',
+            SHA_RESULT_CACHE_ROOT: '/dev/null',
         },
     }).output();
     const decoder = new TextDecoder();
