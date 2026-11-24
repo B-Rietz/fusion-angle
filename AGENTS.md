@@ -210,6 +210,14 @@ that cannot answer is refused too. `./bin/build` asks
 only where there is a repository, since an image build
 may hold none. `./bin/measure` asks in its own program.
 
+The image build context drops no tracked file. A build
+from the main checkout carries `.git` into the image,
+where a tracked file `.dockerignore` had dropped reads as
+deleted and `./bin/build` refuses the image as dirty. So
+`.dockerignore` drops `.claude/*` and keeps the tracked
+`.claude/settings.json`, and `tests/clean-tree-cli.test.ts`
+fails when it drops any path git tracks.
+
 A step that passed on a clean tree does not run
 again for that SHA. The memory suite, lint, the API
 documentation check, the Postgres suite, and the browser

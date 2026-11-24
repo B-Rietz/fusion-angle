@@ -498,3 +498,88 @@ Deno.test('only the library refuses a dirty tree', () => {
         );
     }
 });
+
+// One line of .dockerignore, read as Docker reads the
+// kinds this repository's file uses: a path from the
+// context's root, a directory with its trailing `/`, a
+// `*` within one segment, and a leading `!` that keeps
+// what an earlier line dropped.
+type IgnoreRule = {
+    readonly keeps: boolean;
+    readonly segments: readonly RegExp[];
+};
+
+// A line of any other kind is refused: the pin must not
+// pass for want of understanding one.
+function ignoreRules(text: string): IgnoreRule[] {
+    return text.split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line !== '' && !line.startsWith('#'))
+        .map((line) => {
+            const keeps = line.startsWith('!');
+            const pattern = (keeps ? line.slice(1) : line)
+                .replace(/\/$/, '');
+            if (pattern === '' || /\*\*|[?[\]\\]|^\//.test(pattern)) {
+                throw new Error(
+                    `teach this pin the .dockerignore line: ${line}`,
+                );
+            }
+            return {
+                keeps,
+                segments: pattern.split('/').map((segment) =>
+                    new RegExp(
+                        '^' + segment.split('*').map((literal) =>
+                            literal.replace(/[.+^${}()|]/g, '\\$&')
+                        ).join('[^/]*') + '$',
+                    )
+                ),
+            };
+        });
+}
+
+// A line matches a path and everything under it, since a
+// dropped directory takes its contents with it. The last
+// line that matches decides.
+function droppedFromContext(
+    rules: readonly IgnoreRule[], path: string,
+): boolean {
+    const parts = path.split('/');
+    let dropped = false;
+    for (const rule of rules) {
+        if (rule.segments.length <= parts.length
+            && rule.segments.every((segment, at) =>
+                segment.test(parts[at]!)
+            )) {
+            dropped = !rule.keeps;
+        }
+    }
+    return dropped;
+}
+
+// A build from the main checkout carries .git into the
+// image. A tracked file the context dropped reads there
+// as deleted, and bin/build refuses the image as dirty:
+// .claude/settings.json did, from the day it was tracked.
+// So the context drops nothing git tracks.
+Deno.test('the image build context drops no tracked file',
+async () => {
+    const rules = ignoreRules(Deno.readTextFileSync('.dockerignore'));
+    const tracked = (await git(Deno.cwd(), ['ls-files', '-z']))
+        .split('\0').filter((path) => path !== '');
+    assertEquals(
+        tracked.filter((path) => droppedFromContext(rules, path)),
+        [],
+    );
+    // And the reading still drops what the file is for,
+    // so nothing above passed for want of a match.
+    assertEquals(
+        [
+            '.DS_Store',
+            '.claude/settings.local.json',
+            '.claude/worktrees/one/AGENTS.md',
+            '.worktrees/one/bin/test',
+            '.git/tool-durations.jsonl',
+        ].filter((path) => !droppedFromContext(rules, path)),
+        [],
+    );
+});
