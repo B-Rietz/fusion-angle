@@ -624,18 +624,18 @@ grep -rnE "['\"]node:|\bprocess\b" web-app/app/*.ts \
     server/ api/ shared/
 ```
 
-Twelve lines. One is the `node:crypto` import above. Two are
+Fourteen lines. One is the `node:crypto` import above. Two are
 `api/access-token.ts:31` and `:35`, where the Node-compat
 `process` global is typed and then read through optional
 chaining (`runtime.process?.env?.[…]`) — a real reader that
 the narrower `process\.` pattern silently clears, leaving a
-one-line false all-clear. The remaining nine are the English
-word: eight in comments, one in the page keyword string
+one-line false all-clear. The remaining eleven are the English
+word: ten in comments, one in the page keyword string
 `'flow, process,'` at `web-app/app/page-registry.ts:194`.
 
-Dropping the quote anchor adds eight more non-specifier hits:
-`node: GraphNode`, a domain property name, in `flow-graph.ts`
-(×3), `flow-operations.ts` (×3), and `api/types.ts`, plus
+Dropping the quote anchor adds nine more non-specifier hits:
+`node:`, a domain property name, in `flow-graph.ts`
+(×4), `flow-operations.ts` (×3), and `shared/types.ts`, plus
 the comment naming `node:crypto` at
 `server/scrypt-hash.ts:2`. The identifier is right and the
 pattern is wrong. `tests/` is outside the sweep on purpose:
