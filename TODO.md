@@ -71,8 +71,8 @@ code comments cite; specs and plans written before the
   (`api/advisory-lock.ts:11`,
   `api/ledger-statement-sql.ts:229`), the test schema
   `fusion_test_…` and compose project
-  `fusion-test-postgres-$$` (`bin/test-postgres:26`,
-  `:21`), and `schema_marker`, which item 0h retires.
+  `fusion-test-postgres-$$` (`bin/test-postgres:28`,
+  `:23`), and `schema_marker`, which item 0h retires.
   Ships no later than the deploy
   of the ledger (item 0i), which already changes what operators
   configure, so they rename once. The brainstorm settles
@@ -80,13 +80,15 @@ code comments cite; specs and plans written before the
   compose's service and container names, the hosted
   service names, the test-only `CHROME` and
   `CHROME_DEBUG_URL`, and the scripts' and tests'
-  `FUSION_ANGLE_STATIC_ROOT` (`bin/test-browser:47`,
+  `FUSION_ANGLE_STATIC_ROOT` (`bin/test-browser:49`,
   `tests/browser/fixtures.ts:236`),
-  `FUSION_ANGLE_BROWSER_SEED` (`bin/test-browser:60`;
+  `FUSION_ANGLE_BROWSER_SEED` (`bin/test-browser:62`;
   named at `tests/browser/fixtures.ts:75`, read at `:226`
-  and `tests/browser/run-seed.test.ts:6`), and
+  and `tests/browser/run-seed.test.ts:6`),
   `SHA_RESULT_CACHE_ROOT`
-  (`bin/sha-result-cache-lib:55`), which
+  (`bin/sha-result-cache-lib:55`), and
+  `TOOL_DURATIONS_PATH` (`bin/duration-lib:62`, `:78`),
+  which
   the oracle reaches. Oracle: `env | grep FA_` lists
   everything the system needs, and a test finds every
   environment read in product code and scripts and fails
@@ -1912,7 +1914,7 @@ Off the critical path; each with its oracle.
   `process` to every file in it. `web-app` carries none
   of its own, but the gate checks it
   in one invocation with `client`, `server`, and `tests`
-  (`test:89`), and
+  (`test:92`), and
   either alone suffices — `server/scrypt-hash.ts`'s
   `node:crypto` means retiring `node:test` will not
   restore it. `npm:` does not unlock; `Deno.*` never
@@ -2617,7 +2619,7 @@ Off the critical path; each with its oracle.
     --remove-orphans`, leaving no compose project and no
     `.env` (J1, J2) — Layer 1, a test that sends the
     signal; 'deploy INT TERM traps exit the park'
-    (`tests/deploy-cli.test.ts:254`) reads the traps as
+    (`tests/deploy-cli.test.ts:256`) reads the traps as
     source text
   - The `Secure` cookie attribute (SV3) — Layer 1, one
     `assert.match(cookie, /Secure/i)` in
@@ -3582,11 +3584,12 @@ Off the critical path; each with its oracle.
   `web-app/app/` — `measure.ts`,
   `generate-api-documentation.ts`, `compose.ts`,
   `generate-schema-svg.ts`, `cdp-client.ts`,
-  `measure-viz.ts`, and `hash-static.ts`
+  `measure-viz.ts`, `tool-duration.ts`, and
+  `hash-static.ts`
   (`Deno.readDir`). Moving them to a top-level tools directory
   would make browser membership by rule and is the
   exclusion the `Deno.*` fence still needs. Oracle:
-  those seven files are not under `web-app/app/`
+  those eight files are not under `web-app/app/`
 - The `exists()` helper is duplicated five times, byte
   for byte, all under `web-app/app/` — `compose.ts`,
   `generate-api-documentation.ts`, `measure-viz.ts`,

@@ -68,7 +68,8 @@ async function runGun(
     // latter ambiently, and a merge would leak it.
     // signal only bounds the async output(). The
     // program is whatever script the case names, so
-    // the result cache's root is /dev/null by the rule
+    // the result cache's root and the timer's ledger
+    // are /dev/null by the rule
     // tests/sha-result-cache-isolation.test.ts pins.
     const output = await new Deno.Command(script, {
         args,
@@ -81,6 +82,7 @@ async function runGun(
             POSTGRES_URL: '',
             JWT_HMAC_SIGNING_KEY: '',
             SHA_RESULT_CACHE_ROOT: '/dev/null',
+            TOOL_DURATIONS_PATH: '/dev/null',
             ...(home === undefined ? {} : { HOME: home }),
         },
     }).output();

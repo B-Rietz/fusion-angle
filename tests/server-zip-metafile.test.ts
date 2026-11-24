@@ -258,8 +258,13 @@ async () => {
         ],
         // This file names ./bin/build, so the shell is
         // handed /dev/null for the result cache's root
+        // and for the timer's ledger
         // (tests/sha-result-cache-isolation.test.ts).
-        env: { COMMIT_LOG: log, SHA_RESULT_CACHE_ROOT: '/dev/null' },
+        env: {
+            COMMIT_LOG: log,
+            SHA_RESULT_CACHE_ROOT: '/dev/null',
+            TOOL_DURATIONS_PATH: '/dev/null',
+        },
         stdout: 'piped',
     }).output();
     assertStrictEquals(output.success, true);

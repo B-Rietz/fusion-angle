@@ -42,6 +42,8 @@ ROOT="$(cd "$BIN/.." && pwd)"
 source "$BIN/build-lib"
 # shellcheck source=sha-result-cache-lib
 source "$BIN/sha-result-cache-lib"
+# shellcheck source=duration-lib
+source "$BIN/duration-lib"
 # git status, bundle_client, compile: cwd must be ROOT
 cd "$ROOT"
 
@@ -181,13 +183,14 @@ if [ "$NO_ZIP" = true ]; then
     # Measured under the five-second line, so it builds
     # every time; the image build and the measure sweep
     # use this form and never meet the result cache.
-    build
+    timed './bin/build --no-zip' build
 else
     # A ZIP that passed on this SHA replays instead of
     # building again, once the file at its path proves
-    # to hold the bytes that build left.
+    # to hold the bytes that build left. The timer is
+    # inside the ask, so a replay is never a sample.
     SHA=$(git rev-parse --short=7 HEAD)
     DEST_DIR="${DEST:-$HOME/Desktop/}"
     SERVER_ZIP="${DEST_DIR}fusion-angle-${SHA}.zip"
-    replay_or_run build "$SERVER_ZIP" -- build
+    replay_or_run build "$SERVER_ZIP" -- timed './bin/build' build
 fi

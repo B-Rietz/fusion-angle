@@ -2,10 +2,11 @@ import { assertEquals } from '@std/assert';
 import { walkSync } from '@std/fs';
 
 // A test that spawns one of the scripts below hands it a
-// cache root of the test's own: SHA_RESULT_CACHE_ROOT, in
+// cache root and a ledger of the test's own:
+// SHA_RESULT_CACHE_ROOT and TOOL_DURATIONS_PATH, both, in
 // the env of every such spawn. Those are the scripts
-// whose steps ask the SHA result cache and the scripts
-// that run them.
+// whose steps ask the SHA result cache and are timed into
+// the duration ledger, and the scripts that run them.
 //
 // Beside a repository of its own the root is a directory
 // of its own, and the test is about the cache. In this
@@ -16,6 +17,14 @@ import { walkSync } from '@std/fs';
 // from it would record a stand-in's pass under a real
 // SHA, or replay an earlier run's recording, and the
 // test would prove the replay instead of the script.
+//
+// The ledger is a file of the test's own where the test
+// is about the timer, and /dev/null where it is not,
+// which means no ledger: the timer runs the step, runs no
+// program of its own, and says nothing. A script that
+// reached the operator's ledger would write a stand-in's
+// instant pass into it as the recent duration of the real
+// step, and the next real run would read as a regression.
 //
 // The files are read from tests/, never listed, so a
 // spawn added tomorrow is held to the rule the day it
@@ -30,17 +39,17 @@ import { walkSync } from '@std/fs';
 //   kind: held, because the shell can be handed it;
 // - any other quoted name, such as git or deno: not held.
 //
-// A held spawn names the root inside its own call. A name
-// in a variable beside it does not count: two spawns in
-// one test are two calls.
+// A held spawn names both inside its own call. A name in
+// a variable beside it does not count: two spawns in one
+// test are two calls.
 //
 // What this cannot see: a spawn reached without `new
 // Deno.Command(`, as through an alias; a program that is
 // neither a script nor a shell and runs one all the same,
 // as `env` or a `deno run` of a program that spawns; a
 // shell in a file that builds a script's path from parts
-// and never spells it; and what value the name is given.
-const RESOURCES = ['SHA_RESULT_CACHE_ROOT'];
+// and never spells it; and what value a name is given.
+const RESOURCES = ['SHA_RESULT_CACHE_ROOT', 'TOOL_DURATIONS_PATH'];
 
 // A script's path as source spells it. The two at the
 // root are ordinary words without their `./`.
@@ -132,7 +141,8 @@ function walk(): Walk {
     return { spawners: [...spawners].sort(), unnamed: unnamed.sort() };
 }
 
-Deno.test('every spawned script is handed a cache root', () => {
+Deno.test('every spawned script is handed a root and a ledger',
+() => {
     const { spawners, unnamed } = walk();
     assertEquals(
         unnamed,
@@ -148,6 +158,7 @@ Deno.test('every spawned script is handed a cache root', () => {
         'tests/measure-wrapper.test.ts',
         'tests/sha-result-cache.test.ts',
         'tests/test-cli.test.ts',
+        'tests/tool-duration-cli.test.ts',
     ];
     assertEquals(
         known.filter((path) => !spawners.includes(path)),

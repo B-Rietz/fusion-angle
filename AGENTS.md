@@ -197,21 +197,62 @@ left; `--no-zip` builds every time. To run for real,
 script that does a step's work asks at its own door:
 `test` for the three steps it runs itself, and
 `bin/test-postgres`, `bin/test-browser`, and `bin/build`
-for theirs. A test that spawns one of those scripts, or
-`./deploy`, `./bin/measure`, or `./bin/develop`, hands
-it a `SHA_RESULT_CACHE_ROOT` of its own, in the env of
-that spawn: a directory beside a repository of the
-test's own, or `/dev/null` in this checkout, where the
-script then runs for real on any tree.
-`tests/sha-result-cache-isolation.test.ts` pins it.
+for theirs.
 
-Run for real on master's `873c89b4b`, before the SHA
-result cache's tests were added, `./test` took about
-53 s on its four workers with the sanitizers on, and
-`./test validate` about 58 s: ten consecutive runs at
-53.0–54.2 s on a quiet 16-core machine, measured
-2026-11-23. Both take longer now, by tests that spawn
-real scripts. `--no-check`
+Every step is timed where it really runs, by `timed
+LABEL COMMAND` from `bin/duration-lib`: `check`,
+`memory`, `lint`, `schema`, and `api-docs` in `test`;
+the Postgres and browser suites in `bin/test-postgres`
+and `bin/test-browser`, as `./test postgres` and
+`./test browser`; and the build in `bin/build`. Where a
+step is asked of the SHA result cache the timer is
+inside the ask, `replay_or_run WAY -- timed LABEL
+COMMAND`, so a replay is not a run: it appends no sample
+and prints no line. `check`, `schema`, and the `--no-zip`
+build are never asked, and are timed as they stand.
+Each run appends one sample to `tool-durations.jsonl`
+under the git common dir (`TOOL_DURATIONS_PATH` moves
+it; `/dev/null` there means no ledger: the step runs
+untimed and nothing is said), and a green run prints one
+`duration:` line on the script's own stderr, which is no
+part of what the cache keeps. A run is slow at three
+times the median of its recent runs and thirty seconds
+more. The median is of that step's green runs in this
+worktree over the last fourteen days, three at least,
+each taken with the one-minute load under one per core
+as it began and one and a half as it ended. A second
+slow run in a row prints `DURATION REGRESSION:`. It
+gates nothing: no exit status changes, and a run on a
+loaded machine is recorded but never compared.
+`tests/tool-duration-cli.test.ts` fails when a tracked
+executable at the root or directly under `bin/` neither
+calls `timed` nor is named there with its reason, when
+`./test` runs a step outside a timed call, and when it
+`exec`s a script that does not time its own work.
+
+A test that spawns `./test`, `bin/test-postgres`,
+`bin/test-browser`, `bin/build`, `./deploy`,
+`./bin/measure`, or `./bin/develop` hands it a cache
+root and a ledger of its own, `SHA_RESULT_CACHE_ROOT`
+and `TOOL_DURATIONS_PATH` both, in the env of each
+spawn. Each is a path the test made, or `/dev/null`,
+which means none. In this checkout the root is
+`/dev/null`: the script then runs for real on any tree,
+where a usable root would record a stand-in's pass under
+a real SHA and replay it to the next test. A ledger is a
+file of the test's own where the test is about the timer
+and `/dev/null` where it is not: the timer then runs the
+step, runs no program of its own, and says nothing,
+where a real ledger would take a stand-in's instant
+pass for the step's recent duration.
+`tests/sha-result-cache-isolation.test.ts` pins both.
+
+Run for real, `./test` takes about 60 s on its four
+workers with the sanitizers on, `./test validate` about
+66 s, `./test browser` about 72 s, and `./test postgres`
+about 13 s: one run each on a quiet 16-core machine,
+measured 2026-11-23. A repeat on the same clean SHA
+replays in under half a second. `--no-check`
 costs nothing: `deno check` has already covered
 `tests/`. `./test postgres` carries the same two
 sanitizer flags; `./test browser` carries
