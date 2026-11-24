@@ -45,7 +45,7 @@
 # at the top of its script.
 #
 # Each script that does a step's work asks at its own
-# door: test for the steps it runs itself, and
+# door: bin/test for the steps it runs itself, and
 # bin/test-postgres, bin/test-browser, and bin/build for
 # theirs.
 #
@@ -70,8 +70,8 @@ result_entry() {
     local way="$1" artifacts="$2" sha porcelain deno id
     sha=$(git rev-parse --verify --quiet HEAD 2>/dev/null) \
         || return 1
-    porcelain=$(git status --porcelain 2>/dev/null) \
-        || return 1
+    porcelain=$(git status --porcelain --untracked-files=normal \
+        2>/dev/null) || return 1
     [ -z "$porcelain" ] || return 1
     # /tmp is every user's to write, and a planted entry
     # would turn a red tree green: the root is this

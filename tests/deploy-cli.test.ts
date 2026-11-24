@@ -45,24 +45,29 @@ async function runDeploy(
     // regardless.
     // POSTGRES_URL and JWT_HMAC_SIGNING_KEY are
     // blanked deliberately: Deno.Command MERGES,
-    // and ./test exports JWT_HMAC_SIGNING_KEY
+    // and ./bin/test exports JWT_HMAC_SIGNING_KEY
     // ambiently, so omitting this would leak it
     // into the child. No case below reaches
-    // ./deploy past argument parsing (each exits
+    // ./bin/deploy past argument parsing (each exits
     // on a usage error or --help, before minting),
     // so no current assertion depends on the
-    // blank — kept for isolation. ./deploy --local
+    // blank — kept for isolation. ./bin/deploy --local
     // runs the gates, whose steps ask the result
     // cache and are timed, so the cache's root and
     // the timer's ledger are /dev/null by the rule
     // tests/sha-result-cache-isolation.test.ts pins.
-    const output = await new Deno.Command('./deploy', {
+    // GIT_DIR is /dev/null by the same file's other
+    // rule: with no repository to read, a case that
+    // got past its arguments would be refused on
+    // any tree, clean or not.
+    const output = await new Deno.Command('./bin/deploy', {
         args,
         signal: AbortSignal.timeout(4000),
         env: {
             PATH: pathWithDockerStub(stamp),
             POSTGRES_URL: '',
             JWT_HMAC_SIGNING_KEY: '',
+            GIT_DIR: '/dev/null',
             SHA_RESULT_CACHE_ROOT: '/dev/null',
             TOOL_DURATIONS_PATH: '/dev/null',
         },
@@ -85,7 +90,7 @@ Deno.test('deploy with no args exits 1 with usage',
 async () => {
     const result = await runDeploy([]);
     assertStrictEquals(result.status, 1);
-    assertMatch(result.stderr, /Usage: \.\/deploy/);
+    assertMatch(result.stderr, /Usage: \.\/bin\/deploy/);
     assertStrictEquals(dockerCalled(result.stamp), false);
 });
 
@@ -93,7 +98,7 @@ Deno.test('deploy --local without --postgres exits 1',
 async () => {
     const result = await runDeploy(['--local', '8080']);
     assertStrictEquals(result.status, 1);
-    assertMatch(result.stderr, /Usage: \.\/deploy/);
+    assertMatch(result.stderr, /Usage: \.\/bin\/deploy/);
     assertStrictEquals(dockerCalled(result.stamp), false);
 });
 
@@ -104,7 +109,7 @@ async () => {
         'mock-data',
     ]);
     assertStrictEquals(result.status, 1);
-    assertMatch(result.stderr, /Usage: \.\/deploy/);
+    assertMatch(result.stderr, /Usage: \.\/bin\/deploy/);
     assertStrictEquals(dockerCalled(result.stamp), false);
 });
 
@@ -117,7 +122,7 @@ async () => {
         'abc',
     ]);
     assertStrictEquals(result.status, 1);
-    assertMatch(result.stderr, /Usage: \.\/deploy/);
+    assertMatch(result.stderr, /Usage: \.\/bin\/deploy/);
     assertStrictEquals(dockerCalled(result.stamp), false);
 });
 
@@ -132,7 +137,7 @@ async () => {
         'mock-data',
     ]);
     assertStrictEquals(result.status, 1);
-    assertMatch(result.stderr, /Usage: \.\/deploy/);
+    assertMatch(result.stderr, /Usage: \.\/bin\/deploy/);
     assertStrictEquals(dockerCalled(result.stamp), false);
 });
 
@@ -147,7 +152,7 @@ async () => {
         'bootstrap',
     ]);
     assertStrictEquals(result.status, 1);
-    assertMatch(result.stderr, /Usage: \.\/deploy/);
+    assertMatch(result.stderr, /Usage: \.\/bin\/deploy/);
     assertMatch(result.stderr, /exclusive/);
     assertStrictEquals(dockerCalled(result.stamp), false);
 });
@@ -161,7 +166,7 @@ async () => {
         'local',
     ]);
     assertStrictEquals(result.status, 1);
-    assertMatch(result.stderr, /Usage: \.\/deploy/);
+    assertMatch(result.stderr, /Usage: \.\/bin\/deploy/);
     assertStrictEquals(dockerCalled(result.stamp), false);
 });
 
@@ -174,7 +179,7 @@ async () => {
         'compose',
     ]);
     assertStrictEquals(result.status, 1);
-    assertMatch(result.stderr, /Usage: \.\/deploy/);
+    assertMatch(result.stderr, /Usage: \.\/bin\/deploy/);
     assertStrictEquals(dockerCalled(result.stamp), false);
 });
 
@@ -187,7 +192,7 @@ async () => {
         'render',
     ]);
     assertStrictEquals(result.status, 1);
-    assertMatch(result.stderr, /Usage: \.\/deploy/);
+    assertMatch(result.stderr, /Usage: \.\/bin\/deploy/);
     assertStrictEquals(dockerCalled(result.stamp), false);
 });
 
@@ -195,29 +200,29 @@ Deno.test('deploy unknown flag exits 1 with usage',
 async () => {
     const result = await runDeploy(['--bogus']);
     assertStrictEquals(result.status, 1);
-    assertMatch(result.stderr, /Usage: \.\/deploy/);
+    assertMatch(result.stderr, /Usage: \.\/bin\/deploy/);
     assertStrictEquals(dockerCalled(result.stamp), false);
 });
 
 Deno.test('deploy --help exits 0', async () => {
     const result = await runDeploy(['--help']);
     assertStrictEquals(result.status, 0);
-    assertMatch(result.stdout, /Usage: \.\/deploy/);
+    assertMatch(result.stdout, /Usage: \.\/bin\/deploy/);
     assertStrictEquals(dockerCalled(result.stamp), false);
 });
 
 Deno.test('deploy -h exits 0', async () => {
     const result = await runDeploy(['-h']);
     assertStrictEquals(result.status, 0);
-    assertMatch(result.stdout, /Usage: \.\/deploy/);
+    assertMatch(result.stdout, /Usage: \.\/bin\/deploy/);
     assertStrictEquals(dockerCalled(result.stamp), false);
 });
 
 Deno.test('deploy source owns the local stack', () => {
-    const src = Deno.readTextFileSync('deploy');
-    assertMatch(src, /\.\/test validate/);
-    assertMatch(src, /\.\/test postgres/);
-    assertMatch(src, /\.\/test browser/);
+    const src = Deno.readTextFileSync('bin/deploy');
+    assertMatch(src, /\.\/bin\/test validate/);
+    assertMatch(src, /\.\/bin\/test postgres/);
+    assertMatch(src, /\.\/bin\/test browser/);
     assertMatch(
         src,
         /docker compose up -d --wait postgres/,
@@ -241,7 +246,7 @@ Deno.test('deploy source owns the local stack', () => {
     assertNotMatch(src, /echo \$POSTGRES_URL/);
     assertNotMatch(src, /echo \$POSTGRES_PASSWORD/);
     assertNotMatch(src, /echo \$JWT_HMAC_SIGNING_KEY/);
-    assertMatch(src, /\. "\$ROOT\/bin\/compose-lib"/);
+    assertMatch(src, /\. "\$BIN\/compose-lib"/);
     assertMatch(src, /mint_compose_env "\$LOCAL_PORT"/);
     assertNotMatch(src, /openssl rand/);
     const trapAt = src.indexOf('trap ');
@@ -254,7 +259,7 @@ Deno.test('deploy source owns the local stack', () => {
 });
 
 Deno.test('deploy INT TERM traps exit the park', () => {
-    const src = Deno.readTextFileSync('deploy');
+    const src = Deno.readTextFileSync('bin/deploy');
     assertMatch(src, /trap 'compose_down_once; exit 130' INT/);
     assertMatch(src, /trap 'compose_down_once; exit 143' TERM/);
     const intAt = src.indexOf(
@@ -273,7 +278,7 @@ Deno.test('deploy INT TERM traps exit the park', () => {
 
 Deno.test('deploy source render path is the CLI',
 () => {
-    const src = Deno.readTextFileSync('deploy');
+    const src = Deno.readTextFileSync('bin/deploy');
     const lib = Deno.readTextFileSync(
         'bin/postgres-lib',
     );
@@ -291,7 +296,7 @@ Deno.test('deploy source render path is the CLI',
 
 Deno.test('deploy oracle curls bound their wait',
 () => {
-    const src = Deno.readTextFileSync('deploy');
+    const src = Deno.readTextFileSync('bin/deploy');
     assertMatch(src, /ORACLE_TIMEOUT_SEC=/);
     assertMatch(
         src,
@@ -307,7 +312,7 @@ Deno.test('deploy oracle curls bound their wait',
 
 Deno.test('deploy organizations oracle carries'
     + ' Operation-ID', () => {
-    const src = Deno.readTextFileSync('deploy');
+    const src = Deno.readTextFileSync('bin/deploy');
     const assigned = src.match(
         /^PROBE_OPERATION_ID=([A-Za-z0-9_-]+)$/m,
     );

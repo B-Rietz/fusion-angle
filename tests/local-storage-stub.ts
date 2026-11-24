@@ -1,4 +1,4 @@
-// Preload for ./test. Deno ships a real Web Storage
+// Preload for ./bin/test. Deno ships a real Web Storage
 // global: assigning globalThis.localStorage is ignored,
 // `localStorage.setItem = fn` stores a key, and the
 // store persists across processes. This in-memory fake

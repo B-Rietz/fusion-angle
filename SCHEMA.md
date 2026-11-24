@@ -3,7 +3,7 @@
 This file is the capability map of the one table. Columns,
 keys, and indexes live in `SCHEMA.svg` (generated from
 `api/db.ts`, `shared/types.ts`, and `api/schema-postgres.ts`;
-`./test validate` fails on drift). Families, routes, and
+`./bin/test validate` fails on drift). Families, routes, and
 alphabets live in code; this file does not restate them.
 
 ## The one table

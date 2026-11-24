@@ -11,32 +11,32 @@ import {
     type DurationSample,
     parseLedger,
 } from '../web-app/app/tool-duration-core.ts';
+import {
+    commitAll,
+    copyFromCheckout,
+    GATE_LIBRARIES,
+    git,
+    HERMETIC_GIT,
+    realDeno,
+    type Run,
+    RUN_TIMEOUT_MS,
+    runInReplica,
+    searchPath,
+    SHELL,
+    TIMER_RUNS_FOR_REAL,
+    withRepository,
+} from './fixtures/script-replica.ts';
 
 // bin/sha-result-cache-lib, driven through /bin/bash: the
 // shell its callers' `#!/bin/bash` names. bash and POSIX
 // sh differ on exactly what the library guards (`set -e`
 // inside `$( )`), so the cases run the shipping shell.
 // Every case gets a repository and a cache root of its
-// own, so none reads another's entries or this checkout's
-// tree.
-const SHELL = '/bin/bash';
-
+// own (tests/fixtures/script-replica.ts), so none reads
+// another's entries or this checkout's tree.
 const LIBRARY = join(Deno.cwd(), 'bin/sha-result-cache-lib');
 
 const REPLAY_OR_RUN = 'set -eu; . "$0"; replay_or_run "$@"';
-
-// A spawn that outlasts this is hung, not slow. The
-// bound is the browser suite's own: this unit was built
-// under loads that stretched a one-second spawn past
-// twenty.
-const RUN_TIMEOUT_MS = 120_000;
-
-// The commit is made from no one's git config, so a
-// signing or hook setting cannot reach it.
-const HERMETIC_GIT = {
-    GIT_CONFIG_GLOBAL: '/dev/null',
-    GIT_CONFIG_NOSYSTEM: '1',
-};
 
 const REPLAYING = /^sha-result-cache: replaying /m;
 
@@ -55,67 +55,20 @@ type Scene = {
     readonly ran: string;
 };
 
-type Run = {
-    readonly status: number;
-    readonly stdout: string;
-    readonly stderr: string;
-};
-
-function searchPath(): string {
-    const path = Deno.env.get('PATH');
-    if (path === undefined) {
-        throw new Error('PATH is not set');
-    }
-    return path;
-}
-
-async function git(
-    cwd: string, args: string[],
-): Promise<string> {
-    const output = await new Deno.Command('git', {
-        args: [
-            '-c', 'user.name=Test',
-            '-c', 'user.email=test@example.com',
-            ...args,
-        ],
-        cwd,
-        clearEnv: true,
-        env: { PATH: searchPath(), ...HERMETIC_GIT },
-        stdout: 'piped',
-        stderr: 'piped',
-    }).output();
-    const decoder = new TextDecoder();
-    assertEquals(
-        output.success, true, decoder.decode(output.stderr),
-    );
-    return decoder.decode(output.stdout).trim();
-}
-
 // A repository with one commit and a clean tree, beside
 // a cache root the library has yet to make and a file
 // each real run of a step adds a line to.
-async function withScene(
+function withScene(
     body: (scene: Scene) => Promise<void>,
 ): Promise<void> {
-    const dir = await Deno.makeTempDir({
-        prefix: 'sha-result-cache-',
-    });
-    try {
-        const repo = join(dir, 'repo');
-        await Deno.mkdir(repo);
-        await git(repo, ['init', '--quiet']);
-        await git(repo, [
-            'commit', '--quiet', '--allow-empty', '-m', 'First',
-        ]);
-        await body({
+    return withRepository(({ dir, repo }) =>
+        body({
             dir,
             repo,
             root: join(dir, 'root'),
             ran: join(dir, 'ran'),
-        });
-    } finally {
-        await Deno.remove(dir, { recursive: true });
-    }
+        })
+    );
 }
 
 async function sh(
@@ -507,6 +460,31 @@ async () => {
 Deno.test('a dirty tree neither reads nor writes the cache',
 async () => {
     await withScene(async (scene) => {
+        await replayOrRun(scene, 'demo', '--', ...step(scene));
+        const recorded = cachePaths(scene);
+        await Deno.writeTextFile(
+            join(scene.repo, 'untracked'), 'x',
+        );
+        const run = await replayOrRun(
+            scene, 'demo', '--', ...step(scene),
+        );
+        assertStrictEquals(run.status, 0);
+        assertStrictEquals(run.stderr, 'err\n');
+        assertStrictEquals(timesRan(scene), 2);
+        assertEquals(cachePaths(scene), recorded);
+    });
+});
+
+// `status.showUntrackedFiles=no` makes a bare `git status`
+// leave untracked files out. An untracked test file is
+// dirt all the same: the pass it ran under belongs to no
+// SHA.
+Deno.test('a git setting cannot make a dirty tree clean',
+async () => {
+    await withScene(async (scene) => {
+        await git(scene.repo, [
+            'config', 'status.showUntrackedFiles', 'no',
+        ]);
         await replayOrRun(scene, 'demo', '--', ...step(scene));
         const recorded = cachePaths(scene);
         await Deno.writeTextFile(
@@ -1071,56 +1049,16 @@ async () => {
     });
 });
 
-// What a replica carries of the timer every shipping
-// script sources: the library and the three programs it
-// runs, which import nothing else.
-const TIMER_FILES = [
-    'bin/duration-lib',
-    'web-app/app/tool-duration.ts',
-    'web-app/app/tool-duration-core.ts',
-    'web-app/app/measure-core.ts',
-];
-
-async function copyTimer(repo: string): Promise<void> {
-    for (const file of TIMER_FILES) {
-        await Deno.mkdir(dirname(join(repo, file)), {
-            recursive: true,
-        });
-        await Deno.copyFile(file, join(repo, file));
-    }
-}
-
-// The first lines of a stand-in `deno`: the timer's own
-// two runs go to the real one, so a case that names a
-// ledger gets real samples.
-const TIMER_RUNS_FOR_REAL = 'case "$*" in\n'
-    + '    *web-app/app/tool-duration.ts*)\n'
-    + '        exec "$REAL_DENO" "$@"\n'
-    + '        ;;\n'
-    + 'esac\n';
-
-// The real `deno`, and what it needs to find its cache
-// in an environment that is otherwise cleared.
-function realDeno(): Record<string, string> {
-    const env: Record<string, string> = {
-        REAL_DENO: Deno.execPath(),
-    };
-    for (const name of ['HOME', 'DENO_DIR']) {
-        const value = Deno.env.get(name);
-        if (value !== undefined) {
-            env[name] = value;
-        }
-    }
-    return env;
-}
-
 function samplesIn(ledger: string): DurationSample[] {
     return parseLedger(Deno.readTextFileSync(ledger));
 }
 
 const DURATION_LINE = /^duration: /gm;
 
-// The real `test` script and the real libraries, copied
+// Where the test command lives in this checkout.
+const TEST = 'bin/test';
+
+// The real `bin/test` script and the real libraries, copied
 // into a repository of their own beside stand-ins for
 // what the script runs: a `deno` that answers
 // `--version`, notes each other call with its TZ, and
@@ -1155,12 +1093,7 @@ async function withReplica(
             + 'fi\n',
             { mode: 0o755 },
         );
-        await Deno.mkdir(join(scene.repo, 'bin'));
-        await Deno.copyFile('test', join(scene.repo, 'test'));
-        await Deno.copyFile(
-            LIBRARY, join(scene.repo, 'bin/sha-result-cache-lib'),
-        );
-        await copyTimer(scene.repo);
+        copyFromCheckout(scene.repo, [TEST, ...GATE_LIBRARIES]);
         await Deno.writeTextFile(
             join(scene.repo, 'bin/generate-api-documentation'),
             '#!/bin/sh\n'
@@ -1168,37 +1101,19 @@ async function withReplica(
             + 'echo "api-documentation is up to date"\n',
             { mode: 0o755 },
         );
-        await git(scene.repo, ['add', '.']);
-        await git(scene.repo, [
-            'commit', '--quiet', '-m', 'The test script',
-        ]);
+        await commitAll(scene.repo, 'The test script');
         await body({
             scene,
-            run: async (args, env) => {
-                const output = await new Deno.Command(SHELL, {
-                    args: ['./test', ...args],
-                    cwd: scene.repo,
-                    clearEnv: true,
-                    env: {
-                        PATH: `${stubs}:${searchPath()}`,
-                        CALLS: scene.ran,
-                        UTC_PASS_STATUS: '0',
-                        SHA_RESULT_CACHE_ROOT: scene.root,
-                        TOOL_DURATIONS_PATH: NO_LEDGER,
-                        GIT_CEILING_DIRECTORIES: scene.dir,
-                        ...HERMETIC_GIT,
-                        ...realDeno(),
-                        ...env,
-                    },
-                    signal: AbortSignal.timeout(RUN_TIMEOUT_MS),
-                }).output();
-                const decoder = new TextDecoder();
-                return {
-                    status: output.code,
-                    stdout: decoder.decode(output.stdout),
-                    stderr: decoder.decode(output.stderr),
-                };
-            },
+            run: (args, env) =>
+                runInReplica(scene, `./${TEST}`, args, {
+                    PATH: `${stubs}:${searchPath()}`,
+                    CALLS: scene.ran,
+                    UTC_PASS_STATUS: '0',
+                    SHA_RESULT_CACHE_ROOT: scene.root,
+                    TOOL_DURATIONS_PATH: NO_LEDGER,
+                    ...realDeno(),
+                    ...env,
+                }),
             calls: () =>
                 timesRan(scene) === 0
                     ? []
@@ -1267,11 +1182,14 @@ async () => {
         assertStrictEquals(red.status, 1);
         assertEquals(calls(), ['deno test TZ=UTC']);
         assertEquals(entries(scene), []);
-        // And where the cache is not asked at all.
-        await Deno.writeTextFile(
-            join(scene.repo, 'untracked'), 'x',
-        );
-        const unasked = await run([], { UTC_PASS_STATUS: '1' });
+        // And where the cache is not asked at all: with
+        // POSTGRES_URL set no SHA names the run. The script
+        // refuses a dirty tree at its door, so a dirty one
+        // no longer reaches the step.
+        const unasked = await run([], {
+            UTC_PASS_STATUS: '1',
+            POSTGRES_URL: 'postgres://stand-in',
+        });
         assertStrictEquals(unasked.status, 1);
         assertEquals(
             calls(), ['deno test TZ=UTC', 'deno test TZ=UTC'],
@@ -1312,7 +1230,7 @@ async () => {
         assertStrictEquals(first.status, 0);
         assertNotMatch(first.stderr, REPLAYING);
         assertMatch(
-            first.stderr, /^duration: \.\/test memory took /m,
+            first.stderr, /^duration: \.\/bin\/test memory took /m,
         );
         assertStrictEquals(
             first.stderr.match(DURATION_LINE)?.length, 1,
@@ -1325,7 +1243,7 @@ async () => {
                 sample.exitStatus,
                 sample.tree,
             ]),
-            [['./test', ['memory'], 0, 'clean']],
+            [['./bin/test', ['memory'], 0, 'clean']],
         );
 
         const replay = await run([], timed);
@@ -1391,20 +1309,16 @@ async function withBrowserReplica(
         await Deno.writeTextFile(
             join(stubs, 'chrome'),
             '#!/bin/sh\n'
-            + 'echo "Google Chrome 0.0.0 (stand-in)"\n',
+            + 'if [ -z "${CHROME_SAYS_NOTHING:-}" ]; then\n'
+            + '    echo "Google Chrome 0.0.0 (stand-in)"\n'
+            + 'fi\n',
             { mode: 0o755 },
         );
         const tmp = join(scene.dir, 'tmp');
         await Deno.mkdir(tmp);
-        await Deno.mkdir(join(scene.repo, 'bin'));
-        await Deno.copyFile(
-            'bin/test-browser',
-            join(scene.repo, 'bin/test-browser'),
+        copyFromCheckout(
+            scene.repo, ['bin/test-browser', ...GATE_LIBRARIES],
         );
-        await Deno.copyFile(
-            LIBRARY, join(scene.repo, 'bin/sha-result-cache-lib'),
-        );
-        await copyTimer(scene.repo);
         await Deno.writeTextFile(
             join(scene.repo, 'bin/build-lib'),
             'bundle_client() {\n'
@@ -1413,10 +1327,7 @@ async function withBrowserReplica(
             + '    return "$BUNDLE_STATUS"\n'
             + '}\n',
         );
-        await git(scene.repo, ['add', '.']);
-        await git(scene.repo, [
-            'commit', '--quiet', '-m', 'The browser script',
-        ]);
+        await commitAll(scene.repo, 'The browser script');
         const standIns = {
             PATH: `${stubs}:${searchPath()}`,
             CALLS: scene.ran,
@@ -1430,28 +1341,13 @@ async function withBrowserReplica(
         await body({
             scene,
             tmp,
-            run: async (env) => {
-                const output = await new Deno.Command(SHELL, {
-                    args: ['./bin/test-browser'],
-                    cwd: scene.repo,
-                    clearEnv: true,
-                    env: {
-                        ...standIns,
-                        SHA_RESULT_CACHE_ROOT: scene.root,
-                        TOOL_DURATIONS_PATH: NO_LEDGER,
-                        GIT_CEILING_DIRECTORIES: scene.dir,
-                        ...HERMETIC_GIT,
-                        ...env,
-                    },
-                    signal: AbortSignal.timeout(RUN_TIMEOUT_MS),
-                }).output();
-                const decoder = new TextDecoder();
-                return {
-                    status: output.code,
-                    stdout: decoder.decode(output.stdout),
-                    stderr: decoder.decode(output.stderr),
-                };
-            },
+            run: (env) =>
+                runInReplica(scene, './bin/test-browser', [], {
+                    ...standIns,
+                    SHA_RESULT_CACHE_ROOT: scene.root,
+                    TOOL_DURATIONS_PATH: NO_LEDGER,
+                    ...env,
+                }),
             interrupt: (interruption) =>
                 interrupted(scene, {
                     cwd: scene.repo,
@@ -1517,24 +1413,27 @@ async () => {
             [{ SEED_STATUS: '4' }, 4, 2],
             [{ FILES_STATUS: '5' }, 5, 3],
         ];
-        const fail = async () => {
+        const fail = async (how: Record<string, string>) => {
             for (const [env, status, steps] of failures) {
                 const before = calls().length;
-                const failed = await run(env);
+                const failed = await run({ ...how, ...env });
                 assertStrictEquals(failed.status, status);
                 assertStrictEquals(calls().length, before + steps);
                 assertEquals(namesIn(tmp), []);
                 assertEquals(entries(scene), []);
             }
         };
-        await fail();
-        // And where the cache is not asked at all.
-        await Deno.writeTextFile(
-            join(scene.repo, 'untracked'), 'x',
-        );
-        await fail();
-        const unasked = await run({});
+        await fail({});
+        // And where the cache is not asked at all: a Chrome
+        // that says nothing names no browser, and the suite
+        // runs in the script's own shell. The script refuses
+        // a dirty tree at its door, so a dirty one no longer
+        // reaches the step.
+        const silent = { CHROME_SAYS_NOTHING: '1' };
+        await fail(silent);
+        const unasked = await run(silent);
         assertStrictEquals(unasked.status, 0);
+        assertNotMatch(unasked.stderr, /sha-result-cache/);
         assertEquals(namesIn(tmp), []);
         assertEquals(entries(scene), []);
     });
@@ -1593,20 +1492,20 @@ async () => {
         const red = await run({ ...timed, FILES_STATUS: '5' });
         assertStrictEquals(red.status, 5);
         assertNotMatch(red.stderr, /duration/i);
-        assertEquals(taken(), [['./test', ['browser'], 5]]);
+        assertEquals(taken(), [['./bin/test', ['browser'], 5]]);
         assertEquals(entries(scene), []);
 
         const green = await run(timed);
         assertStrictEquals(green.status, 0);
         assertMatch(
-            green.stderr, /^duration: \.\/test browser took /m,
+            green.stderr, /^duration: \.\/bin\/test browser took /m,
         );
         assertStrictEquals(
             green.stderr.match(DURATION_LINE)?.length, 1,
         );
         assertEquals(taken(), [
-            ['./test', ['browser'], 5],
-            ['./test', ['browser'], 0],
+            ['./bin/test', ['browser'], 5],
+            ['./bin/test', ['browser'], 0],
         ]);
 
         const replay = await run(timed);

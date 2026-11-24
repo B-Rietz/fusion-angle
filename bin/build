@@ -9,7 +9,7 @@ Options:
   path/      Output directory (trailing / required)
              Default: ~/Desktop/
   --no-zip   Create bundle directory without zipping
-             (the fusion-angle executable — for ./deploy)
+             (the fusion-angle executable — for ./bin/deploy)
   --help     Show this help message
 
 Examples:
@@ -44,13 +44,18 @@ source "$BIN/build-lib"
 source "$BIN/sha-result-cache-lib"
 # shellcheck source=duration-lib
 source "$BIN/duration-lib"
-# git status, bundle_client, compile: cwd must be ROOT
+# shellcheck source=clean-tree-lib
+source "$BIN/clean-tree-lib"
+# git, bundle_client, compile: cwd must be ROOT
 cd "$ROOT"
 
-if [ -n "$(git status --porcelain)" ]; then
-    echo "Error: working directory is not clean." \
-        "Commit or stash changes before building." >&2
-    exit 1
+# An image build may hold no repository: Render deletes
+# .git, and a worktree's .git names a directory the image
+# lacks. There is no tree to ask about there, and the
+# commit is named by a build argument below. Wherever git
+# finds a repository, its tree must be clean.
+if git rev-parse --git-dir > /dev/null 2>&1; then
+    require_clean_tree
 fi
 
 # A checkout embeds the commit log of git rev-parse HEAD.

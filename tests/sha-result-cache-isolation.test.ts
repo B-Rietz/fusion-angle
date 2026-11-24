@@ -9,14 +9,25 @@ import { walkSync } from '@std/fs';
 // the duration ledger, and the scripts that run them.
 //
 // Beside a repository of its own the root is a directory
-// of its own, and the test is about the cache. In this
-// checkout it is /dev/null, where no root can be made, so
-// the script runs for real on a clean tree and a dirty
-// one alike. The checkout's tree is not a test's to keep
-// clean, and a script that reached the operator's cache
-// from it would record a stand-in's pass under a real
-// SHA, or replay an earlier run's recording, and the
-// test would prove the replay instead of the script.
+// of its own where the test is about the cache, and
+// /dev/null where it is not. In this checkout it is
+// /dev/null, where no root can be made: a script that
+// reached the operator's cache from here would record a
+// stand-in's pass under a real SHA, or replay an earlier
+// run's recording, and the test would prove the replay
+// instead of the script.
+//
+// Five of the scripts refuse a dirty tree
+// (bin/clean-tree-lib), and this checkout's tree is not a
+// test's to keep clean. So a test runs one of those past
+// its arguments only in a repository of its own
+// (tests/fixtures/script-replica.ts). Here it reaches
+// --help and a usage error and nothing else: the script
+// answers both before it reads the tree. A spawn of one
+// here, by its own path, makes that so: it hands the
+// script GIT_DIR=/dev/null, which is no repository, so a
+// case that got past the arguments would be refused on
+// any tree, clean or not.
 //
 // The ledger is a file of the test's own where the test
 // is about the timer, and /dev/null where it is not,
@@ -51,14 +62,28 @@ import { walkSync } from '@std/fs';
 // and never spells it; and what value a name is given.
 const RESOURCES = ['SHA_RESULT_CACHE_ROOT', 'TOOL_DURATIONS_PATH'];
 
-// A script's path as source spells it. The two at the
-// root are ordinary words without their `./`.
+// A script's path as source spells it. What follows the
+// name keeps bin/test from standing for bin/test-browser,
+// and a script from standing for a test file named after
+// it.
 const SCRIPT_PATH = new RegExp(
-    '\\./(test|deploy)(?![\\w./-])'
-    + '|(?<![\\w-])bin/'
-    + '(build|test-browser|test-postgres|measure|develop)'
+    '(?<![\\w-])bin/'
+    + '(build|deploy|develop|measure'
+    + '|test|test-browser|test-postgres)'
     + '(?![\\w./-])',
 );
+
+// The five that refuse a dirty tree, as a spawn names its
+// program.
+const REFUSES_A_DIRTY_TREE = new RegExp(
+    '^(\\./)?bin/'
+    + '(build|deploy|test|test-browser|test-postgres)$',
+);
+
+// What a spawn of one of those in this checkout names in
+// its env, as /dev/null: no repository, so the script can
+// answer from its arguments and from nothing else.
+const NO_REPOSITORY = 'GIT_DIR';
 
 const SHELLS = ['sh', 'bash', '/bin/sh', '/bin/bash'];
 
@@ -115,11 +140,18 @@ function callText(text: string, from: number): string {
 type Walk = {
     readonly spawners: readonly string[];
     readonly unnamed: readonly string[];
+    // The files that spawn, by its own quoted path, a
+    // script that refuses a dirty tree, and each such
+    // spawn that leaves it a repository to read.
+    readonly refusable: readonly string[];
+    readonly unshielded: readonly string[];
 };
 
 function walk(): Walk {
     const spawners = new Set<string>();
     const unnamed: string[] = [];
+    const refusable = new Set<string>();
+    const unshielded: string[] = [];
     for (const entry of walkSync('tests', { exts: ['.ts'] })) {
         if (!entry.isFile) continue;
         const text = uncommented(Deno.readTextFileSync(entry.path));
@@ -130,6 +162,17 @@ function walk(): Walk {
             const open = spawn.index + spawn[0].indexOf('(');
             const call = callText(text, open);
             const line = text.slice(0, spawn.index).split('\n').length;
+            const named = /^(['"`])(.*)\1$/.exec(spawn[2]!);
+            if (named !== null
+                && REFUSES_A_DIRTY_TREE.test(named[2]!)) {
+                refusable.add(entry.path);
+                if (!call.includes(NO_REPOSITORY)) {
+                    unshielded.push(
+                        `${entry.path}:${line} names no`
+                        + ` ${NO_REPOSITORY}`,
+                    );
+                }
+            }
             for (const resource of RESOURCES) {
                 if (call.includes(resource)) continue;
                 unnamed.push(
@@ -138,7 +181,12 @@ function walk(): Walk {
             }
         }
     }
-    return { spawners: [...spawners].sort(), unnamed: unnamed.sort() };
+    return {
+        spawners: [...spawners].sort(),
+        unnamed: unnamed.sort(),
+        refusable: [...refusable].sort(),
+        unshielded: unshielded.sort(),
+    };
 }
 
 Deno.test('every spawned script is handed a root and a ledger',
@@ -164,5 +212,30 @@ Deno.test('every spawned script is handed a root and a ledger',
         known.filter((path) => !spawners.includes(path)),
         [],
         'a known spawner is missing from the walk',
+    );
+});
+
+Deno.test('a script that refuses a dirty tree is spawned here'
+    + ' with no repository to read', () => {
+    const { refusable, unshielded } = walk();
+    assertEquals(
+        unshielded,
+        [],
+        'Each spawn listed runs, in this checkout, a script that'
+        + ' refuses a dirty tree. Name ' + NO_REPOSITORY
+        + ' in the env of that call, as /dev/null: --help and a'
+        + ' usage error still answer, and anything past the'
+        + ' arguments is refused on any tree. To run a script'
+        + ' past its arguments, use a repository of the test\'s'
+        + ' own: tests/fixtures/script-replica.ts.',
+    );
+    const known = [
+        'tests/deploy-cli.test.ts', 'tests/test-cli.test.ts',
+    ];
+    assertEquals(
+        known.filter((path) => !refusable.includes(path)),
+        [],
+        'a known spawn of a refusing script is missing from'
+        + ' the walk',
     );
 });

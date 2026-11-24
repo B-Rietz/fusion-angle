@@ -401,7 +401,7 @@ async function main(): Promise<void> {
         // than rejecting the way execFile did, so every
         // child below is checked for success by hand.
         const status = await new Deno.Command('git', {
-            args: ['status', '--porcelain'],
+            args: ['status', '--porcelain', '--untracked-files=normal'],
             cwd: repoRoot,
             stdout: 'piped',
             stderr: 'piped',

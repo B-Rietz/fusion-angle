@@ -40,7 +40,7 @@ import {
 } from '../shared/pair-root.ts';
 
 // Live pins for the ledger functions and the table.
-// Skip when POSTGRES_URL is unset so ./test validate
+// Skip when POSTGRES_URL is unset so ./bin/test validate
 // stays Postgres-free. One scratch schema; do not
 // share it. The session zone is not UTC, so a
 // function that follows TimeZone or DateStyle

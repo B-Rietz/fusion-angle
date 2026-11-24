@@ -64,7 +64,7 @@ async function runGun(
         'called',
     );
     // POSTGRES_URL and JWT_HMAC_SIGNING_KEY are
-    // blanked deliberately: ./test exports the
+    // blanked deliberately: ./bin/test exports the
     // latter ambiently, and a merge would leak it.
     // signal only bounds the async output(). The
     // program is whatever script the case names, so

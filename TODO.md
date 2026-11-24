@@ -53,13 +53,13 @@ code comments cite; specs and plans written before the
   others dictate stay at two edges: the Postgres image's
   `POSTGRES_USER`, `POSTGRES_DB`, and `POSTGRES_PASSWORD`,
   which `compose.yaml` fills from `FA_` values, and the
-  Render CLI's `RENDER_API_KEY`, which `deploy:178`,
+  Render CLI's `RENDER_API_KEY`, which `bin/deploy:190`,
   `bin/postgres-seed:154`, and `bin/postgres-wipe:113`
   fill from their own argument; a
   dependency that ever dictates a name gets its adapter.
   One dictates today: postgres.js reads sixteen `PG*`
   names as option defaults — `PGPORT`, `PGSSL`,
-  `PGIDLE_TIMEOUT`, and their kin — and `bin/build:100-104`
+  `PGIDLE_TIMEOUT`, and their kin — and `bin/build:163-170`
   grants the binary exactly those, so not every reader is
   ours until `api/postgres-client.ts` passes every option
   and the grants go, or `PG*` is named a third edge — the
@@ -71,8 +71,8 @@ code comments cite; specs and plans written before the
   (`api/advisory-lock.ts:11`,
   `api/ledger-statement-sql.ts:229`), the test schema
   `fusion_test_…` and compose project
-  `fusion-test-postgres-$$` (`bin/test-postgres:28`,
-  `:23`), and `schema_marker`, which item 0h retires.
+  `fusion-test-postgres-$$` (`bin/test-postgres:34`,
+  `:29`), and `schema_marker`, which item 0h retires.
   Ships no later than the deploy
   of the ledger (item 0i), which already changes what operators
   configure, so they rename once. The brainstorm settles
@@ -80,9 +80,9 @@ code comments cite; specs and plans written before the
   compose's service and container names, the hosted
   service names, the test-only `CHROME` and
   `CHROME_DEBUG_URL`, and the scripts' and tests'
-  `FUSION_ANGLE_STATIC_ROOT` (`bin/test-browser:49`,
+  `FUSION_ANGLE_STATIC_ROOT` (`bin/test-browser:56`,
   `tests/browser/fixtures.ts:236`),
-  `FUSION_ANGLE_BROWSER_SEED` (`bin/test-browser:62`;
+  `FUSION_ANGLE_BROWSER_SEED` (`bin/test-browser:69`;
   named at `tests/browser/fixtures.ts:75`, read at `:226`
   and `tests/browser/run-seed.test.ts:6`),
   `SHA_RESULT_CACHE_ROOT`
@@ -336,7 +336,7 @@ code comments cite; specs and plans written before the
   persist in the owner-only ledger, and `fa_api` reads
   none of them. Today: one role,
   `fusion`, owns and reads everything, and compose,
-  `./deploy --local`, `bin/test-postgres`,
+  `./bin/deploy --local`, `bin/test-postgres`,
   `./bin/measure`, and the tests all assume that one
   login (`compose.yaml:2,8-9,22-24`; `mint_compose_env`,
   `bin/compose-lib:14-15`); and the credential lines
@@ -353,7 +353,7 @@ code comments cite; specs and plans written before the
   carried in the context so every log line names the
   build (the Office of Structured Observability), and
   the one source of the `<sha>` in the `user-agent`
-  token the client and item 0h send. `./deploy` fills it from
+  token the client and item 0h send. `./bin/deploy` fills it from
   `git rev-parse HEAD`, exact because the build refuses
   a dirty tree; on Render from the commit the build
   fetches from GitHub, named by the host's commit
@@ -555,7 +555,7 @@ code comments cite; specs and plans written before the
   meets its marker and rolls back (item 0h). So every
   live ledger takes `./bin/postgres-wipe` then
   `./bin/postgres-seed`, or the Render equivalents
-  through `./deploy`, and with it arrive the exact-read
+  through `./bin/deploy`, and with it arrive the exact-read
   shapes (Spec Decision 8: invitation `state` on the
   head, PII at `('/identities/<id>/', 'pii')`, token
   `name = jti`, no `/identity-tokens/`), which
@@ -605,7 +605,7 @@ code comments cite; specs and plans written before the
   settles whether the archiver's view also applies item
   2's hiding rule, so an archive never holds removed PII.
   Cross-environment blocking, so
-  `./deploy --render TOKEN --postgres mock-data` can
+  `./bin/deploy --render TOKEN --postgres mock-data` can
   never wipe the tenant database from a laptop. No
   connection reaches the database from outside its
   host's private network — essential before launch. On
@@ -676,7 +676,7 @@ code comments cite; specs and plans written before the
   outside the pool, reconnecting; a per-session stream
   to the page (SSE is the platform primitive — the
   brainstorm weighs it against WebSocket and names the
-  drain and the resource-sanitizer cost in `./test
+  drain and the resource-sanitizer cost in `./bin/test
   browser`), fenced to the session's organization and
   identity, delivered into the existing
   `fusion-angle:data` refresh so pages change nothing.
@@ -1061,7 +1061,7 @@ Off the critical path; each with its oracle.
   bullet.
   Oracle: a Layer 1 test resends a landed in-order
   PUT with its original `If-Match` and gets 200 with
-  the landed pair's `etag`, and `./test postgres`
+  the landed pair's `etag`, and `./bin/test postgres`
   pins the same on the table
 - API retries, unified — the client resends by two
   unrelated mechanisms spread across its files, and leaves
@@ -1373,7 +1373,7 @@ Off the critical path; each with its oracle.
   present, as it does `spread`. A 5xx line fails the
   run before `--record` writes; whether a sweep logs
   one today is unmeasured. `api` is a mode word, as
-  `./test postgres` is:
+  `./bin/test postgres` is:
   `--runs 1 --record --visualize` over the full
   registry (that preset parses today, run), taking
   `--runs N` and refusing every other flag
@@ -1464,7 +1464,7 @@ Off the critical path; each with its oracle.
   (`crypto.subtle` in `api/client-assertion.ts:174`,
   `:184`) live on `lib.webworker` without `document`.
   Oracle: a
-  `document` reference in `api/` fails `./test validate`
+  `document` reference in `api/` fails `./bin/test validate`
 - The gate consumes the declared header states. The
   declarations for the nine headers `handleRequest`
   reads are held to the gate by
@@ -1647,7 +1647,7 @@ Off the critical path; each with its oracle.
   the records list renders Try Again, zero unhandled
   rejection — the same pin shape as
   `tests/ideas-empty-subscribe.test.ts`
-- A `fusion-angle:data` bell during `./test` re-enters
+- A `fusion-angle:data` bell during `./bin/test` re-enters
   the ideas list `init` on a document that has no
   `#ideas-list`. `subscribeOnce`
   (`client/channels.ts:219-223`) calls `init`
@@ -1660,7 +1660,7 @@ Off the critical path; each with its oracle.
   (`tests/worker-name-prefix.ts`), so a peer file's
   bell cannot reach the page; a bell inside the ideas
   file's own worker after its document is gone still
-  can. Re-witness before working it. Oracle: `./test`
+  can. Re-witness before working it. Oracle: `./bin/test`
   prints neither `page failed to
   init` nor `Required element not found: #ideas-list`;
   `tests/ideas-empty-subscribe.test.ts` stays green;
@@ -1914,7 +1914,7 @@ Off the critical path; each with its oracle.
   `process` to every file in it. `web-app` carries none
   of its own, but the gate checks it
   in one invocation with `client`, `server`, and `tests`
-  (`test:92`), and
+  (`bin/test:95`), and
   either alone suffices — `server/scrypt-hash.ts`'s
   `node:crypto` means retiring `node:test` will not
   restore it. `npm:` does not unlock; `Deno.*` never
@@ -1936,7 +1936,7 @@ Off the critical path; each with its oracle.
   unmeasured) and none in browser page code. So
   that half needs the lib change PLUS an exclusion
   registry the `process` half does not need. Oracle for the
-  `process` half: that invocation in `./test validate`, red
+  `process` half: that invocation in `./bin/test validate`, red
   on a `process` reference under `web-app/`.
 - The measure visualizer's client mirrors have no test
   binding them to the core. `vizClientScript()`
@@ -1963,9 +1963,9 @@ Off the critical path; each with its oracle.
   passes no `--disable-gpu`, which `--headless=new`
   does not need; its one effect would be software
   compositing, which makes runs more alike across
-  machines, and `./test browser` has been green on one
+  machines, and `./bin/test browser` has been green on one
   machine only. Add it if two machines disagree.
-  Oracle: `./test browser` green on two machines
+  Oracle: `./bin/test browser` green on two machines
 - No error-message allowlist. `safeErrorMessage`
   (`server/postgres-gate.ts:101-121`) prints a message
   only if a set names it, else `seed failed` (seed,
@@ -2614,8 +2614,8 @@ Off the critical path; each with its oracle.
     importing `INSTANCE_CONFLICT_NOTICE` in
     `tests/presenter-record-instances.test.ts` instead of
     asserting a hand-typed literal
-  - `./deploy`'s termination trap — a signal stopping the
-    live `./deploy` and its trap running `compose down
+  - `./bin/deploy`'s termination trap — a signal stopping the
+    live `./bin/deploy` and its trap running `compose down
     --remove-orphans`, leaving no compose project and no
     `.env` (J1, J2) — Layer 1, a test that sends the
     signal; 'deploy INT TERM traps exit the park'
@@ -3007,7 +3007,7 @@ Off the critical path; each with its oracle.
   `getCollectionHeads`; that seam would put the
   tombstone decision in one layer. Oracle: every
   collection read goes through the store seam,
-  `./test validate` and `./test postgres` green.
+  `./bin/test validate` and `./bin/test postgres` green.
 - The app reads the server. The contract lives in
   `shared/`, yet four modules outside the client import
   `api/`: the documentation
@@ -3551,7 +3551,7 @@ Off the critical path; each with its oracle.
   `StateStore`-matching branch
   (`web-app/app/schema-svg.ts:163-169`): it cannot
   match, since `DbStores` holds only `messagePairs`.
-  Oracle: `./test schema` green with the dead branch
+  Oracle: `./bin/test schema` green with the dead branch
   gone, and `SCHEMA.svg` byte-identical.
 - `documentLifecycleEvents`
   (`api/derive-documents.ts:190`) keeps an
@@ -3595,7 +3595,7 @@ Off the critical path; each with its oracle.
   `generate-api-documentation.ts`, `measure-viz.ts`,
   `cdp-client.ts`, `measure.ts`. Commandment IX's
   threshold is three. Oracle: one definition, five importers,
-  `./test validate` green.
+  `./bin/test validate` green.
 - Genericity — DRY, even once (the indulgence); spec
   away every nit. Includes: `putRecordInstance` PATCHes
   (name lie —
@@ -3620,7 +3620,7 @@ Off the critical path; each with its oracle.
   done); `handleSpace` dispatching
   `isFormFocused: false` unconditionally; Delete's
   `preventDefault` with nothing selected. Oracle: each
-  named site collapsed to one definition, `./test
+  named site collapsed to one definition, `./bin/test
   validate` green; the canvas entries retire with
   product-path item 11.
 - One gate for the write. Every write is one ledger
@@ -3662,7 +3662,7 @@ Off the critical path; each with its oracle.
   change 5). `sharedMockDb()` is one copy per file.
   `tests/mock-seed.test.ts` pins each copy a world of its
   own and the seed's rows. Under the suite lock on four
-  workers, `./test` took 188.85 s at `c36020172`, about
+  workers, `./bin/test` took 188.85 s at `c36020172`, about
   127.7 s at `6981d40aa`, and about 53.4 s with per-file
   seeding. Left alone: the routes outside
   `seededMockDb()`, which rehearse the mock seed 41 times
@@ -3687,7 +3687,7 @@ Off the critical path; each with its oracle.
   (`faster-layer-one-design.md`, by a script not kept)
   (`docs/superpowers/specs/`
   `2026-09-24-rehearsal-transaction-design.md:189-191`).
-  Oracle: `./test` measured before and after a copy
+  Oracle: `./bin/test` measured before and after a copy
   only a failing statement pays, and the change lands
   only if that number earns it
 - `selectHead` filters on method after the index.
@@ -3747,7 +3747,7 @@ Off the critical path; each with its oracle.
   `deno.lock` / `denort` only if that number is
   the bottleneck.
 - The ledger sweep, a mode of `./bin/measure` as
-  `./deploy` has modes. A ledger mode that subsumes a
+  `./bin/deploy` has modes. A ledger mode that subsumes a
   generator and a loader: the mock seed as the base, a modeled
   year of growth on top, every model constant a CLI argument
   (seats, working days, logins and refreshes and document
@@ -3896,7 +3896,7 @@ Off the critical path; each with its oracle.
   keeping `postgres.js` costs one specifier and one
   adapter file above `SqlClient`. Oracle: `grep -rn
   'npm:' deno.json deno.lock` prints nothing;
-  `./test postgres` green; `./bin/measure --check` green
+  `./bin/test postgres` green; `./bin/measure --check` green
   against the committed budgets.
 - A person identity is created only by its person.
   Retire the members statement's identity and PII

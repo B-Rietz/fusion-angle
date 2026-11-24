@@ -1,6 +1,6 @@
 import { assert, assertMatch, assertNotMatch } from '@std/assert';
 
-const TEST_SRC = Deno.readTextFileSync('test');
+const TEST_SRC = Deno.readTextFileSync('bin/test');
 
 function longLineBlock(src: string): string {
     const start = src.indexOf('LONG_LINES=');
@@ -22,6 +22,6 @@ Deno.test('test does not lint root markdown', () => {
 Deno.test('test lints deploy', () => {
     assertMatch(
         longLineBlock(TEST_SRC),
-        /\bdeploy\b/,
+        /\bbin\/deploy\b/,
     );
 });

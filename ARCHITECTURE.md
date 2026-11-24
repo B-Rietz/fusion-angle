@@ -57,8 +57,8 @@ directory on each request. Return
 recomposes it. Exit takes its compose
 project down.
 
-`./deploy` is the operator path. Compose
-keeps `:?required`; `./deploy` mints before
+`./bin/deploy` is the operator path. Compose
+keeps `:?required`; `./bin/deploy` mints before
 compose. The Dockerfile `CMD` is
 `cd render-out && exec ./fusion-angle serve`
 with no env copy.
@@ -96,7 +96,7 @@ secrets. A local compose build declares a third,
 `ARG FUSION_COMMIT_LOG_BASE64`: `mint_compose_env`
 encodes the host's commit log into it, because a
 worktree's `.git` is a pointer the image cannot follow,
-so `./bin/measure` and `./deploy --local` build from a
+so `./bin/measure` and `./bin/deploy --local` build from a
 worktree with no Render argument. The runtime stage
 declares no `ARG`, unlike the retired native build,
 whose `./validate` step saw the build-time
@@ -106,7 +106,7 @@ whose `./validate` step saw the build-time
 
 Five directories. `api/` is the server REST and schema
 handlers (Deno over Postgres on the product path; memory
-in `./test`). `shared/` is the one-way chasm: the wire
+in `./bin/test`). `shared/` is the one-way chasm: the wire
 contract — domain types, status codes and error classes,
 the bell's wire, claim and token-chain derivation,
 record constraints, JSON assertions, graph bodies, and
@@ -185,7 +185,7 @@ the gate, `projectClaimRolesForOrganization`
 and the identity fence confines it to co-members. It
 reaches no other organization's documents. The
 **operator** is whoever holds `POSTGRES_URL` and
-`JWT_HMAC_SIGNING_KEY` and runs `./deploy`, the seed,
+`JWT_HMAC_SIGNING_KEY` and runs `./bin/deploy`, the seed,
 and the wipe. The operator is not an identity, holds
 no token, and never acts over HTTP. Organizations come
 only from the operator's seed; no request creates one.

@@ -22,14 +22,14 @@ function daysBefore(days: number): string {
     ).toISOString();
 }
 
-// A quiet green `./test memory` run of two minutes, a day
+// A quiet green `./bin/test memory` run of two minutes, a day
 // before NOW, on a 16-core machine: load 2 when it began
 // and 16, its own sixteen jobs, when it ended.
 function sample(
     overrides: Partial<DurationSample> = {},
 ): DurationSample {
     return {
-        tool: './test',
+        tool: './bin/test',
         arguments: ['memory'],
         sha: '0123456789abcdef0123456789abcdef01234567',
         tree: 'clean',
@@ -71,7 +71,7 @@ Deno.test('two slow quiet runs in a row are a regression',
     });
     assertEquals(
         durationLine(now, verdict),
-        'DURATION REGRESSION: ./test memory took 600.0 s;'
+        'DURATION REGRESSION: ./bin/test memory took 600.0 s;'
         + ' its recent median is 120.0 s'
         + ' (4 runs in the last 14 days);'
         + ' 5.0× slower, two quiet runs in a row',
@@ -89,7 +89,7 @@ Deno.test('the first slow run is not yet a regression',
     });
     assertEquals(
         durationLine(now, verdict),
-        'duration: ./test memory took 600.0 s,'
+        'duration: ./bin/test memory took 600.0 s,'
         + ' 5.0× its recent median of 120.0 s'
         + ' (3 runs in the last 14 days);'
         + ' a second quiet run this slow here'
@@ -110,7 +110,7 @@ Deno.test('a slow run under machine load is no regression',
     assertEquals(verdict.kind, 'slower');
     assertEquals(
         durationLine(now, verdict),
-        'duration: ./test memory took 600.0 s,'
+        'duration: ./bin/test memory took 600.0 s,'
         + ' 5.0× its recent median of 120.0 s'
         + ' (4 runs in the last 14 days);'
         + ' load was 3.4 per core as it began,'
@@ -131,7 +131,7 @@ Deno.test('a slow run that ended under load is no regression',
     assertEquals(verdict.kind, 'slower');
     assertEquals(
         durationLine(now, verdict),
-        'duration: ./test memory took 600.0 s,'
+        'duration: ./bin/test memory took 600.0 s,'
         + ' 5.0× its recent median of 120.0 s'
         + ' (4 runs in the last 14 days);'
         + ' load was 2.5 per core as it ended,'
@@ -178,7 +178,7 @@ Deno.test('a run under three times the median is steady',
     });
     assertEquals(
         durationLine(now, verdict),
-        'duration: ./test memory took 348.0 s;'
+        'duration: ./bin/test memory took 348.0 s;'
         + ' recent median 120.0 s'
         + ' (3 runs in the last 14 days)',
     );
@@ -341,7 +341,7 @@ Deno.test('an empty history is no baseline yet', () => {
     );
     assertEquals(
         durationLine(now, verdict),
-        'duration: ./test memory took 120.0 s;'
+        'duration: ./bin/test memory took 120.0 s;'
         + ' no baseline yet (0 of 3 quiet green runs'
         + ' in the last 14 days)',
     );
@@ -367,7 +367,7 @@ Deno.test('a contended run says it is not counted', () => {
     const now = current({ loadAtStart: 54.4 });
     assertEquals(
         durationLine(now, durationVerdict(now, [])),
-        'duration: ./test memory took 120.0 s;'
+        'duration: ./bin/test memory took 120.0 s;'
         + ' no baseline yet (0 of 3 quiet green runs'
         + ' in the last 14 days);'
         + ' load was 3.4 per core as it began,'
@@ -375,7 +375,7 @@ Deno.test('a contended run says it is not counted', () => {
     );
     assertEquals(
         durationLine(now, durationVerdict(now, BASELINE)),
-        'duration: ./test memory took 120.0 s;'
+        'duration: ./bin/test memory took 120.0 s;'
         + ' recent median 120.0 s'
         + ' (3 runs in the last 14 days);'
         + ' load was 3.4 per core as it began,'

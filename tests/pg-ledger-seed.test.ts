@@ -35,7 +35,7 @@ import {
 import { testHashPassword } from './mock-seed.ts';
 
 // Live pins for the seed beneath the adapter. Skip when
-// POSTGRES_URL is unset so ./test validate stays
+// POSTGRES_URL is unset so ./bin/test validate stays
 // Postgres-free. One scratch schema, emptied before each
 // test; do not share it.
 

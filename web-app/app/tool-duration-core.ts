@@ -25,7 +25,7 @@ export const SLOWDOWN_RATIO = 3;
 // A slow run also took at least this many milliseconds
 // longer than the median: three times 200 ms is nothing.
 // Half a minute also keeps a step with a cache under it:
-// `./test check` takes 0.2 s on a hit and seconds on a
+// `./bin/test check` takes 0.2 s on a hit and seconds on a
 // miss, and both are honest.
 export const SLOWDOWN_FLOOR_MS = 30_000;
 

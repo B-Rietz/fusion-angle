@@ -7,6 +7,18 @@ import {
     assertStringIncludes,
 } from '@std/assert';
 import { join } from '@std/path';
+import {
+    commitAll,
+    copyFromCheckout,
+    copyWorkingTree,
+    GATE_LIBRARIES,
+    runInReplica,
+    searchPath,
+    withRepository,
+} from './fixtures/script-replica.ts';
+
+// Where the test command lives in this checkout.
+const TEST = 'bin/test';
 
 // The source of one shell function, header to closing
 // brace.
@@ -18,10 +30,16 @@ function functionBody(src: string, name: string): string {
     return src.slice(at, end);
 }
 
-// No case run through here reaches a step. The result
-// cache is handed /dev/null for its root all the same,
-// and the timer /dev/null for its ledger, by the rule
-// tests/sha-result-cache-isolation.test.ts pins.
+// No case run through here gets past the arguments: each
+// stops at a usage error, which the script answers before
+// it reads the tree (tests/clean-tree-cli.test.ts), so
+// this checkout's tree is never asked about. GIT_DIR is
+// /dev/null, which is no repository, to make that so: a
+// case that got past the arguments would be refused on
+// any tree, clean or not. The result cache is handed
+// /dev/null for its root all the same, and the timer
+// /dev/null for its ledger. tests/sha-result-cache-
+// isolation.test.ts pins all three.
 async function runTest(
     args: string[],
     env: Record<string, string> = {},
@@ -30,12 +48,13 @@ async function runTest(
     readonly stdout: string;
     readonly stderr: string;
 }> {
-    const output = await new Deno.Command('./test', {
+    const output = await new Deno.Command('./bin/test', {
         args,
         signal: AbortSignal.timeout(4000),
         env: {
             POSTGRES_URL: '',
             JWT_HMAC_SIGNING_KEY: '',
+            GIT_DIR: '/dev/null',
             SHA_RESULT_CACHE_ROOT: '/dev/null',
             TOOL_DURATIONS_PATH: '/dev/null',
             ...env,
@@ -49,7 +68,18 @@ async function runTest(
     };
 }
 
-// ./test runs with deno stubbed on PATH. The stub appends
+type DenoCalls = {
+    readonly status: number;
+    readonly stderr: string;
+    readonly calls: readonly string[];
+};
+
+// The test command runs with deno stubbed on PATH, in a
+// repository of its own: the script refuses a dirty tree,
+// and this checkout's tree is not a test's to keep clean
+// (tests/fixtures/script-replica.ts). The replica holds
+// the script and what it sources, or the whole working
+// tree for the one case that lints it. The stub appends
 // one line per call: the worker count, whether the call
 // runs files in parallel (deno reads DENO_JOBS only then),
 // the time zone, and the subcommand, "unset" for what the
@@ -57,33 +87,21 @@ async function runTest(
 // worker count this suite itself runs under is no decoy.
 //
 // The result cache is handed /dev/null for its root, where
-// no root can be made. This checkout's tree is not the
-// test's to keep clean. On a clean one the script would
-// otherwise record the stub's pass under the real SHA, in
-// the operator's cache, replay it to the next case, and
-// ask deno its version twice more for every step.
-//
-// The timer is handed /dev/null for its ledger, which
-// means there is none. With one it would run the stub
-// twice more for every step, and write the stub's
-// instant passes into the operator's ledger as the
-// recent duration of the real suite.
+// no root can be made, and the timer /dev/null for its
+// ledger, which means there is none: either would ask the
+// stub for more than the script's own calls.
 async function denoCalls(
     args: readonly string[],
     env: Record<string, string>,
-    timeoutMs: number,
-): Promise<{
-    readonly status: number;
-    readonly stderr: string;
-    readonly calls: readonly string[];
-}> {
-    const dir = Deno.makeTempDirSync({
-        prefix: 'fusion-test-workers-',
-    });
-    const log = join(dir, 'calls.log');
-    try {
+    holds: 'the script' | 'the working tree',
+): Promise<DenoCalls> {
+    const results: DenoCalls[] = [];
+    await withRepository(async (repository) => {
+        const stubs = join(repository.dir, 'stubs');
+        const log = join(repository.dir, 'calls.log');
+        await Deno.mkdir(stubs);
         Deno.writeTextFileSync(
-            join(dir, 'deno'),
+            join(stubs, 'deno'),
             '#!/bin/bash\n'
             + 'parallel=serial\n'
             + 'for arg in "$@"; do\n'
@@ -97,40 +115,33 @@ async function denoCalls(
             { mode: 0o755 },
         );
         Deno.writeTextFileSync(log, '');
-        const output = await new Deno.Command('./test', {
-            args: [...args],
-            signal: AbortSignal.timeout(timeoutMs),
-            clearEnv: true,
-            env: {
-                PATH: `${dir}:${Deno.env.get('PATH') ?? ''}`,
-                SHA_RESULT_CACHE_ROOT: '/dev/null',
-                TOOL_DURATIONS_PATH: '/dev/null',
-                ...env,
-            },
-            stdout: 'null',
-            stderr: 'piped',
-        }).output();
+        if (holds === 'the working tree') {
+            await copyWorkingTree(repository.repo);
+        } else {
+            copyFromCheckout(
+                repository.repo, [TEST, ...GATE_LIBRARIES],
+            );
+        }
+        await commitAll(repository.repo, 'The test script');
+        const run = await runInReplica(
+            repository, `./${TEST}`, args,
+            { PATH: `${stubs}:${searchPath()}`, ...env },
+        );
         const calls = Deno.readTextFileSync(log);
-        return {
-            status: output.code,
-            stderr: new TextDecoder().decode(output.stderr),
+        results.push({
+            status: run.status,
+            stderr: run.stderr,
             calls: calls === '' ? [] : calls.trimEnd().split('\n'),
-        };
-    } finally {
-        Deno.removeSync(dir, { recursive: true });
-    }
+        });
+    });
+    return results[0]!;
 }
-
-// The memory passes are stubs; validate also lints the
-// tree, a few seconds on a quiet machine.
-const MEMORY_TIMEOUT_MS = 10_000;
-const VALIDATE_TIMEOUT_MS = 60_000;
 
 // The operator's machine is usually running other work, so
 // the suite takes four workers unless one run asks.
 Deno.test('test memory runs each pass on four workers',
 async () => {
-    const run = await denoCalls(['memory'], {}, MEMORY_TIMEOUT_MS);
+    const run = await denoCalls(['memory'], {}, 'the script');
     assertStrictEquals(run.status, 0);
     assertEquals(run.calls, [
         '4 parallel UTC test',
@@ -141,7 +152,7 @@ async () => {
 Deno.test('test memory keeps a worker count it is given',
 async () => {
     const run = await denoCalls(
-        ['memory'], { DENO_JOBS: '16' }, MEMORY_TIMEOUT_MS,
+        ['memory'], { DENO_JOBS: '16' }, 'the script',
     );
     assertStrictEquals(run.status, 0);
     assertEquals(run.calls, [
@@ -156,7 +167,7 @@ Deno.test('test memory refuses a worker count that is none',
 async () => {
     for (const jobs of ['abc', '0', '-4', '4x', ' 4']) {
         const run = await denoCalls(
-            ['memory'], { DENO_JOBS: jobs }, MEMORY_TIMEOUT_MS,
+            ['memory'], { DENO_JOBS: jobs }, 'the script',
         );
         assertStrictEquals(run.status, 1, jobs);
         assertMatch(run.stderr, /DENO_JOBS/, jobs);
@@ -166,11 +177,12 @@ async () => {
 
 // The count is the memory suite's alone: the steps after
 // it, and a browser or Postgres suite validate goes on to,
-// keep deno's own. Validate runs the lint for real.
+// keep deno's own. Validate runs the lint for real, over a
+// copy of this checkout's working tree.
 Deno.test('test validate hands the worker count to no other step',
 async () => {
     const run = await denoCalls(
-        ['validate'], {}, VALIDATE_TIMEOUT_MS,
+        ['validate'], {}, 'the working tree',
     );
     assertStrictEquals(run.status, 0, run.stderr);
     assertEquals(run.calls, [
@@ -187,7 +199,7 @@ Deno.test('test unknown suite exits 1 with usage',
 async () => {
     const result = await runTest(['bogus']);
     assertStrictEquals(result.status, 1);
-    assertMatch(result.stderr, /Usage: \.\/test/);
+    assertMatch(result.stderr, /Usage: \.\/bin\/test/);
 });
 
 // Each script that does a step's work asks the result
@@ -196,8 +208,8 @@ async () => {
 // their process ids the ones a signal reaches.
 Deno.test('test asks the result cache for its own three steps',
 () => {
-    const src = Deno.readTextFileSync('test');
-    assertMatch(src, /\. "\$ROOT\/bin\/sha-result-cache-lib"/);
+    const src = Deno.readTextFileSync('bin/test');
+    assertMatch(src, /\. "\$BIN\/sha-result-cache-lib"/);
     assertMatch(src, /replay_or_run memory -- .*run_memory/);
     assertMatch(src, /replay_or_run lint -- .*run_lint/);
     assertMatch(
@@ -205,10 +217,10 @@ Deno.test('test asks the result cache for its own three steps',
     );
     assertNotMatch(src, /replay_or_run (postgres|browser)/);
     assertMatch(
-        src, /postgres\) exec "\$ROOT\/bin\/test-postgres" ;;/,
+        src, /postgres\) exec "\$BIN\/test-postgres" ;;/,
     );
     assertMatch(
-        src, /browser\) exec "\$ROOT\/bin\/test-browser" ;;/,
+        src, /browser\) exec "\$BIN\/test-browser" ;;/,
     );
     assertNotMatch(
         src, /most-recently-validated-sha|already validated/,
@@ -221,7 +233,7 @@ Deno.test('test asks the result cache for its own three steps',
 Deno.test('validate composes cached and uncached steps',
 () => {
     const body = functionBody(
-        Deno.readTextFileSync('test'), 'run_validate',
+        Deno.readTextFileSync('bin/test'), 'run_validate',
     );
     const order = [
         'run_check',
@@ -240,13 +252,13 @@ Deno.test('validate composes cached and uncached steps',
 // check and schema repeat in under a second; a cache
 // over them would guard a cost that is not there.
 Deno.test('check and schema run every time', () => {
-    const src = Deno.readTextFileSync('test');
+    const src = Deno.readTextFileSync('bin/test');
     assertNotMatch(src, /replay_or_run.*run_(check|schema)/);
     assertNotMatch(src, /replay_or_run (check|schema)/);
 });
 
 Deno.test('test dispatcher names combinations', () => {
-    const src = Deno.readTextFileSync('test');
+    const src = Deno.readTextFileSync('bin/test');
     assertMatch(src, /validate browser/);
     assertMatch(src, /validate \[--syntax\]/);
     assertNotMatch(src, /VALIDATE_OK/);
@@ -255,7 +267,7 @@ Deno.test('test dispatcher names combinations', () => {
 
 Deno.test('validate --syntax is check and records nothing',
 () => {
-    const src = Deno.readTextFileSync('test');
+    const src = Deno.readTextFileSync('bin/test');
     const at = src.indexOf('"$1" = "--syntax"');
     assert(at >= 0, '--syntax branch missing');
     const end = src.indexOf('elif', at);
@@ -279,21 +291,21 @@ async () => {
         'validate', '--syntax', 'browser',
     ]);
     assertStrictEquals(result.status, 1);
-    assertMatch(result.stderr, /Usage: \.\/test/);
+    assertMatch(result.stderr, /Usage: \.\/bin\/test/);
 });
 
 // A replay returns to its caller, which
 // tests/sha-result-cache.test.ts pins, so a validate that
 // replays every step still reaches the suite after it.
 Deno.test('validate browser reaches the browser suite', () => {
-    const src = Deno.readTextFileSync('test');
+    const src = Deno.readTextFileSync('bin/test');
     const comboAt = src.indexOf('"$1" = "browser"');
     assert(comboAt >= 0, 'browser combination missing');
     const comboEnd = src.indexOf('elif', comboAt + 1);
     assert(comboEnd > comboAt, 'browser combo unclosed');
     const combo = src.slice(comboAt, comboEnd);
     const runAt = combo.indexOf('run_validate');
-    const execAt = combo.indexOf('bin/test-browser');
+    const execAt = combo.indexOf('exec "$BIN/test-browser"');
     assert(runAt >= 0, 'run_validate missing in combo');
     assert(execAt >= 0, 'test-browser exec missing');
     assert(
@@ -407,7 +419,8 @@ Deno.test('test-browser asks the result cache per browser',
     assertMatch(suite, /tests\/browser\/\*\.test\.ts/);
     // Each ask's command is the timed suite, so a replay
     // is never a sample.
-    const timed = " -- \\\n        timed './test browser' browser_suite\n";
+    const timed = ' -- \\\n'
+        + "        timed './bin/test browser' browser_suite\n";
     assertStringIncludes(
         src, 'replay_or_run "browser $CHROME_DEBUG_URL"' + timed,
     );

@@ -1,5 +1,5 @@
 // A peer test file, as deno test --parallel runs one: a
-// worker in this process with ./test's per-worker preload
+// worker in this process with ./bin/test's per-worker preload
 // loaded first. It holds the refresh lock and announces an
 // access token on the refresh bus when told to.
 import '../worker-name-prefix.ts';

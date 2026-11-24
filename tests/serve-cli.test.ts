@@ -35,7 +35,7 @@ async function runServe(
         'called',
     );
     // POSTGRES_URL and JWT_HMAC_SIGNING_KEY are blanked
-    // deliberately: ./test exports the latter ambiently,
+    // deliberately: ./bin/test exports the latter ambiently,
     // and a merge (unlike Node's env-replace) would
     // otherwise leak it through.
     // signal only bounds the async output() — the sync

@@ -1,4 +1,4 @@
-// Preload for ./test. Deno ships a real Web Storage
+// Preload for ./bin/test. Deno ships a real Web Storage
 // global: assigning globalThis.sessionStorage is ignored,
 // and the store persists for the life of the process. One
 // test file stubs sessionStorage by assignment. Installing

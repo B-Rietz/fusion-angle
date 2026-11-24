@@ -1,8 +1,10 @@
 import { assertEquals } from '@std/assert';
 
-// Every operator script at the repository root or under
-// bin/ execs deno or a deno-compiled binary; none invokes
-// node, npm, or npx. The set is read from those
+// Every operator script lives under bin/ and execs deno
+// or a deno-compiled binary; none invokes node, npm, or
+// npx, and neither does a file a build reads at the
+// repository root: the Dockerfile, compose.yaml, deno.json,
+// and deno.lock. The set is read from those two
 // directories, never listed, so a wrapper added tomorrow
 // is covered the day it lands. Markdown is prose about the
 // runtimes and is exempt; directories are other pins'
@@ -35,7 +37,8 @@ function invokesNode(path: string): boolean {
     return INVOCATION.test(new TextDecoder().decode(buf));
 }
 
-Deno.test('no root script invokes node, npm, or npx', () => {
+Deno.test('no operator script or build file invokes node, npm,'
+    + ' or npx', () => {
     const files = operatorFiles();
     assertEquals(
         files.filter(invokesNode), [],
@@ -46,5 +49,11 @@ Deno.test('no root script invokes node, npm, or npx', () => {
         && files.includes('bin/postgres-wipe'),
         true,
         'the three postgres wrappers are in the walk',
+    );
+    assertEquals(
+        ['bin/test', 'bin/deploy', 'Dockerfile', 'compose.yaml']
+            .filter((path) => !files.includes(path)),
+        [],
+        'the moved scripts and the build files are in the walk',
     );
 });

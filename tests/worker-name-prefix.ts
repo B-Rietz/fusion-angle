@@ -1,4 +1,4 @@
-// Preload for ./test. Under --parallel every test file is
+// Preload for ./bin/test. Under --parallel every test file is
 // a worker in ONE process, and BroadcastChannel and
 // navigator.locks name process-global buses and locks: a
 // refresh in one file waits on a peer file's lock and

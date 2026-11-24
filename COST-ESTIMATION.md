@@ -165,8 +165,8 @@ out. Sum only production:
   `web-app/api-documentation/` (generated rooms)
 - `server/` TypeScript
 - `shared/` TypeScript
-- root operator scripts (the same files `cloc` counts
-  as Bourne Again Shell at repo root)
+- operator scripts (the same files `cloc` counts
+  as Bourne Again Shell under `bin/`)
 
 ```sh
 cloc --vcs git --exclude-dir=node_modules,.worktrees

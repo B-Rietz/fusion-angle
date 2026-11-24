@@ -10,6 +10,17 @@ import {
     type DurationSample,
     parseLedger,
 } from '../web-app/app/tool-duration-core.ts';
+import {
+    commitAll,
+    copyFromCheckout,
+    GATE_LIBRARIES,
+    realDeno,
+    runInReplica,
+    withRepository,
+} from './fixtures/script-replica.ts';
+
+// Where the test command lives in this checkout.
+const TEST = 'bin/test';
 
 // A hang bound, never a timing assertion: each spawn is
 // two short deno runs around the command.
@@ -23,17 +34,33 @@ type Spawned = {
     readonly stderr: string;
 };
 
-function freshLedgerPath(): string {
-    return join(
-        Deno.makeTempDirSync({ prefix: 'tool-durations-' }),
-        'tool-durations.jsonl',
-    );
+// Every ledger and every stand-in directory this file
+// makes lives under one directory of its own, made before
+// the first test and removed after the last. A test that
+// fails or throws leaves what it made there, and the
+// directory goes all the same: nothing of this file's
+// outlives the file.
+let home = '';
+Deno.test.beforeAll(() => {
+    home = Deno.makeTempDirSync({ prefix: 'tool-durations-' });
+});
+Deno.test.afterAll(() => {
+    Deno.removeSync(home, { recursive: true });
+});
+
+// A directory of one test's own, under the file's.
+function scratchDirectory(): string {
+    return Deno.makeTempDirSync({ dir: home });
 }
 
-// A script or a shell, run with a ledger of the test's
-// own. The result cache is handed /dev/null for its root:
-// this checkout's tree is not a test's to keep clean
-// (tests/sha-result-cache-isolation.test.ts).
+function freshLedgerPath(): string {
+    return join(scratchDirectory(), 'tool-durations.jsonl');
+}
+
+// A shell that sources the timer in this checkout, run
+// with a ledger of the test's own. It asks the tree only
+// to label a sample. The result cache is handed /dev/null
+// for its root (tests/sha-result-cache-isolation.test.ts).
 async function spawned(
     command: string,
     args: string[],
@@ -157,18 +184,25 @@ async () => {
 // No variable says a tree is clean: the timer asks git, as
 // the result cache does. So git is told of a repository
 // of the test's own, first as committed and then with a
-// file it does not know.
+// file it does not know. And no git setting answers for
+// the tree: `status.showUntrackedFiles=no` makes a bare
+// `git status` leave that file out, so the timer asks for
+// untracked files by name.
 Deno.test('a sample says whether the tree was clean',
 async () => {
-    const dir = await Deno.makeTempDir({
-        prefix: 'tool-durations-tree-',
-    });
-    try {
+    for (const hidesUntracked of [false, true]) {
+        const dir = scratchDirectory();
         await git(['-C', dir, 'init', '--quiet']);
         await git([
             '-C', dir, 'commit', '--quiet', '--allow-empty',
             '-m', 'Empty',
         ]);
+        if (hidesUntracked) {
+            await git([
+                '-C', dir, 'config',
+                'status.showUntrackedFiles', 'no',
+            ]);
+        }
         const ledger = freshLedgerPath();
         const result = await runTimed(
             'timed "./probe clean" true;'
@@ -183,9 +217,8 @@ async () => {
                 sample.arguments, sample.tree,
             ]),
             [[['clean'], 'clean'], [['dirty'], 'dirty']],
+            `hidesUntracked=${hidesUntracked}`,
         );
-    } finally {
-        await Deno.remove(dir, { recursive: true });
     }
 });
 
@@ -267,7 +300,7 @@ async () => {
 Deno.test('an unwritable ledger changes nothing but a line',
 async () => {
     const ledger = join(
-        Deno.makeTempDirSync({ prefix: 'tool-durations-' }),
+        scratchDirectory(),
         'absent-directory',
         'tool-durations.jsonl',
     );
@@ -378,7 +411,7 @@ async () => {
 // hands it that, and may count every program the script
 // runs.
 Deno.test('no ledger means an untimed, silent run', async () => {
-    const dir = Deno.makeTempDirSync({ prefix: 'tool-durations-' });
+    const dir = scratchDirectory();
     const called = join(dir, 'called');
     for (const program of ['deno', 'git']) {
         Deno.writeTextFileSync(
@@ -434,32 +467,58 @@ async () => {
     );
 });
 
-// ── ./test ──────
+// ── ./bin/test ──────
 
-function runTest(
+// The test command in a repository of its own, with a
+// ledger of the test's own: the script refuses a dirty
+// tree, and this checkout's tree is not a test's to keep
+// clean (tests/fixtures/script-replica.ts). The replica
+// holds the script, the browser door it execs, and a
+// stand-in for the schema generator; the timer's own
+// programs are the real ones, run by the real deno.
+async function runTest(
     args: string[],
     ledger: string,
     env: Record<string, string> = {},
 ): Promise<Spawned> {
-    return spawned('./test', args, ledger, {
-        POSTGRES_URL: '',
-        JWT_HMAC_SIGNING_KEY: '',
-        ...env,
+    const runs: Spawned[] = [];
+    await withRepository(async (repository) => {
+        copyFromCheckout(repository.repo, [
+            TEST,
+            'bin/test-browser',
+            'bin/build-lib',
+            ...GATE_LIBRARIES,
+        ]);
+        await Deno.writeTextFile(
+            join(repository.repo, 'bin/generate-schema-svg'),
+            '#!/bin/sh\necho "SCHEMA.svg is up to date"\n',
+            { mode: 0o755 },
+        );
+        await commitAll(repository.repo, 'The test script');
+        runs.push(await runInReplica(
+            repository, `./${TEST}`, args,
+            {
+                TOOL_DURATIONS_PATH: ledger,
+                ...realDeno(),
+                ...env,
+            },
+        ));
     });
+    return runs[0]!;
 }
 
-Deno.test('./test schema records a green sample', async () => {
+Deno.test('./bin/test schema records a green sample', async () => {
     const ledger = freshLedgerPath();
     const result = await runTest(['schema'], ledger);
     assertStrictEquals(result.status, 0);
     const sample = onlySampleIn(ledger);
     assertEquals(
         [sample.tool, sample.arguments, sample.exitStatus],
-        ['./test', ['schema'], 0],
+        ['./bin/test', ['schema'], 0],
     );
     assertMatch(
         result.stderr,
-        /^duration: \.\/test schema took \d+\.\d s; /m,
+        /^duration: \.\/bin\/test schema took \d+\.\d s; /m,
     );
 });
 
@@ -469,7 +528,7 @@ Deno.test('./test schema records a green sample', async () => {
 // begins and then fails is recorded red, and a replay is
 // no run either: tests/sha-result-cache.test.ts pins both
 // on the real scripts, in a repository of their own.
-Deno.test('./test browser with no Chrome records nothing',
+Deno.test('./bin/test browser with no Chrome records nothing',
 async () => {
     const ledger = freshLedgerPath();
     const result = await runTest(['browser'], ledger, {
@@ -485,8 +544,8 @@ async () => {
     );
 });
 
-// The command each step ./test runs itself is timed
-// with. `./test validate` is a composition of these, not
+// The command each step ./bin/test runs itself is timed
+// with. `./bin/test validate` is a composition of these, not
 // a step of its own.
 const STEP_COMMANDS: Record<string, string> = {
     'check': 'run_check',
@@ -496,7 +555,7 @@ const STEP_COMMANDS: Record<string, string> = {
     'api-docs': 'run_api_docs',
 };
 
-// The suites ./test hands to a script of their own. Each
+// The suites ./bin/test hands to a script of their own. Each
 // script asks the result cache at its own door and times
 // its work there, under the suite's name: the script,
 // and the command it times.
@@ -515,7 +574,7 @@ const DOOR_SUITES: Record<
 };
 
 const TIMED_STEP =
-    /timed '\.\/test ([a-z-]+)'(?: \\\n)?\s+(\S+)/g;
+    /timed '\.\/bin\/test ([a-z-]+)'(?: \\\n)?\s+(\S+)/g;
 
 // The source of one shell function, header to closing
 // brace.
@@ -527,8 +586,8 @@ function functionBody(src: string, name: string): string {
     return src.slice(at, end);
 }
 
-Deno.test('./test times every suite it offers', () => {
-    const src = Deno.readTextFileSync('test');
+Deno.test('./bin/test times every suite it offers', () => {
+    const src = Deno.readTextFileSync('bin/test');
     const offered = [...src.matchAll(/^ {4}(\S+)\)$/gm)]
         .flatMap((arm) => arm[1]!.split('|'))
         .filter((name) =>
@@ -569,8 +628,8 @@ Deno.test('./test times every suite it offers', () => {
     }
 });
 
-Deno.test('./test runs no step outside a timed call', () => {
-    const src = Deno.readTextFileSync('test');
+Deno.test('./bin/test runs no step outside a timed call', () => {
+    const src = Deno.readTextFileSync('bin/test');
     let untimed = src.replaceAll(TIMED_STEP, '');
     for (const command of Object.values(STEP_COMMANDS)) {
         untimed = untimed.replaceAll(`${command}() {`, '');
@@ -582,7 +641,7 @@ Deno.test('./test runs no step outside a timed call', () => {
         );
     }
     // A shell that execs is gone before its step ends, and
-    // records nothing. So ./test execs only a script that
+    // records nothing. So ./bin/test execs only a script that
     // times its own work. As a command: find's -exec is
     // an argument.
     const execed = [...src.matchAll(/(?<![-\w])exec\s+(\S+)/g)]
@@ -590,14 +649,16 @@ Deno.test('./test runs no step outside a timed call', () => {
     assertEquals(
         [...new Set(execed)].sort(),
         Object.values(DOOR_SUITES)
-            .map((door) => `"$ROOT/${door.script}"`).sort(),
+            .map((door) =>
+                `"${door.script.replace(/^bin\//, '$BIN/')}"`
+            ).sort(),
     );
     // And names that script nowhere but in its exec and
     // the lint list: timed here as well, one run would be
     // two samples.
     const strays = src.split('\n').filter((line) =>
-        /bin\/test-(postgres|browser)/.test(line)
-        && !/^\s+(\w+\) )?exec "\$ROOT\/bin\/test-\w+"( ;;)?$/
+        /test-(postgres|browser)/.test(line)
+        && !/^\s+(\w+\) )?exec "\$BIN\/test-\w+"( ;;)?$/
             .test(line)
         && line.trim() !== 'bin/test-postgres bin/test-browser \\'
     );
@@ -608,13 +669,13 @@ Deno.test('./test runs no step outside a timed call', () => {
 // run: a timed step as it stands, or an ask whose command
 // is a timed step. A step added there plainly would run
 // unrecorded.
-Deno.test('./test validate composes only timed steps', () => {
-    const src = Deno.readTextFileSync('test');
+Deno.test('./bin/test validate composes only timed steps', () => {
+    const src = Deno.readTextFileSync('bin/test');
     const steps = functionBody(src, 'run_validate')
         .split('\n').slice(2);
     assertEquals(
         steps.filter((line) =>
-            !/^ {4}timed '\.\/test [a-z-]+' \S+$/.test(line)
+            !/^ {4}timed '\.\/bin\/test [a-z-]+' \S+$/.test(line)
             && !/^ {4}replay_or_run_[a-z_]+$/.test(line)
         ),
         [],
@@ -629,11 +690,12 @@ Deno.test('./test validate composes only timed steps', () => {
             .filter((line) =>
                 !/^\s+(if .*; then|else|fi)$/.test(line)
             );
+        const timedStep = new RegExp(
+            '^\\s+(replay_or_run \\S+ -- )?'
+            + "timed '\\./bin/test [a-z-]+' \\S+$",
+        );
         assertEquals(
-            runs.filter((line) =>
-                !/^\s+(replay_or_run \S+ -- )?timed '\.\/test [a-z-]+' \S+$/
-                    .test(line)
-            ),
+            runs.filter((line) => !timedStep.test(line)),
             [],
             ask,
         );
@@ -643,20 +705,21 @@ Deno.test('./test validate composes only timed steps', () => {
 
 // ── every script ──────
 
-// Every executable at the root or under bin/ either times
-// its work or is named here with its reason. The set is
-// read from the directories, never listed, so a script
-// added tomorrow fails this pin until someone decides.
+// Every executable git tracks either times its work or is
+// named here with its reason. The set is read from git,
+// wherever in the tree it finds one, never listed, so a
+// script added tomorrow fails this pin until someone
+// decides.
 const TIMED_SCRIPTS = [
-    'bin/build', 'bin/test-browser', 'bin/test-postgres', 'test',
+    'bin/build', 'bin/test', 'bin/test-browser', 'bin/test-postgres',
 ];
 const UNTIMED: Record<string, string> = {
     'bin/develop':
         'an edit session ends when the operator ends it',
     'bin/generate-api-documentation':
-        './test times its check as ./test api-docs',
+        './bin/test times its check as ./bin/test api-docs',
     'bin/generate-schema-svg':
-        './test times its check as ./test schema',
+        './bin/test times its check as ./bin/test schema',
     'bin/measure':
         'a benchmark whose duration its own flags set',
     'bin/postgres-seed':
@@ -667,15 +730,19 @@ const UNTIMED: Record<string, string> = {
         'a server ends when the operator ends it',
     'bin/worktree-add':
         'it adds a worktree and is done',
-    'deploy':
-        'its gates are ./test steps; its stand-up is an image'
+    'bin/deploy':
+        'its gates are ./bin/test steps; its stand-up is an image'
         + ' build, as long as the layer cache makes it',
 };
-const EXECUTABLE_MODE = '100755';
+// What git records for a file a shell can run by name: an
+// executable, or a symbolic link, which can stand in for
+// one anywhere.
+const RUNNABLE_MODES = ['100755', '120000'];
 
-// The executables git tracks at the root and directly
-// under bin/. Tracked, so an editor's stray copy is no
-// script; a new script joins the day it is added.
+// Every executable and every symbolic link git tracks,
+// anywhere in the tree. Tracked, so an editor's stray
+// copy is no script; a new script joins the day it is
+// added.
 async function executableScripts(): Promise<string[]> {
     const listed = await git(['ls-files', '--stage']);
     return listed.trimEnd().split('\n')
@@ -683,10 +750,7 @@ async function executableScripts(): Promise<string[]> {
             const [stage, path] = line.split('\t');
             return { mode: stage!.split(' ')[0]!, path: path! };
         })
-        .filter(({ mode, path }) =>
-            mode === EXECUTABLE_MODE
-            && /^(bin\/)?[^/]+$/.test(path)
-        )
+        .filter(({ mode }) => RUNNABLE_MODES.includes(mode))
         .map(({ path }) => path)
         .sort();
 }
@@ -708,6 +772,23 @@ async () => {
     assertEquals(
         scripts.filter((path) => !callsTimed(path)),
         Object.keys(UNTIMED).sort(),
+    );
+});
+
+// One place for scripts: directly under bin/. None sits
+// at the root, where test and deploy once did, none sits
+// in a directory of its own, and no symbolic link stands
+// in for one anywhere else.
+Deno.test('every executable script lives under bin/',
+async () => {
+    const scripts = await executableScripts();
+    assertEquals(
+        scripts.filter((path) => !/^bin\/[^/]+$/.test(path)), [],
+    );
+    assertEquals(
+        ['bin/deploy', 'bin/test']
+            .filter((path) => !scripts.includes(path)),
+        [],
     );
 });
 
