@@ -209,15 +209,26 @@ other use.
 
 ### Pin
 
-`tests/mock-data-invitation-lifetime.test.ts` seeds on a
-day years past the old instant: `FakeTime` at
-2031-06-15, installed before any seed module loads (the
-seed reads its day at import, as the generator's pins
-say), with the product clock stepping from there. As the
-invitee, an accept one day short of the lifetime answers
-200, and on a fresh copy an accept at the lifetime's end
-answers 409. With the old constants the first is 409;
-with any fixed far-off expiry the second is 200.
+A test in `tests/mock-data-unaffiliated-identity.test.ts`,
+the file that already lands the seed for the same
+identity, so it costs no seed of its own, reads the
+seed's day where the seed reads it (`now`, from
+`api/mock-data/seed-kit.ts`) and moves the product clock
+with `setClockForTest`. As the invitee, an accept one day
+short of the lifetime answers 200, and on a fresh copy
+an accept at the lifetime's end answers 409. With the old
+constants the first is 409, at a clock most of a year
+past 2027-01-01 for any seed made from 2026 on; with any
+fixed far-off expiry the second is 200.
+
+A first draft faked the seed's day with `FakeTime` at
+2031, before any seed module loaded, as the generator's
+pins do. Under the suite that cannot be done: the
+`tests/hmac-test-key.ts` preload imports
+`tests/mock-seed.ts`, which loads the seed, so its day is
+fixed before any test file runs. The seed's real day
+serves as well, since every day from now on is past the
+old date.
 
 ## 3. TEST-PLAN.md describes the suites as they were
 

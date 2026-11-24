@@ -34,7 +34,7 @@
         "body": {
           "kind": "text",
           "mediaType": "application/json",
-          "text": "{\"email\":\"mike.thompson@company.com\",\"at\":\"2026-01-01T00:00:00.000000Z\",\"expiresAt\":\"2027-01-01T00:00:00.000000Z\"}"
+          "text": "{\"email\":\"mike.thompson@company.com\",\"at\":\"2020-01-01T00:00:00.000000Z\",\"expiresAt\":\"2020-12-31T00:00:00.000000Z\"}"
         }
       },
       "response": {
@@ -88,10 +88,10 @@
         "body": {
           "kind": "text",
           "mediaType": "application/json",
-          "text": "{\"at\":\"2026-01-01T00:00:00.000000Z\",\"expires_at\":\"2027-01-01T00:00:00.000000Z\",\"id\":\"AjdvjuECVZEgZoFajaIEkg:VvzFEpfYONDAsCCwNlIFCQ\",\"identity_id\":\"VvzFEpfYONDAsCCwNlIFCQ\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"state\":\"pending\",\"type\":\"member\"}"
+          "text": "{\"at\":\"2020-01-01T00:00:00.000000Z\",\"expires_at\":\"2020-12-31T00:00:00.000000Z\",\"id\":\"AjdvjuECVZEgZoFajaIEkg:VvzFEpfYONDAsCCwNlIFCQ\",\"identity_id\":\"VvzFEpfYONDAsCCwNlIFCQ\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"state\":\"pending\",\"type\":\"member\"}"
         }
       },
-      "curl": "curl -i -X POST \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/invitations/\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"content-type: application/json\" \\\n  -H \"operation-id: $OPERATION_ID\" \\\n  -d '{\"email\":\"mike.thompson@company.com\",\"at\":\"2026-01-01T00:00:00.000000Z\",\"expiresAt\":\"2027-01-01T00:00:00.000000Z\"}'"
+      "curl": "curl -i -X POST \"$ORIGIN/api/organizations/AjdvjuECVZEgZoFajaIEkg/invitations/\" \\\n  -H \"authorization: Bearer $TOKEN\" \\\n  -H \"content-type: application/json\" \\\n  -H \"operation-id: $OPERATION_ID\" \\\n  -d '{\"email\":\"mike.thompson@company.com\",\"at\":\"2020-01-01T00:00:00.000000Z\",\"expiresAt\":\"2020-12-31T00:00:00.000000Z\"}'"
     }
   ]
 }

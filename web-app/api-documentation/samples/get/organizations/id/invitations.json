@@ -98,7 +98,7 @@
               "body": {
                 "kind": "text",
                 "mediaType": "application/json",
-                "text": "{\"at\":\"2026-01-01T00:00:00.000000Z\",\"expires_at\":\"2027-01-01T00:00:00.000000Z\",\"id\":\"AjdvjuECVZEgZoFajaIEkg:_CgIO8a_dKa_WNNUSWlA2A\",\"identity_id\":\"_CgIO8a_dKa_WNNUSWlA2A\",\"identity_kind\":\"person\",\"invitee_email\":\"riley.okafor@example.net\",\"invitee_name\":\"Riley Okafor\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"state\":\"pending\",\"type\":\"member\"}"
+                "text": "{\"at\":\"2020-01-01T00:00:00.000000Z\",\"expires_at\":\"2020-12-31T00:00:00.000000Z\",\"id\":\"AjdvjuECVZEgZoFajaIEkg:_CgIO8a_dKa_WNNUSWlA2A\",\"identity_id\":\"_CgIO8a_dKa_WNNUSWlA2A\",\"identity_kind\":\"person\",\"invitee_email\":\"riley.okafor@example.net\",\"invitee_name\":\"Riley Okafor\",\"organization_id\":\"AjdvjuECVZEgZoFajaIEkg\",\"state\":\"pending\",\"type\":\"member\"}"
               }
             }
           ],

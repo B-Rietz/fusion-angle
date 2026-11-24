@@ -52,13 +52,13 @@ of the spec.
 
 ## Item 2: the seeded invitation follows the seed's day
 
-1. `tests/mock-data-invitation-lifetime.test.ts`:
-   `FakeTime` at 2031-06-15 before any seed module loads
-   (dynamic imports only), the product clock stepping by
-   `setClockForTest`. As the invitee: accept at the seed
-   day plus the lifetime less a day, 200; on a fresh
-   copy, accept at the seed day plus the lifetime, 409.
-   Run it: red.
+1. In `tests/mock-data-unaffiliated-identity.test.ts`,
+   which already seeds for that identity: the seed's day
+   as the seed reads it, the product clock
+   moved by `setClockForTest`. As the invitee: accept at
+   the seed day plus the lifetime less a day, 200; on a
+   fresh copy, accept at the seed day plus the lifetime,
+   409. Run it: red.
 2. `api/mock-data/seed-constants.ts`: replace
    `MOCK_SEED_INVITATION_EXPIRES_AT` with
    `MOCK_SEED_INVITATION_LIFETIME_DAYS = 365`.

@@ -1,4 +1,6 @@
 import { assert, assertEquals, assertStrictEquals } from '@std/assert';
+import { handleRequest } from '../api/api.ts';
+import type { MemoryDbAdapter } from '../api/db-memory.ts';
 import {
     membershipsOfIdentity,
 } from '../api/memberships.ts';
@@ -18,9 +20,21 @@ import {
     buildUnaffiliatedIdentity,
 } from '../api/mock-data/members.ts';
 import {
+    MOCK_SEED_INVITATION_LIFETIME_DAYS,
     STARK_ORGANIZATION,
 } from '../api/mock-data/seed-constants.ts';
-import { sharedMockDb } from './mock-seed.ts';
+import { now as seedDay } from '../api/mock-data/seed-kit.ts';
+import { membershipNameOf } from
+    '../shared/membership-name.ts';
+import {
+    MS_PER_DAY,
+    nowUtc,
+    resetClock,
+    setClockForTest,
+} from '../shared/types.ts';
+import { apiRequest, invitationLatched } from './http-fixtures.ts';
+import { seededMockDb, sharedMockDb } from './mock-seed.ts';
+import { organizationToken } from './token-fixtures.ts';
 
 // The zero-membership identity: TEST-PLAN B25–B29's
 // fixture. These pin the WORLD the seed creates — the
@@ -86,4 +100,62 @@ Deno.test('the invitee view omits the org name and the'
     assertStrictEquals(view['organization_name'], undefined);
     assertStrictEquals(view['invited_by_name'], undefined);
     assertStrictEquals(view['state'], 'pending');
+});
+
+// The seeded invitation follows the seed's day, as the
+// rest of the seed does, and never a calendar date. It
+// once expired at 2027-01-01: every seed made on a day
+// less than a year before that held an invitation its
+// invitee could not accept from that instant on, and
+// every seed made after it held one already expired. The
+// clock below sits most of a year past the seed's day,
+// so past that date for any seed made from 2026 on.
+const INVITEE = buildUnaffiliatedIdentity().id;
+const INVITATION_PATH = '/identities/' + INVITEE + '/invitations/'
+    + membershipNameOf(STARK_ORGANIZATION, INVITEE);
+const LIFETIME_MS = MOCK_SEED_INVITATION_LIFETIME_DAYS * MS_PER_DAY;
+
+// The invitee's accept of the seeded invitation, with the
+// product clock at AT_MS. The clock steps on every read:
+// a frozen one would spin nowUtc's same-millisecond
+// sequence forever.
+async function acceptedAt(
+    db: MemoryDbAdapter,
+    atMs: number,
+): Promise<number> {
+    let nextMs = atMs;
+    setClockForTest(() => nextMs++);
+    try {
+        const response = await handleRequest(
+            db,
+            await invitationLatched(db, apiRequest({
+                method: 'PUT',
+                path: INVITATION_PATH,
+                token: await organizationToken(
+                    INVITEE, STARK_ORGANIZATION,
+                ),
+                body: { state: 'accepted', at: nowUtc() },
+            })),
+        );
+        await response.body?.cancel();
+        return response.status;
+    } finally {
+        resetClock();
+    }
+}
+
+Deno.test('the seeded invitation is open until the lifetime'
++ ' the seed names has passed since the seed\'s day',
+async () => {
+    const day = seedDay.getTime();
+    assertStrictEquals(
+        await acceptedAt(
+            await seededMockDb(), day + LIFETIME_MS - MS_PER_DAY,
+        ),
+        200,
+    );
+    assertStrictEquals(
+        await acceptedAt(await seededMockDb(), day + LIFETIME_MS),
+        409,
+    );
 });
