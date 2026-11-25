@@ -7,6 +7,7 @@ import {
 import {
     buildInboxLists,
     inboxSectionsOf,
+    waitLevelOf,
     type InboxFilter,
     type InboxItem,
     type InboxListKind,
@@ -412,3 +413,38 @@ Deno.test('a row carries no position', () => {
         false,
     );
 });
+
+const NOW_MS = Date.parse('2026-05-01T12:00:00.000000Z');
+
+function daysBefore(days: number): string {
+    return new Date(NOW_MS - days * 86_400_000).toISOString();
+}
+
+Deno.test('a row waits from 14 days and is late from 30',
+() => {
+    assertEquals(
+        [0, 13, 14, 29, 30, 90].map(
+            (days) => waitLevelOf(daysBefore(days), NOW_MS),
+        ),
+        ['none', 'none', 'soon', 'soon', 'late', 'late'],
+    );
+    assertEquals(waitLevelOf(null, NOW_MS), 'none');
+});
+
+Deno.test('a stalled open row is marked and a completed one'
++ ' is not', () => {
+    const old = '2026-01-01T00:00:00.000000Z';
+    const open = capture(
+        [placed({ lastTransitionedAt: old })],
+        'available', NO_FILTER,
+    );
+    assertStringIncludes(open, 'data-wait="late"');
+    const done = capture(
+        [placed({
+            lastTransitionedAt: old, completed: true,
+        })],
+        'archivedByMe', NO_FILTER,
+    );
+    assertStringIncludes(done, 'data-wait="none"');
+});
+

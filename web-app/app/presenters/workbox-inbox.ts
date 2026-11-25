@@ -30,6 +30,27 @@ function relativeTime(iso: string): string {
     return 'just now';
 }
 
+// Whole days without a transition after which a row is
+// marked, so work that has stopped moving stands out.
+export const WAIT_SOON_DAYS = 14;
+export const WAIT_LATE_DAYS = 30;
+
+export type WaitLevel = 'none' | 'soon' | 'late';
+
+export function waitLevelOf(
+    lastTransitionedAt: string | null,
+    nowMs: number,
+): WaitLevel {
+    if (lastTransitionedAt === null) return 'none';
+    const days = Math.floor(
+        (nowMs - new Date(lastTransitionedAt).getTime())
+        / DAY_MS,
+    );
+    if (days >= WAIT_LATE_DAYS) return 'late';
+    if (days >= WAIT_SOON_DAYS) return 'soon';
+    return 'none';
+}
+
 interface PlacedInboxItem {
     kind: 'placed';
     id: string;
@@ -112,7 +133,9 @@ function buildUnplacedRow(
     item: UnplacedInboxItem,
 ): SafeHtml {
     return html`
-        <div class="card p-4">
+        <div class="card p-4" data-wait="${
+            waitLevelOf(item.lastTransitionedAt, Date.now())
+        }">
             <div class="flex-fill">
                 <div class="${
                     'flex items-center'
@@ -137,7 +160,7 @@ function buildUnplacedRow(
                     <span
                         class="badge badge-warning"
                         >State unknown</span>
-                    <span class="ml-auto"
+                    <span class="inbox-age ml-auto"
                         >${
                             item.lastTransitionedAt
                                 ? relativeTime(
@@ -172,9 +195,14 @@ function buildInboxRow(
             class="badge badge-info"${
             titleAttr}
             >${item.stateName}</span>`;
+    // Completed work is not waiting on anyone.
+    const wait = item.completed
+        ? 'none'
+        : waitLevelOf(item.lastTransitionedAt, Date.now());
     return html`
     <div
         class="card p-4 cursor-pointer"
+        data-wait="${wait}"
         data-work-order-card="${item.id}">
         <div class="${
             'flex items-center gap-4'
@@ -206,7 +234,7 @@ function buildInboxRow(
                     + ' text-muted'
                 }">
                     ${badge}
-                    <span class="ml-auto"
+                    <span class="inbox-age ml-auto"
                         >${
                             item.lastTransitionedAt
                                 ? relativeTime(
