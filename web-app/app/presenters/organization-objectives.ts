@@ -36,7 +36,7 @@ export class OrganizationObjectivesPresenter {
 
     buildBox(): SafeHtml {
         return html`
-            <div class="card card-hover p-6 mt-6">
+            <div class="card card-hover p-6">
                 ${this.#buildHeader()}
                 ${this.#buildActiveList()}
                 ${this.#buildArchivedList()}
