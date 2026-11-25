@@ -155,22 +155,24 @@ export class OrganizationObjectivesPresenter {
                           </button>`
                         : html`
                             <button
-                                class="${
-                                    'btn btn-ghost'
-                                    + ' btn-sm gap-2'
-                                }"
-                                data-action="edit">
+                                type="button"
+                                class="btn btn-ghost btn-icon"
+                                data-action="edit"
+                                title="Edit"
+                                aria-label="${
+                                    'Edit ' + def.name
+                                }">
                                 ${iconEdit(ICON_SIZE.sm, '')}
-                                Edit
                             </button>
                             <button
-                                class="${
-                                    'btn btn-ghost'
-                                    + ' btn-sm gap-2'
-                                }"
-                                data-action="archive">
+                                type="button"
+                                class="btn btn-ghost btn-icon"
+                                data-action="archive"
+                                title="Archive"
+                                aria-label="${
+                                    'Archive ' + def.name
+                                }">
                                 ${iconArchive(ICON_SIZE.sm, '')}
-                                Archive
                             </button>
                         `}
                 </div>
