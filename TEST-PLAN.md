@@ -5176,12 +5176,13 @@ all-see-all as the default.
        order box has no bind or unclaim chrome';
        tests/api-work-order-release.test.ts 'a release
        with no live claim answers the head'
-- [ ] **WB24** Navigate to `workbox/`. PASS: an open
-  row that last moved 30 or more days ago is tinted in
-  the error tone, one that last moved 14 to 29 days ago
-  in the warning tone, and a newer one is untinted; each
-  tinted row's age is bold in the same tone. Rows under
-  "Archived by Me" are never tinted.
+- [ ] **WB31 — Waiting rows.** Navigate to
+  `workbox/`. PASS: an open row that last moved 30 or
+  more days ago is tinted in the error tone, one that
+  last moved 14 to 29 days ago in the warning tone, and
+  a newer one is untinted; each tinted row's age is bold
+  in the same tone. Rows under "Archived by Me" are
+  never tinted.
   Pin: tests/presenter-workbox-inbox.test.ts 'a row waits
        from 14 days and is late from 30';
        tests/presenter-workbox-inbox.test.ts 'a stalled
@@ -5195,7 +5196,7 @@ all-see-all as the default.
 **Mock-data blast radius:** the mock seed adds ~38 work
 orders to "Customer Onboarding" and ~6 to a second flow,
 plus their flow-work-order join rows and transition
-chains — Workbox cases (WB1–WB30) and dashboard counts
+chains — Workbox cases (WB1–WB31) and dashboard counts
 elsewhere in the walk are lower bounds, not equalities,
 because of this.
 
