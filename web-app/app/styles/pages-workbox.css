@@ -283,6 +283,12 @@
     font-weight: var(--font-weight-semibold);
 }
 
+/* Narrower than this, the title takes the whole line and
+    the claim and close controls wrap below it. */
+#work-order-header .work-order-title {
+    flex-basis: 12rem;
+}
+
 /* Before anything is opened: the box's one muted line. */
 .workbox-work-order-empty {
     display: flex;
