@@ -27,7 +27,6 @@ import type { Member } from '../../../shared/types.ts';
 import type { Id } from '../../../shared/types.ts';
 import {
     ICON_SIZE,
-    iconClock,
     iconXCircle,
 } from '../icons.ts';
 import {
@@ -447,7 +446,7 @@ export class WorkboxDetailPresenter {
                         cursor-pointer">
                     History
                 </summary>
-                <div class="card p-4">
+                <div>
                     ${!this.#hasHistory()
                         ? html`<p
                             class="text-muted">
@@ -593,7 +592,7 @@ export class WorkboxDetailPresenter {
             entry.fieldValues.length > 0;
         const valuesHtml = hasValues
             ? html`<div
-                class="mt-2 ml-6
+                class="mt-2
                     work-order-history-fields">
                 ${entry.fieldValues.map(
                     fv => html`
@@ -609,21 +608,20 @@ export class WorkboxDetailPresenter {
         return html`<div
             class="py-3 border-b">
             <div
-                class="flex items-center
+                class="flex items-start
                     gap-3"
             >
-                <span class="text-muted">
-                    ${iconClock(ICON_SIZE.sm, '')}
-                </span>
-                <span
-                    class="font-semibold"
-                >${entry.fromNodeName}
-                    &rarr;
-                    ${entry.toNodeName}</span>
-                <span
-                    class="text-muted
-                        ml-auto"
-                >${entry.memberName}</span>
+                <div class="flex-fill">
+                    <div
+                        class="font-semibold"
+                    >${entry.fromNodeName}
+                        &rarr;
+                        ${entry.toNodeName}</div>
+                    <div
+                        class="text-muted
+                            text-sm"
+                    >${entry.memberName}</div>
+                </div>
                 <span
                     class="text-muted
                         text-sm"
