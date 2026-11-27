@@ -464,3 +464,61 @@ Deno.test('a stalled open row is marked and a completed one'
     assertStringIncludes(done, 'data-wait="none"');
 });
 
+function daysAgo(days: number): string {
+    return new Date(Date.now() - days * 86_400_000)
+        .toISOString();
+}
+
+function waitingLists(): InboxLists {
+    return {
+        claimed: [placed({
+            id: 'c-1', lastTransitionedAt: daysAgo(40),
+        })],
+        available: [
+            placed({ id: 'a-40', lastTransitionedAt: daysAgo(40) }),
+            placed({ id: 'a-20', lastTransitionedAt: daysAgo(20) }),
+            placed({ id: 'a-2', lastTransitionedAt: daysAgo(2) }),
+        ],
+        archivedByMe: [],
+    };
+}
+
+// The headings and rows in the order they are drawn.
+function drawn(out: string): string[] {
+    return [...out.matchAll(
+        /data-group="(\w+)"|data-work-order-card="([\w-]+)"/g,
+    )].map(([, group, id]) => group ?? id!);
+}
+
+Deno.test('available rows group by how long they have'
++ ' waited', () => {
+    const out = listsHtml(waitingLists(), NO_FILTER, NO_PILL);
+    assertEquals(drawn(out), [
+        'c-1', 'late', 'a-40', 'soon', 'a-20', 'none', 'a-2',
+    ]);
+    for (const text of [
+        'Needs you', 'Review when ready', 'Routine',
+        'Waiting 30+ days', 'Waiting 14–29 days',
+        'Under 14 days',
+    ]) {
+        assertStringIncludes(out, text);
+    }
+});
+
+Deno.test('a group with no rows has no heading', () => {
+    const lists = waitingLists();
+    const out = listsHtml(
+        { ...lists, available: [lists.available[2]!] },
+        NO_FILTER, NO_PILL,
+    );
+    assertEquals(drawn(out), ['c-1', 'none', 'a-2']);
+});
+
+Deno.test('a search\'s matches are not grouped', () => {
+    const out = listsHtml(
+        waitingLists(),
+        { kind: 'matched', text: 'zz' }, NO_PILL,
+    );
+    assertEquals(drawn(out), ['c-1', 'a-40', 'a-20', 'a-2']);
+});
+

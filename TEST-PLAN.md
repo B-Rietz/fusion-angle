@@ -5176,6 +5176,21 @@ all-see-all as the default.
        order box has no bind or unclaim chrome';
        tests/api-work-order-release.test.ts 'a release
        with no live claim answers the head'
+- [ ] **WB34 — Waiting groups.** Navigate to
+  `workbox/`. PASS: "Work Orders available to me" reads
+  in up to three groups, "Needs you" (30 or more days),
+  "Review when ready" (14 to 29), and "Routine" (under
+  14), each with its count and its days; a group with no
+  row has no heading; the rows keep their oldest-first
+  order. Type in the search box. PASS: the groups go and
+  the matches keep their best-match order.
+  Pin: tests/presenter-workbox-inbox.test.ts 'available
+       rows group by how long they have waited';
+       tests/presenter-workbox-inbox.test.ts 'a group with
+       no rows has no heading';
+       tests/presenter-workbox-inbox.test.ts 'a search's
+       matches are not grouped'; exploratory — the
+       painted headings
 - [ ] **WB33 — Arrow keys.** Open a row, then press
   Down and Up. PASS: focus and the open work order move
   one row at a time through the lists as drawn, and stop
@@ -5219,7 +5234,7 @@ all-see-all as the default.
 **Mock-data blast radius:** the mock seed adds ~38 work
 orders to "Customer Onboarding" and ~6 to a second flow,
 plus their flow-work-order join rows and transition
-chains — Workbox cases (WB1–WB33) and dashboard counts
+chains — Workbox cases (WB1–WB34) and dashboard counts
 elsewhere in the walk are lower bounds, not equalities,
 because of this.
 

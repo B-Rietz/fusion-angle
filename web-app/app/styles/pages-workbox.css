@@ -208,6 +208,36 @@
     background: hsl(var(--success));
 }
 
+/* A group's heading inside the available list: its name in
+    the group's tone, its count, and at the right the days
+    that put a row there. */
+.workbox-group-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-semibold);
+    color: hsl(var(--muted-foreground));
+}
+
+.workbox-group-name {
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.workbox-group-title[data-group="late"] .workbox-group-name {
+    color: hsl(var(--error-text));
+}
+
+.workbox-group-title[data-group="soon"] .workbox-group-name {
+    color: hsl(var(--warning-text));
+}
+
+.workbox-group-hint {
+    margin-left: auto;
+    font-weight: 400;
+}
+
 /* A row wears its list's tone down its left edge. */
 [data-inbox-list] > [data-wait] {
     border-left: 3px solid hsl(var(--muted-foreground));
