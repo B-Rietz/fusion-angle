@@ -5176,6 +5176,16 @@ all-see-all as the default.
        order box has no bind or unclaim chrome';
        tests/api-work-order-release.test.ts 'a release
        with no live claim answers the head'
+- [ ] **WB32 — The queue.** At 1280×800, read the
+  lists. PASS: each list's heading starts with a dot in
+  the list's tone and ends with how many rows it draws;
+  each row has a left edge in that tone, the flow name
+  with the age at its right, and the state badge beside
+  the work order id below; the lists' column is narrower
+  than the work order box.
+  Pin: tests/presenter-workbox-inbox.test.ts 'a heading
+       counts the rows it draws'; exploratory — the
+       painted tones and column widths
 - [ ] **WB31 — Waiting rows.** Navigate to
   `workbox/`. PASS: an open row that last moved 30 or
   more days ago is tinted in the error tone, one that

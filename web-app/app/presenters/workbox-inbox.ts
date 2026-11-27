@@ -199,51 +199,34 @@ function buildInboxRow(
     const wait = item.completed
         ? 'none'
         : waitLevelOf(item.lastTransitionedAt, Date.now());
+    const age = item.lastTransitionedAt
+        ? relativeTime(item.lastTransitionedAt)
+        : DISPLAY_ABSENT;
     return html`
     <div
-        class="card p-4 cursor-pointer"
+        class="card p-4 cursor-pointer workbox-row"
         data-wait="${wait}"
         data-work-order-card="${item.id}">
+        <div class="flex items-start gap-3 mb-2">
+            <a href="${
+                buildPageUrl('workbox', { id: item.id })
+            }" class="flex-fill font-semibold"
+                aria-label="${item.flowName}, work order ${
+                    item.id
+                }">${
+                item.flowName
+            }</a>
+            <span class="inbox-age text-sm text-muted"
+                >${age}</span>
+        </div>
         <div class="${
-            'flex items-center gap-4'
+            'flex flex-wrap items-center'
+            + ' gap-2 text-sm text-muted'
         }">
-            <div class="flex-fill">
-                <a href="${
-                    buildPageUrl(
-                        'workbox',
-                        { id: item.id },
-                    )
-                }" class="${
-                    'flex items-center'
-                    + ' gap-2 mb-1'
-                }">
-                    <span class="${
-                        'font-semibold'
-                    }">${
-                        item.flowName
-                    }</span>
-                    <span class="${
-                        'text-xs text-muted min-w-0'
-                    }">${
-                        idLabel('Work order', item.id)
-                    }</span>
-                </a>
-                <div class="${
-                    'flex items-center'
-                    + ' gap-2 text-sm'
-                    + ' text-muted'
-                }">
-                    ${badge}
-                    <span class="inbox-age ml-auto"
-                        >${
-                            item.lastTransitionedAt
-                                ? relativeTime(
-                                    item.lastTransitionedAt,
-                                )
-                                : DISPLAY_ABSENT
-                        }</span>
-                </div>
-            </div>
+            ${badge}
+            <span class="text-xs min-w-0">${
+                idLabel('Work order', item.id)
+            }</span>
         </div>
     </div>`;
 }
@@ -317,9 +300,11 @@ function buildInboxSection(
         : html`${section.items.map(buildInboxRow)}`;
     return html`<h2 class="${
         first
-            ? 'text-lg font-semibold mb-4'
-            : 'text-lg font-semibold mt-6 mb-4'
-    }">${LIST_TITLE[section.kind]}</h2>
+            ? 'workbox-section-title mb-3'
+            : 'workbox-section-title mt-6 mb-3'
+    }" data-section="${section.kind}">${
+        LIST_TITLE[section.kind]
+    } <span class="text-muted">${section.items.length}</span></h2>
     <div
         id="${LIST_ID[section.kind]}"
         class="flex flex-col gap-3"

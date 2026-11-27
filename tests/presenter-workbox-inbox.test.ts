@@ -340,6 +340,22 @@ Deno.test(
     },
 );
 
+Deno.test('a heading counts the rows it draws', () => {
+    const out = listsHtml({
+        claimed: [],
+        available: [
+            placed({ id: 'a-1' }), placed({ id: 'a-2' }),
+        ],
+        archivedByMe: [],
+    }, NO_FILTER, NO_PILL);
+    assertMatch(
+        out, /Work Orders claimed by me <span[^>]*>0</,
+    );
+    assertMatch(
+        out, /Work Orders available to me <span[^>]*>2</,
+    );
+});
+
 Deno.test('a flow pill narrows both lists to its flow', () => {
     assertEquals(
         sectionsDrawn({ kind: 'flow', flowName: 'Billing' }),
