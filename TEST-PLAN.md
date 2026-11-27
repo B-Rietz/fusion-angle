@@ -5176,6 +5176,19 @@ all-see-all as the default.
        order box has no bind or unclaim chrome';
        tests/api-work-order-release.test.ts 'a release
        with no live claim answers the head'
+- [ ] **WB33 — Arrow keys.** Open a row, then press
+  Down and Up. PASS: focus and the open work order move
+  one row at a time through the lists as drawn, and stop
+  at either end. Type into a claimed work order's field,
+  focus its row, and press Down. PASS: focus moves, the
+  box keeps the work order and the typed value, and
+  Enter opens the focused row. At 375×800 the arrows
+  move focus only.
+  Pin: tests/browser/workbox-box.test.ts 'the arrow keys
+       walk the rows and open them';
+       tests/browser/workbox-box.test.ts 'the arrow keys
+       keep typed values'; exploratory — Enter and the
+       phone width
 - [ ] **WB32 — The queue.** At 1280×800, read the
   lists. PASS: each list's heading starts with a dot in
   the list's tone and ends with how many rows it draws;
@@ -5206,7 +5219,7 @@ all-see-all as the default.
 **Mock-data blast radius:** the mock seed adds ~38 work
 orders to "Customer Onboarding" and ~6 to a second flow,
 plus their flow-work-order join rows and transition
-chains — Workbox cases (WB1–WB31) and dashboard counts
+chains — Workbox cases (WB1–WB33) and dashboard counts
 elsewhere in the walk are lower bounds, not equalities,
 because of this.
 

@@ -134,6 +134,12 @@ export class WorkOrderBox {
         return this.#openId;
     }
 
+    // Whether the form holds something typed or picked that
+    // opening another work order would drop.
+    holdsEdits(): boolean {
+        return $$('[data-attribute-id]', this.#el).some(isEdited);
+    }
+
     // Opening never claims. The row already open opens
     // nothing new, so a stray click keeps typed values —
     // unless the box is waiting to move on from it.
@@ -660,6 +666,22 @@ function refusalMessage(
     return releasing
         ? 'Failed to release work order'
         : 'Failed to claim work order';
+}
+
+// A control that no longer shows what it was painted with.
+function isEdited(el: Element): boolean {
+    if (el instanceof HTMLSelectElement) {
+        const painted = [...el.options].find(
+            (option) => option.defaultSelected,
+        );
+        return el.value !== (painted?.value ?? '');
+    }
+    if (el instanceof HTMLInputElement) {
+        return el.type === 'checkbox' || el.type === 'radio'
+            ? el.checked !== el.defaultChecked
+            : el.value !== el.defaultValue;
+    }
+    return false;
 }
 
 function collectAttributeValues(

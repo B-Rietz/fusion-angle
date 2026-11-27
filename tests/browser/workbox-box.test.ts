@@ -845,3 +845,63 @@ Deno.test(
         });
     },
 );
+
+const FIRST_ROWS = `[...document.querySelectorAll(`
+    + `'[data-work-order-card]')].slice(0, 2)`
+    + `.map(c => c.dataset.workOrderCard)`;
+
+function rowFocused(id: string): string {
+    return `document.activeElement?.closest(`
+        + `'[data-work-order-card]')`
+        + `?.dataset.workOrderCard === ${JSON.stringify(id)}`;
+}
+
+Deno.test('the arrow keys walk the rows and open them', async () => {
+    await withAdminPage(browser.get(), async (page, origin) => {
+        await openWorkbox(page, origin);
+        const [first, second] = await page.evaluate<
+            [string, string]
+        >(FIRST_ROWS);
+        await openRow(page, first);
+        await page.key('ArrowDown');
+        await untilBoxHolds(page, second);
+        assert(await page.evaluate<boolean>(rowFocused(second)));
+        assertStrictEquals(await addressId(page), second);
+        await page.key('ArrowUp');
+        await untilBoxHolds(page, first);
+        // The top row is where up stops.
+        await page.key('ArrowUp');
+        assert(await page.evaluate<boolean>(rowFocused(first)));
+        assertStrictEquals(await addressId(page), first);
+    });
+});
+
+Deno.test('the arrow keys keep typed values', async () => {
+    await withAdminPage(browser.get(), async (page, origin) => {
+        await openWorkbox(page, origin);
+        await openRow(page, DATA_CAPTURE);
+        await page.click('#work-order-claim-switch');
+        await page.until(
+            switchChecked('true') + ' && ' + submitDisabled(false),
+            'claimed',
+        );
+        const input = `document.querySelector(`
+            + `'[data-attribute-id="${COMPANY_NAME_ID}"]')`;
+        await page.evaluate(`${input}.value = 'Typed Co'`);
+        const link = JSON.stringify(
+            cardSelector(DATA_CAPTURE) + ' a[href]',
+        );
+        await page.evaluate(
+            `document.querySelector(${link}).focus()`,
+        );
+        await page.key('ArrowDown');
+        assert(await page.evaluate<boolean>(
+            `!(${rowFocused(DATA_CAPTURE)})`,
+        ));
+        assertStrictEquals(await addressId(page), DATA_CAPTURE);
+        assertStrictEquals(
+            await page.evaluate<string>(`${input}.value`),
+            'Typed Co',
+        );
+    });
+});
