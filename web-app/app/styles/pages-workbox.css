@@ -208,34 +208,41 @@
     background: hsl(var(--success));
 }
 
-/* A group's heading inside the available list: its name in
-    the group's tone, its count, and at the right the days
-    that put a row there. */
-.workbox-group-title {
+/* The key above the lists: a swatch in each waiting tint,
+    then the days that earn it. */
+.workbox-legend {
     display: flex;
-    align-items: center;
-    gap: var(--space-2);
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
     font-size: var(--text-xs);
-    font-weight: var(--font-weight-semibold);
     color: hsl(var(--muted-foreground));
 }
 
-.workbox-group-name {
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+.workbox-legend li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
 }
 
-.workbox-group-title[data-group="late"] .workbox-group-name {
-    color: hsl(var(--error-text));
+.workbox-legend li::before {
+    content: "";
+    width: 1rem;
+    height: 0.75rem;
+    border-radius: calc(var(--radius-sm) / 2);
+    border: 1px solid;
+    border-left-width: 3px;
 }
 
-.workbox-group-title[data-group="soon"] .workbox-group-name {
-    color: hsl(var(--warning-text));
+.workbox-legend [data-legend="soon"]::before {
+    background: hsl(var(--warning-soft));
+    border-color: hsl(var(--warning-border));
+    border-left-color: hsl(var(--warning));
 }
 
-.workbox-group-hint {
-    margin-left: auto;
-    font-weight: 400;
+.workbox-legend [data-legend="late"]::before {
+    background: hsl(var(--error-soft));
+    border-color: hsl(var(--error-border));
+    border-left-color: hsl(var(--error));
 }
 
 /* A row wears its list's tone down its left edge. */

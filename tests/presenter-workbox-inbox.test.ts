@@ -483,42 +483,40 @@ function waitingLists(): InboxLists {
     };
 }
 
-// The headings and rows in the order they are drawn.
+// The legend keys and rows in the order they are drawn.
 function drawn(out: string): string[] {
     return [...out.matchAll(
-        /data-group="(\w+)"|data-work-order-card="([\w-]+)"/g,
-    )].map(([, group, id]) => group ?? id!);
+        /data-legend="(\w+)"|data-work-order-card="([\w-]+)"/g,
+    )].map(([, key, id]) => key ?? id!);
 }
 
-Deno.test('available rows group by how long they have'
-+ ' waited', () => {
+Deno.test('one legend above the lists explains the row'
++ ' tints', () => {
     const out = listsHtml(waitingLists(), NO_FILTER, NO_PILL);
     assertEquals(drawn(out), [
-        'c-1', 'late', 'a-40', 'soon', 'a-20', 'none', 'a-2',
+        'late', 'soon', 'c-1', 'a-40', 'a-20', 'a-2',
     ]);
-    for (const text of [
-        'Needs you', 'Review when ready', 'Routine',
-        'Waiting 30+ days', 'Waiting 14–29 days',
-        'Under 14 days',
-    ]) {
-        assertStringIncludes(out, text);
-    }
+    assertStringIncludes(out, 'Waiting 30+ days');
+    assertStringIncludes(out, 'Waiting 14–29 days');
+    assertEquals(out.includes('Needs you'), false);
 });
 
-Deno.test('a group with no rows has no heading', () => {
+Deno.test('the legend stays when no row is waiting', () => {
     const lists = waitingLists();
     const out = listsHtml(
-        { ...lists, available: [lists.available[2]!] },
+        { ...lists, claimed: [], available: [lists.available[2]!] },
         NO_FILTER, NO_PILL,
     );
-    assertEquals(drawn(out), ['c-1', 'none', 'a-2']);
+    assertEquals(drawn(out), ['late', 'soon', 'a-2']);
 });
 
-Deno.test('a search\'s matches are not grouped', () => {
+Deno.test('a search keeps its order under the legend', () => {
     const out = listsHtml(
         waitingLists(),
         { kind: 'matched', text: 'zz' }, NO_PILL,
     );
-    assertEquals(drawn(out), ['c-1', 'a-40', 'a-20', 'a-2']);
+    assertEquals(drawn(out), [
+        'late', 'soon', 'c-1', 'a-40', 'a-20', 'a-2',
+    ]);
 });
 

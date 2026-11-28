@@ -71,29 +71,16 @@ function waitOf(item: InboxItem, nowMs: number): WaitLevel {
     return waitLevelOf(item.lastTransitionedAt, nowMs);
 }
 
-// The available list's groups, longest waiting first. That
-// is the order the list already sorts in, so grouping moves
-// no row.
-const WAIT_GROUPS: readonly {
-    readonly level: WaitLevel;
-    readonly title: string;
-    readonly hint: string;
+// The key above the lists: what each row tint means.
+const WAIT_LEGEND: readonly {
+    readonly level: Exclude<WaitLevel, 'none'>;
+    readonly text: string;
 }[] = [
-    {
-        level: 'late',
-        title: 'Needs you',
-        hint: `Waiting ${WAIT_LATE_DAYS}+ days`,
-    },
+    { level: 'late', text: `Waiting ${WAIT_LATE_DAYS}+ days` },
     {
         level: 'soon',
-        title: 'Review when ready',
-        hint: `Waiting ${WAIT_SOON_DAYS}–`
+        text: `Waiting ${WAIT_SOON_DAYS}–`
             + `${WAIT_LATE_DAYS - 1} days`,
-    },
-    {
-        level: 'none',
-        title: 'Routine',
-        hint: `Under ${WAIT_SOON_DAYS} days`,
     },
 ];
 
@@ -311,11 +298,14 @@ export function buildInboxLists(
     filter: InboxFilter,
     pressed: PressedPill,
 ): SafeHtml {
-    return html`${sections.map(
-        (section, index) => buildInboxSection(
-            section, index === 0, filter, pressed,
-        ),
-    )}`;
+    return html`<ul class="workbox-legend mb-3"
+        aria-label="Row colours">${WAIT_LEGEND.map((key) => html`<li
+        data-legend="${key.level}">${key.text}</li>`)}</ul>${
+        sections.map(
+            (section, index) => buildInboxSection(
+                section, index === 0, filter, pressed,
+            ),
+        )}`;
 }
 
 function buildInboxSection(
@@ -328,7 +318,9 @@ function buildInboxSection(
         ? html`<p class="text-muted">${
             emptyCopyOf(section.kind, filter, pressed)
         }</p>`
-        : buildRows(section, filter, Date.now());
+        : html`${section.items.map(
+            (item) => buildInboxRow(item, Date.now()),
+        )}`;
     return html`<h2 class="${
         first
             ? 'workbox-section-title mb-3'
@@ -340,36 +332,6 @@ function buildInboxSection(
         id="${LIST_ID[section.kind]}"
         class="flex flex-col gap-3"
         data-inbox-list="${section.kind}">${rows}</div>`;
-}
-
-// Available work reads in groups by how long it has
-// waited. A search keeps its best-match order, so its
-// answer is not grouped.
-function buildRows(
-    section: InboxSection,
-    filter: InboxFilter,
-    nowMs: number,
-): SafeHtml {
-    const rows = (items: readonly InboxItem[]) => html`${
-        items.map((item) => buildInboxRow(item, nowMs))
-    }`;
-    if (section.kind !== 'available' || filter.kind !== 'none') {
-        return rows(section.items);
-    }
-    return html`${WAIT_GROUPS.map((group) => {
-        const items = section.items.filter(
-            (item) => waitOf(item, nowMs) === group.level,
-        );
-        return items.length === 0
-            ? html``
-            : html`<h3 class="workbox-group-title"
-                data-group="${group.level}"><span
-                class="workbox-group-name">${group.title}</span>
-                <span>${items.length}</span> <span
-                class="workbox-group-hint">${group.hint}</span></h3>${
-                rows(items)
-            }`;
-    })}`;
 }
 
 // A search's empty line names its text; under a flow pill
