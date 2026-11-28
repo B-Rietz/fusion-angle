@@ -7790,6 +7790,16 @@ K30 only describes.
        fits a 900px viewport'; exploratory — the phone
        scroll
 
+- [ ] **R26 — Arrow keys.** Click a card, then press
+  Down and Up. PASS: focus and the open record move one
+  card at a time and stop at either end. Press Edit,
+  focus a card, and press Down. PASS: focus moves and the
+  form stays. On a phone the arrows move focus only.
+  Pin: tests/browser/records.test.ts 'the arrow keys walk
+       the cards and open them';
+       tests/browser/records.test.ts 'the arrow keys leave
+       an open form alone'; exploratory — the phone width
+
 ## J. Teardown
 
 J1–J3 are the master's: `## The walk` step 5 runs

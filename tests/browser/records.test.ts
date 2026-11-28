@@ -260,3 +260,47 @@ Deno.test('creating a record opens it', async () => {
         await untilPanelNames(page, 'Fresh Shape');
     });
 });
+
+function cardFocused(id: string): string {
+    return `document.activeElement?.closest(`
+        + `'[data-record-card]')`
+        + `?.dataset.recordCard === ${JSON.stringify(id)}`;
+}
+
+Deno.test('the arrow keys walk the cards and open them',
+async () => {
+    await withAdminPage(browser.get(), async (page, origin) => {
+        const second = await secondRecord(origin);
+        await openRecords(page, origin);
+        await page.click(card(SEED_RECORD_TYPE_ID));
+        await page.key('ArrowDown');
+        await untilPanelNames(page, SECOND_NAME);
+        assert(await page.evaluate<boolean>(cardFocused(second)));
+        assertStrictEquals(await addressId(page), second);
+        // The last card is where down stops.
+        await page.key('ArrowDown');
+        assert(await page.evaluate<boolean>(cardFocused(second)));
+        await page.key('ArrowUp');
+        await untilPanelNames(page, 'Customer Profile');
+    });
+});
+
+Deno.test('the arrow keys leave an open form alone', async () => {
+    await withAdminPage(browser.get(), async (page, origin) => {
+        const second = await secondRecord(origin);
+        await openRecords(page, origin);
+        await page.click('#record-edit-btn');
+        await page.waitFor('#record-edit-name');
+        await page.evaluate(
+            `document.querySelector('${card(SEED_RECORD_TYPE_ID)}`
+            + ` a[href]').focus()`,
+        );
+        await page.key('ArrowDown');
+        assert(await page.evaluate<boolean>(cardFocused(second)));
+        assert(await page.evaluate<boolean>(
+            `document.getElementById('record-edit-name')`
+            + ` !== null`,
+        ));
+    });
+});
+

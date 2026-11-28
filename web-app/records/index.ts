@@ -142,6 +142,10 @@ function onRecordsLoaded(
         'click', onCardClick,
         { signal },
     );
+    listEl.addEventListener(
+        'keydown', onCardKey,
+        { signal },
+    );
     const panel = $required('#record-panel', document);
     panel.classList.remove('hidden');
     initRecordPanel(panel, signal);
@@ -258,6 +262,8 @@ function onCardClick(e: MouseEvent): void {
         return;
     }
     e.preventDefault();
+    // The arrow keys walk on from the card that holds focus.
+    focusCard(card, { preventScroll: true });
     selectRecord(
         getRequiredAttribute(card, 'data-record-card'),
     );
@@ -279,6 +285,38 @@ function selectRecord(id: string): void {
     }
 }
 
-function isModified(e: MouseEvent): boolean {
+// Up and down walk the cards as listed, stopping at either
+// end. Each step opens its record, except where that would
+// cost the person something: an open form, or a phone's
+// scroll away from the list. There only focus moves, and
+// Enter opens.
+function onCardKey(e: KeyboardEvent): void {
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    if (isModified(e) || !listEl) return;
+    if (!(e.target instanceof Element)) return;
+    const card = e.target.closest('[data-record-card]');
+    if (!card) return;
+    e.preventDefault();
+    const cards = $$('[data-record-card]', listEl);
+    const at = cards.findIndex((each) => each === card);
+    const next = cards[at + (e.key === 'ArrowDown' ? 1 : -1)];
+    if (next === undefined) return;
+    focusCard(next, {});
+    if (
+        matchMedia(MOBILE_MEDIA_QUERY).matches
+        || recordIsEditing()
+    ) {
+        return;
+    }
+    selectRecord(
+        getRequiredAttribute(next, 'data-record-card'),
+    );
+}
+
+function focusCard(card: Element, options: FocusOptions): void {
+    card.querySelector<HTMLElement>('a[href]')?.focus(options);
+}
+
+function isModified(e: MouseEvent | KeyboardEvent): boolean {
     return e.metaKey || e.ctrlKey || e.shiftKey || e.altKey;
 }
