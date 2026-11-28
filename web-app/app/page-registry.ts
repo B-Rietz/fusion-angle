@@ -181,7 +181,7 @@ export const PAGE_REGISTRY: Record<
         icon: iconDatabase,
         searchable: false,
         cssBundles: ['pages-records'],
-        loader: () => import('../records/detail.ts'),
+        loader: () => import('../records/record-panel.ts'),
     },
     flows: {
         organizationScoped: true,
