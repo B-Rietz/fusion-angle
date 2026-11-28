@@ -1,6 +1,8 @@
 import { assert, assertStrictEquals } from '@std/assert';
-import { SEED_RECORD_TYPE_ID } from
-    '../../api/mock-data/seed-message-pairs.ts';
+import {
+    SEED_INSTANCE_ID,
+    SEED_RECORD_TYPE_ID,
+} from '../../api/mock-data/seed-message-pairs.ts';
 import { postRecordChange } from '../../client/index.ts';
 import { generateIdentifier } from
     '../../shared/identifier.ts';
@@ -301,6 +303,105 @@ Deno.test('the arrow keys leave an open form alone', async () => {
             `document.getElementById('record-edit-name')`
             + ` !== null`,
         ));
+    });
+});
+
+async function untilToast(page: Page, text: string): Promise<void> {
+    await page.until(
+        `[...document.querySelectorAll('.toast')]`
+        + `.some(t => t.textContent.includes(`
+        + `${JSON.stringify(text)}))`,
+        'the toast ' + text,
+    );
+}
+
+function press(page: Page, selector: string): Promise<unknown> {
+    return page.evaluate(
+        `document.querySelector(${JSON.stringify(selector)})`
+        + `.click()`,
+    );
+}
+
+function type(
+    page: Page, selector: string, value: string,
+): Promise<unknown> {
+    return page.evaluate(
+        `(() => { const i = document.querySelector(`
+        + `${JSON.stringify(selector)});`
+        + ` i.value = ${JSON.stringify(value)};`
+        + ` i.dispatchEvent(new Event('input',`
+        + ` { bubbles: true })); })()`,
+    );
+}
+
+Deno.test('saving in the panel renames the card', async () => {
+    await withAdminPage(browser.get(), async (page, origin) => {
+        await openRecords(page, origin);
+        await press(page, '#record-edit-btn');
+        await page.waitFor('#record-edit-name');
+        await type(page, '#record-edit-name', 'Client Profile');
+        await press(page, '#record-save-btn');
+        await untilToast(page, 'Record saved');
+        await untilPanelNames(page, 'Client Profile');
+        await page.until(
+            `document.querySelector('${card(SEED_RECORD_TYPE_ID)}`
+            + ` a[href]')?.textContent.trim()`
+            + ` === 'Client Profile'`,
+            'the card renamed',
+        );
+    });
+});
+
+const NEW_ROW = `.record-instance-row:not([data-instance-id="${
+    SEED_INSTANCE_ID
+}"])`;
+
+Deno.test('an instance is saved and deleted in the panel',
+async () => {
+    await withAdminPage(browser.get(), async (page, origin) => {
+        await openRecords(page, origin);
+        await press(page, '#record-new-instance-btn');
+        await page.waitFor('#record-instance-save-btn');
+        await type(
+            page, 'input[data-action="instance-field-value"]',
+            'Typed value',
+        );
+        await press(page, '#record-instance-save-btn');
+        await untilToast(page, 'Instance saved');
+        await page.waitFor(NEW_ROW);
+        await press(
+            page,
+            NEW_ROW + ' [data-dialog-open='
+            + '"confirm-delete-instance"]',
+        );
+        await press(
+            page, '[data-action="confirm-delete-instance"]',
+        );
+        await untilToast(page, 'Instance deleted');
+        await page.until(
+            `document.querySelector(${JSON.stringify(NEW_ROW)})`
+            + ` === null`,
+            'the row gone',
+        );
+    });
+});
+
+Deno.test('a record is archived from the panel', async () => {
+    await withAdminPage(browser.get(), async (page, origin) => {
+        const second = await secondRecord(origin);
+        await openRecords(page, origin, 'id=' + second);
+        await untilPanelNames(page, SECOND_NAME);
+        await press(page, '#record-archive-btn');
+        await press(page, '[data-action="confirm-archive"]');
+        await untilToast(page, 'Record archived');
+        await page.until(
+            `document.querySelector('#record-archive-btn')`
+            + ` === null`
+            + ` && document.querySelector(`
+            + `'.record-panel-head .badge')`
+            + `?.textContent.trim() === 'Archived'`,
+            'the panel reads Archived',
+        );
     });
 });
 

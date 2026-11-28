@@ -7496,7 +7496,9 @@ K30 only describes.
   Pin: tests/adapters-records.test.ts 'postRecordChange
        edit replaces removed attributes with new ones';
        tests/adapters-records.test.ts 'putRecord
-       overwrites an existing row'; exploratory — the
+       overwrites an existing row';
+       tests/browser/records.test.ts 'saving in the panel
+       renames the card'; exploratory — the
        live return to read mode and the rendered
        constraint summaries
 - [ ] **R10a** Save a Record edit and watch the toast.
@@ -7684,8 +7686,10 @@ K30 only describes.
   (spent id).
   Pin: tests/adapters-record-instances.test.ts 'instance
        create → list → patch → 412 → retry → delete →
-       history'; exploratory — the live confirm dialog
-       and the list's removal
+       history'; tests/browser/records.test.ts 'an
+       instance is saved and deleted in the panel';
+       exploratory — the live confirm dialog and the
+       list's removal
 - [ ] **R21** ACL projection (member vs admin). The New
   instance form's per-attribute access
   (`data-access="writable"` / `"readonly"` / omitted)
